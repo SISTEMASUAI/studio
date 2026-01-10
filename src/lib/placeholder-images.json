@@ -1,3 +1,46 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "course-1",
+      "description": "Introduction to Web Development course image",
+      "imageUrl": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwcm9ncmFtbWluZyUyMGNvZGV8ZW58MHx8fHwxNzY3OTk1NDI3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "programming code"
+    },
+    {
+      "id": "course-2",
+      "description": "Advanced Marketing Strategies course image",
+      "imageUrl": "https://images.unsplash.com/photo-1613843433065-819a04a47a09?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtYXJrZXRpbmclMjBjaGFydHxlbnwwfHx8fDE3NjgwNzE4OTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "marketing chart"
+    },
+    {
+      "id": "course-3",
+      "description": "Graphic Design Fundamentals course image",
+      "imageUrl": "https://images.unsplash.com/photo-1740059030535-a75661748bc8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxkZXNpZ24lMjB0b29sc3xlbnwwfHx8fDE3NjgwNzE4OTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "design tools"
+    },
+    {
+      "id": "course-4",
+      "description": "Data Science with Python course image",
+      "imageUrl": "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxkYXRhJTIwYW5hbHl0aWNzfGVufDB8fHx8MTc2ODA1NzI1M3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "data analytics"
+    },
+    {
+      "id": "news-1",
+      "description": "Campus innovation fair",
+      "imageUrl": "https://images.unsplash.com/flagged/photo-1554473675-d0904f3cbf38?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHx1bml2ZXJzaXR5JTIwY2FtcHVzfGVufDB8fHx8MTc2ODAyMTIxOXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "university campus"
+    },
+    {
+      "id": "news-2",
+      "description": "Library expansion project",
+      "imageUrl": "https://images.unsplash.com/photo-1532012197267-da84d127e765?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxsaWJyYXJ5JTIwYm9va3N8ZW58MHx8fHwxNzY3OTY3MzgzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "library books"
+    },
+    {
+      "id": "news-3",
+      "description": "New semester kickoff",
+      "imageUrl": "https://images.unsplash.com/photo-1719409015922-cd613dc60be7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdHVkZW50cyUyMGdyYWR1YXRpb258ZW58MHx8fHwxNzY4MDcxODkxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "students graduation"
+    }
+  ]
 }

@@ -33,7 +33,7 @@ export default function LoginPage() {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button className="w-full" asChild>
-                <Link href="/dashboard">Sign In</Link>
+                <Link href="/intranet">Sign In</Link>
             </Button>
             <p className="text-xs text-center text-muted-foreground">
                 This is a demo. Click "Sign In" to continue.

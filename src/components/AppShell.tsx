@@ -3,10 +3,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Building2,
-  Home,
   LogOut,
   Newspaper,
-  School,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -32,9 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const navItems = [
-  { href: '/dashboard', icon: Home, label: 'Dashboard' },
   { href: '/intranet', icon: Newspaper, label: 'Intranet' },
-  { href: '/classroom', icon: School, label: 'Classroom' },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

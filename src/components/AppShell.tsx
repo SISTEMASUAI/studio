@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Building2,
   LogOut,
@@ -30,6 +30,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAuth, useUser } from '@/firebase';
+import { useEffect } from 'react';
+import { Skeleton } from './ui/skeleton';
 
 const navItems = [
   { href: '/intranet', icon: Newspaper, label: 'Intranet' },
@@ -39,6 +42,30 @@ const navItems = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+  const auth = useAuth();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/');
+    }
+  }, [isUserLoading, user, router]);
+  
+  if (isUserLoading || !user) {
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    )
+  }
+
+  const handleLogout = () => {
+    if (auth) {
+      auth.signOut();
+    }
+  };
+
 
   return (
     <SidebarProvider>
@@ -55,27 +82,24 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.href}>
-                <Link href={item.href} passHref>
-                  <SidebarMenuButton
-                    as="a"
-                    isActive={pathname.startsWith(item.href)}
-                    tooltip={item.label}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
+                <SidebarMenuButton
+                  as={Link}
+                  href={item.href}
+                  isActive={pathname.startsWith(item.href)}
+                  tooltip={item.label}
+                >
+                  <item.icon />
+                  <span>{item.label}</span>
+                </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <Link href="/" passHref>
-            <SidebarMenuButton as="a" tooltip="Log Out">
-              <LogOut />
-              <span>Log Out</span>
-            </SidebarMenuButton>
-          </Link>
+          <SidebarMenuButton onClick={handleLogout} tooltip="Log Out">
+            <LogOut />
+            <span>Log Out</span>
+          </SidebarMenuButton>
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -94,22 +118,35 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 function UserMenu() {
+    const { user, isUserLoading } = useUser();
+    const auth = useAuth();
+
+    if (isUserLoading) {
+        return <Skeleton className="w-8 h-8 rounded-full" />;
+    }
+
+    const handleLogout = () => {
+        if (auth) {
+          auth.signOut();
+        }
+    };
+    
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative w-8 h-8 rounded-full">
                     <Avatar className="w-8 h-8">
-                        <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="User avatar" />
-                        <AvatarFallback>JD</AvatarFallback>
+                        <AvatarImage src={user?.photoURL || "https://i.pravatar.cc/150"} alt="User avatar" />
+                        <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none font-headline">John Doe</p>
+                        <p className="text-sm font-medium leading-none font-headline">{user?.displayName || 'User'}</p>
                         <p className="text-xs leading-none text-muted-foreground">
-                            johndoe@example.com
+                            {user?.email}
                         </p>
                     </div>
                 </DropdownMenuLabel>
@@ -117,12 +154,10 @@ function UserMenu() {
                 <DropdownMenuItem>Profile</DropdownMenuItem>
                 <DropdownMenuItem>Settings</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <Link href="/" passHref>
-                  <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Log out
-                  </DropdownMenuItem>
-                </Link>
+                </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     )

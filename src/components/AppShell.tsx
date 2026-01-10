@@ -6,6 +6,7 @@ import {
   LogOut,
   Newspaper,
   Calendar,
+  GraduationCap,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -33,6 +34,7 @@ import {
 const navItems = [
   { href: '/intranet', icon: Newspaper, label: 'Intranet' },
   { href: '/schedule', icon: Calendar, label: 'Horarios' },
+  { href: '/grades', icon: GraduationCap, label: 'Calificaciones' },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

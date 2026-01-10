@@ -1,183 +1,56 @@
-/**
- * # Core Philosophy
- * This ruleset enforces a security model based on explicit ownership and relational roles.
- * The primary goal is "Authorization Independence," where each document contains the
- * necessary data (like an `authorId`, `instructorId`, or `studentId`) to make a security
- * decision without requiring slow and costly lookups to other documents.
- * Access is granted based on a user's authenticated UID matching these ownership fields.
- *
- * # Data Structure
- * The data is organized into logical, top-level collections:
- * - `/users/{userId}/profile`: Stores private user data, strictly owned by the user.
- * - `/intranet_posts/{postId}`: Publicly readable content with write access restricted to the author.
- * - `/virtual_classroom_courses/{courseId}`: Courses and their nested subcollections for
- *   assignments and submissions, with access controlled by instructor and student roles.
- *
- * # Key Security Decisions
- * - **Default Deny:** All paths are closed by default. Access must be explicitly granted.
- * - **No User Listing:** It is not possible to list all documents in the top-level `/users` or
- *   `/virtual_classroom_courses` collections to protect user privacy and prevent data scraping.
- * - **Path vs. Data Consistency:** For documents within user-owned paths (e.g., `/users/{userId}`),
- *   rules enforce that the document's internal `id` field must match the `userId` in the path,
- *   ensuring relational integrity.
- * - **Subcollection Security:** Access to nested collections (like assignments and submissions)
- *   is secured by checking roles in the parent document (`virtual_classroom_courses`), requiring
- *   a single `get` call per operation. This is a necessary trade-off when denormalization of roles
- *   onto every sub-document is not feasible.
- *
- * # Denormalization for Authorization
- * This ruleset relies on denormalizing ownership information directly onto documents.
- * For example, `IntranetPost` documents contain an `authorId`. This avoids needing to
- * look up another document just to verify ownership, making rules faster and more secure.
- * For `AssignmentSubmission`, both `studentId` and a (recommended) `instructorId` would
- * allow for immediate access decisions.
- *
- * # Structural Segregation
- * Data is segregated into distinct collections based on its purpose and access patterns.
- * For example, private user profiles are kept separate from publicly-readable intranet posts.
- * This separation creates a clear and secure boundary for list operations.
- */
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ------------------------------------------------------------------------
-    // Helper Functions
-    // ------------------------------------------------------------------------
-
-    /**
-     * Checks if the user is authenticated.
-     */
+    // Helper functions to simplify rule logic
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the authenticated user's UID matches the provided userId.
-     */
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
-    /**
-     * Verifies that a document exists before an update or delete operation.
-     */
-    function isExistingDoc() {
-      return resource != null;
+    function isInstructor(courseId) {
+      return get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
     }
 
-    /**
-     * Combines ownership check with an existence check for update/delete.
-     */
-    function isOwnerOfExistingDoc(userId) {
-      return isOwner(userId) && isExistingDoc();
+    // User Profiles: Readable by any authenticated user, but only writable by the owner.
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
     }
 
-    /**
-     * Checks if the requesting user is the instructor of a specific course.
-     * This requires reading the parent course document.
-     */
-    function isCourseInstructor(courseId) {
-      return isSignedIn() && get(/databases/$(database)/documents/virtual_classroom_courses/$(courseId)).data.instructorId == request.auth.uid;
-    }
-
-    /**
-     * A helper to enforce that a critical relational ID cannot be changed during an update.
-     */
-    function isImmutable(fieldName) {
-      return request.resource.data[fieldName] == resource.data[fieldName];
-    }
-
-    // ------------------------------------------------------------------------
-    // User Profile Rules
-    // ------------------------------------------------------------------------
-
-    /**
-     * @description Controls access to a user's private profile document.
-     * @path        /users/{userId}/profile/{docId} (where docId is typically 'profile')
-     * @allow       (create) A user creating their own profile for the first time.
-     * @deny        (get) An authenticated user trying to read another user's profile.
-     * @principle   Restricts access to a user's own private data tree (Path-based Ownership).
-     */
-    match /users/{userId}/profile/{docId} {
-      allow get: if isOwner(userId);
-      allow list: if false; // A user should never list documents in another user's subcollection.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwnerOfExistingDoc(userId) && isImmutable('id');
-      allow delete: if isOwnerOfExistingDoc(userId);
-    }
-
-    // ------------------------------------------------------------------------
-    // Intranet Post Rules
-    // ------------------------------------------------------------------------
-
-    /**
-     * @description Controls access to intranet posts, which are public to read.
-     * @path        /intranet_posts/{postId}
-     * @allow       (create) An authenticated user creating a new post with themselves as the author.
-     * @deny        (update) A user trying to update a post written by someone else.
-     * @principle   Public Read with Owner-Only Writes. Validates ownership via `authorId` field.
-     */
+    // Intranet Posts: Readable by all, writable only by the author.
     match /intranet_posts/{postId} {
-      allow get: if true;
-      allow list: if true;
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      allow update: if isOwnerOfExistingDoc(resource.data.authorId) && isImmutable('authorId');
-      allow delete: if isOwnerOfExistingDoc(resource.data.authorId);
+      allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
     }
 
-    // ------------------------------------------------------------------------
-    // Virtual Classroom Rules
-    // ------------------------------------------------------------------------
-
-    /**
-     * @description Controls access to course documents. Only the instructor can manage a course.
-     * @path        /virtual_classroom_courses/{courseId}
-     * @allow       (get) The instructor reading their own course document.
-     * @deny        (list) Any user attempting to list all courses in the system.
-     * @deny        (update) A user trying to modify a course where they are not the instructor.
-     * @principle   Enforces document ownership for all operations based on the `instructorId` field.
-     */
-    match /virtual_classroom_courses/{courseId} {
-      allow get: if isOwner(resource.data.instructorId);
-      allow list: if false; // Prevent listing all courses; clients must query by instructorId.
+    // Courses: Readable by all, but only the instructor can manage them.
+    match /courses/{courseId} {
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.instructorId == request.auth.uid;
-      allow update: if isOwnerOfExistingDoc(resource.data.instructorId) && isImmutable('instructorId');
-      allow delete: if isOwnerOfExistingDoc(resource.data.instructorId);
+      allow update, delete: if isSignedIn() && resource.data.instructorId == request.auth.uid;
 
-      /**
-       * @description Controls access to course assignments. Only the course instructor can manage them.
-       * @path        /virtual_classroom_courses/{courseId}/assignments/{assignmentId}
-       * @allow       (create) The course instructor creating a new assignment for their course.
-       * @deny        (get) A student or any other user trying to read an assignment directly.
-       * @principle   Inherits authorization from the parent document. Access requires a `get` call
-       *              to the parent course to verify the user is the instructor.
-       */
+      // Assignments nested under courses
       match /assignments/{assignmentId} {
-        allow get: if isCourseInstructor(courseId);
-        allow list: if isCourseInstructor(courseId);
-        allow create: if isCourseInstructor(courseId);
-        allow update: if isCourseInstructor(courseId) && isExistingDoc();
-        allow delete: if isCourseInstructor(courseId) && isExistingDoc();
+        allow read: if isSignedIn();
+        allow create: if isInstructor(courseId);
+        allow update, delete: if isInstructor(courseId);
       }
-
-      /**
-       * @description Controls access to student submissions for an assignment.
-       * @path        /virtual_classroom_courses/{courseId}/assignments/{assignmentId}/submissions/{submissionId}
-       * @allow       (create) A student submitting their own work.
-       * @allow       (get) The course instructor viewing a student's submission.
-       * @deny        (get) A student trying to read another student's submission.
-       * @deny        (list) A student trying to list all submissions for an assignment.
-       * @principle   Shared Access (Closed Collaborators). Grants access to the student who owns the
-       *              submission (`studentId`) and the instructor of the parent course.
-       */
-      match /assignments/{assignmentId}/submissions/{submissionId} {
-        allow get: if isOwner(resource.data.studentId) || isCourseInstructor(courseId);
-        allow list: if isCourseInstructor(courseId); // Only instructors can list all submissions.
-        allow create: if isOwner(request.resource.data.studentId);
-        allow update: if (isOwnerOfExistingDoc(resource.data.studentId) || isCourseInstructor(courseId)) && isImmutable('studentId');
-        allow delete: if isOwnerOfExistingDoc(resource.data.studentId);
-      }
+    }
+    
+    // Submissions for assignments
+    match /assignments/{assignmentId}/submissions/{submissionId} {
+        allow read: if isSignedIn() && (isOwner(resource.data.studentId) || isInstructor(resource.data.courseId));
+        allow create: if isSignedIn() && isOwner(request.resource.data.studentId);
+        allow update: if isSignedIn() && isOwner(resource.data.studentId);
+        // Only students can delete their own submissions
+        allow delete: if isSignedIn() && isOwner(resource.data.studentId);
     }
   }
 }

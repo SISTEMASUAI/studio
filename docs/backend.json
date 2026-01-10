@@ -1,14 +1,24 @@
+
 {
   "entities": {
     "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
       "description": "Represents a user profile within the Campus Hub application.",
       "properties": {
-        "id": {
+        "uid": {
           "type": "string",
-          "description": "Unique identifier for the user profile."
+          "description": "The unique identifier for the user, matching the Firebase Auth UID."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user in the system.",
+          "enum": ["student", "professor", "admin"]
         },
         "firstName": {
           "type": "string",
@@ -18,43 +28,26 @@
           "type": "string",
           "description": "The last name of the user."
         },
-        "email": {
-          "type": "string",
-          "description": "The email address of the user.",
-          "format": "email"
-        },
         "profilePicture": {
           "type": "string",
           "description": "URL of the user's profile picture.",
           "format": "uri"
-        },
-        "registrationDate": {
-          "type": "string",
-          "description": "Date and time the user registered.",
-          "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "firstName",
-        "lastName",
-        "email",
-        "registrationDate"
-      ]
+      "required": ["uid", "email", "role", "firstName", "lastName"]
     },
     "IntranetPost": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "IntranetPost",
       "type": "object",
-      "description": "Represents a post on the intranet portal.",
+      "description": "Represents a post on the intranet portal, like news or announcements.",
       "properties": {
-        "id": {
+        "postId": {
           "type": "string",
           "description": "Unique identifier for the intranet post."
         },
         "authorId": {
           "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N IntranetPost)"
+          "description": "The UID of the user who created the post."
         },
         "title": {
           "type": "string",
@@ -64,9 +57,9 @@
           "type": "string",
           "description": "The main content of the intranet post."
         },
-        "publicationDate": {
+        "createdAt": {
           "type": "string",
-          "description": "Date and time the intranet post was published.",
+          "description": "The date and time the post was created.",
           "format": "date-time"
         },
         "summary": {
@@ -74,21 +67,14 @@
           "description": "AI-generated summary of the intranet post."
         }
       },
-      "required": [
-        "id",
-        "authorId",
-        "title",
-        "content",
-        "publicationDate"
-      ]
+      "required": ["postId", "authorId", "title", "content", "createdAt"]
     },
     "VirtualClassroomCourse": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "VirtualClassroomCourse",
       "type": "object",
       "description": "Represents a course within the virtual classroom.",
       "properties": {
-        "id": {
+        "courseId": {
           "type": "string",
           "description": "Unique identifier for the course."
         },
@@ -102,29 +88,23 @@
         },
         "instructorId": {
           "type": "string",
-          "description": "Reference to UserProfile (Instructor). (Relationship: UserProfile 1:N VirtualClassroomCourse)"
+          "description": "The UID of the instructor for the course."
         }
       },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "instructorId"
-      ]
+      "required": ["courseId", "name", "description", "instructorId"]
     },
     "CourseAssignment": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CourseAssignment",
       "type": "object",
       "description": "Represents an assignment within a course.",
       "properties": {
-        "id": {
+        "assignmentId": {
           "type": "string",
           "description": "Unique identifier for the assignment."
         },
         "courseId": {
           "type": "string",
-          "description": "Reference to VirtualClassroomCourse. (Relationship: VirtualClassroomCourse 1:N CourseAssignment)"
+          "description": "The ID of the course this assignment belongs to."
         },
         "title": {
           "type": "string",
@@ -140,33 +120,26 @@
           "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "courseId",
-        "title",
-        "description",
-        "dueDate"
-      ]
+      "required": ["assignmentId", "courseId", "title", "description", "dueDate"]
     },
     "AssignmentSubmission": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AssignmentSubmission",
       "type": "object",
       "description": "Represents a student's submission for an assignment.",
       "properties": {
-        "id": {
+        "submissionId": {
           "type": "string",
-          "description": "Unique identifier for the assignment submission."
+          "description": "Unique identifier for the submission."
         },
         "assignmentId": {
           "type": "string",
-          "description": "Reference to CourseAssignment. (Relationship: CourseAssignment 1:N AssignmentSubmission)"
+          "description": "The ID of the assignment this submission is for."
         },
         "studentId": {
           "type": "string",
-          "description": "Reference to UserProfile (Student). (Relationship: UserProfile 1:N AssignmentSubmission)"
+          "description": "The UID of the student who made the submission."
         },
-        "submissionDate": {
+        "submittedAt": {
           "type": "string",
           "description": "Date and time the assignment was submitted.",
           "format": "date-time"
@@ -178,119 +151,49 @@
         },
         "grade": {
           "type": "number",
-          "description": "The grade received for the assignment submission."
+          "description": "The grade received for the submission."
         }
       },
-      "required": [
-        "id",
-        "assignmentId",
-        "studentId",
-        "submissionDate",
-        "fileUrl"
-      ]
+      "required": ["submissionId", "assignmentId", "studentId", "submittedAt", "fileUrl"]
     }
   },
   "auth": {
     "providers": [
-      "password",
-      "anonymous"
+      "password"
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}/profile",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profile information. Uses path-based ownership for private data.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
+    "structure": {
+      "/users/{userId}": {
+        "schema": {
+          "$ref": "#/entities/UserProfile"
+        },
+        "description": "Stores public user profile information, accessible by other authenticated users. The document ID must match the user's UID."
       },
-      {
-        "path": "/intranet_posts/{postId}",
-        "definition": {
-          "entityName": "IntranetPost",
-          "schema": {
-            "$ref": "#/backend/entities/IntranetPost"
-          },
-          "description": "Stores intranet posts. No specific authorization denormalization is needed as listing can be controlled at the collection level. Each post is self-contained.",
-          "params": [
-            {
-              "name": "postId",
-              "description": "The unique identifier for the intranet post."
-            }
-          ]
-        }
+      "/intranet_posts/{postId}": {
+        "schema": {
+          "$ref": "#/entities/IntranetPost"
+        },
+        "description": "Stores intranet posts. Publicly readable by any authenticated user, but writable only by the author."
       },
-      {
-        "path": "/virtual_classroom_courses/{courseId}",
-        "definition": {
-          "entityName": "VirtualClassroomCourse",
-          "schema": {
-            "$ref": "#/backend/entities/VirtualClassroomCourse"
-          },
-          "description": "Stores virtual classroom course information. Ownership is determined by the instructorId.",
-          "params": [
-            {
-              "name": "courseId",
-              "description": "The unique identifier for the virtual classroom course."
-            }
-          ]
-        }
+      "/courses/{courseId}": {
+        "schema": {
+          "$ref": "#/entities/VirtualClassroomCourse"
+        },
+        "description": "Stores course information. Readable by any authenticated user, but writable only by the instructor."
       },
-      {
-        "path": "/virtual_classroom_courses/{courseId}/assignments/{assignmentId}",
-        "definition": {
-          "entityName": "CourseAssignment",
-          "schema": {
-            "$ref": "#/backend/entities/CourseAssignment"
-          },
-          "description": "Stores course assignments. Includes denormalized instructorId from VirtualClassroomCourse for authorization independence.",
-          "params": [
-            {
-              "name": "courseId",
-              "description": "The unique identifier for the virtual classroom course."
-            },
-            {
-              "name": "assignmentId",
-              "description": "The unique identifier for the course assignment."
-            }
-          ]
-        }
+      "/courses/{courseId}/assignments/{assignmentId}": {
+        "schema": {
+          "$ref": "#/entities/CourseAssignment"
+        },
+        "description": "Stores assignments for a course. Readable by authenticated users, writable only by the course instructor."
       },
-      {
-        "path": "/virtual_classroom_courses/{courseId}/assignments/{assignmentId}/submissions/{submissionId}",
-        "definition": {
-          "entityName": "AssignmentSubmission",
-          "schema": {
-            "$ref": "#/backend/entities/AssignmentSubmission"
-          },
-          "description": "Stores assignment submissions. Includes denormalized instructorId from VirtualClassroomCourse and studentId for authorization independence.",
-          "params": [
-            {
-              "name": "courseId",
-              "description": "The unique identifier for the virtual classroom course."
-            },
-            {
-              "name": "assignmentId",
-              "description": "The unique identifier for the course assignment."
-            },
-            {
-              "name": "submissionId",
-              "description": "The unique identifier for the assignment submission."
-            }
-          ]
-        }
+      "/assignments/{assignmentId}/submissions/{submissionId}": {
+        "schema": {
+          "$ref": "#/entities/AssignmentSubmission"
+        },
+        "description": "Stores student submissions for an assignment. Readable by the submitting student and the course instructor. Writable only by the student."
       }
-    ],
-    "reasoning": "The Firestore structure is designed to ensure security, scalability, and ease of debugging, following the principles of Authorization Independence, Clarity of Intent, DBAC (Database Based Access Control), and QAPs (Rules are not Filters). Authorization Independence is achieved through denormalization. For example, access control lists or roles associated with a `VirtualClassroomCourse` are denormalized into the `CourseAssignment` documents, avoiding costly and insecure `get()` calls in security rules. Structural Segregation is used to maintain a homogeneous security posture, such as storing `IntranetPost` under `/intranet_posts` instead of mixing them with other data types. Access Modeling employs consistent patterns like path-based ownership (`/users/{userId}/profile`) and membership maps for collaborative data, ensuring a standardized approach to authorization. Data Clarity is achieved through explicit state modeling using dedicated status fields where appropriate and predictable schema."
+    }
   }
 }

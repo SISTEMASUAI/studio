@@ -16,6 +16,7 @@ import {
   HeartPulse,
   User,
   BookCopy,
+  UserCheck,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -44,22 +45,23 @@ import { useEffect } from 'react';
 import { Skeleton } from './ui/skeleton';
 
 const navItems = [
-  { href: '/intranet', icon: Newspaper, label: 'Intranet' },
-  { href: '/schedule', icon: Calendar, label: 'Horarios' },
-  { href: '/cursos', icon: BookCopy, label: 'Cursos' },
-  { href: '/grades', icon: GraduationCap, label: 'Calificaciones' },
-  { href: '/matricula', icon: ClipboardList, label: 'Matrícula' },
-  { href: '/plan-de-estudios', icon: BookMarked, label: 'Plan de Estudios' },
-  { href: '/tramites', icon: FileClock, label: 'Trámites' },
-  { href: '/pagos', icon: Landmark, label: 'Pagos' },
-  { href: '/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo' },
-  { href: '/actividades', icon: Activity, label: 'Actividades' },
-  { href: '/bienestar', icon: HeartPulse, label: 'Bienestar' },
+  { href: '/intranet', icon: Newspaper, label: 'Intranet', roles: ['student', 'professor', 'admin'] },
+  { href: '/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin'] },
+  { href: '/cursos', icon: BookCopy, label: 'Cursos', roles: ['student', 'professor', 'admin'] },
+  { href: '/asistencia', icon: UserCheck, label: 'Asistencia', roles: ['professor', 'admin'] },
+  { href: '/grades', icon: GraduationCap, label: 'Calificaciones', roles: ['student', 'professor', 'admin'] },
+  { href: '/matricula', icon: ClipboardList, label: 'Matrícula', roles: ['student', 'professor', 'admin'] },
+  { href: '/plan-de-estudios', icon: BookMarked, label: 'Plan de Estudios', roles: ['student', 'professor', 'admin'] },
+  { href: '/tramites', icon: FileClock, label: 'Trámites', roles: ['student', 'professor', 'admin'] },
+  { href: '/pagos', icon: Landmark, label: 'Pagos', roles: ['student', 'professor', 'admin'] },
+  { href: '/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo', roles: ['student', 'professor', 'admin'] },
+  { href: '/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin'] },
+  { href: '/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin'] },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, isUserLoading } = useUser();
+  const { user, profile, isUserLoading } = useUser();
   const router = useRouter();
   const auth = useAuth();
 
@@ -83,6 +85,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const userRole = profile?.role;
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -96,18 +100,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {navItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  onClick={() => router.push(item.href)}
-                  isActive={pathname.startsWith(item.href)}
-                  tooltip={item.label}
-                >
-                  <item.icon />
-                  <span>{item.label}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+            {navItems.map((item) => {
+              if (userRole && item.roles.includes(userRole)) {
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      onClick={() => router.push(item.href)}
+                      isActive={pathname.startsWith(item.href)}
+                      tooltip={item.label}
+                    >
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              }
+              return null;
+             })}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
@@ -192,3 +201,5 @@ function UserMenu() {
     </DropdownMenu>
   );
 }
+
+    

@@ -287,6 +287,20 @@
         "tutorId": { "type": "string", "description": "UID of the assigned tutor/counselor." }
       },
       "required": ["serviceId", "userId", "serviceType", "status"]
+    },
+    "AttendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Represents a single attendance record for a student in a course.",
+      "type": "object",
+      "properties": {
+        "attendanceId": { "type": "string", "description": "Unique identifier for the attendance record." },
+        "studentId": { "type": "string", "description": "UID of the student." },
+        "courseId": { "type": "string", "description": "ID of the course." },
+        "date": { "type": "string", "format": "date-time", "description": "The date of the class." },
+        "status": { "type": "string", "enum": ["present", "absent", "late", "justified"] },
+        "notes": { "type": "string", "description": "Optional notes, e.g., for a justification." }
+      },
+      "required": ["attendanceId", "studentId", "courseId", "date", "status"]
     }
   },
   "auth": {
@@ -361,7 +375,13 @@
       "/wellness_services/{serviceId}": {
         "schema": { "$ref": "#/entities/WellnessAppointment" },
         "description": "Stores appointments for wellness services. Readable by the user and admins."
+      },
+      "/attendance/{attendanceId}": {
+        "schema": { "$ref": "#/entities/AttendanceRecord" },
+        "description": "Stores individual attendance records. Writable by professors and admins. Students can read their own records (indirectly via course pages)."
       }
     }
   }
 }
+
+    

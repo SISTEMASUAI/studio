@@ -32,6 +32,11 @@
           "type": "string",
           "description": "URL of the user's profile picture.",
           "format": "uri"
+        },
+        "cvUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to the user's CV/Resume file."
         }
       },
       "required": ["uid", "email", "role", "firstName", "lastName"]
@@ -219,6 +224,34 @@
         "appliedDate": { "type": "string", "format": "date-time" }
       },
       "required": ["scholarshipId", "name", "amount", "appliedDate"]
+    },
+    "JobOffer": {
+      "title": "JobOffer",
+      "description": "Represents a job or internship offer.",
+      "type": "object",
+      "properties": {
+        "offerId": { "type": "string" },
+        "title": { "type": "string" },
+        "company": { "type": "string" },
+        "description": { "type": "string" },
+        "location": { "type": "string" },
+        "type": { "type": "string", "enum": ["Full-time", "Part-time", "Internship"] },
+        "postedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["offerId", "title", "company", "description", "postedAt"]
+    },
+    "JobApplication": {
+      "title": "JobApplication",
+      "description": "Represents a student's application to a job offer.",
+      "type": "object",
+      "properties": {
+        "applicationId": { "type": "string" },
+        "jobOfferId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "appliedAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Applied", "In Review", "Interviewing", "Offered", "Rejected"] }
+      },
+      "required": ["applicationId", "jobOfferId", "studentId", "appliedAt", "status"]
     }
   },
   "auth": {
@@ -241,6 +274,10 @@
       "/users/{userId}/scholarships/{scholarshipId}": {
         "schema": { "$ref": "#/entities/Scholarship" },
         "description": "Stores scholarships awarded to a student. Accessible by the student and admins."
+      },
+      "/users/{userId}/job_applications/{applicationId}": {
+        "schema": { "$ref": "#/entities/JobApplication" },
+        "description": "Stores job applications for a student. Only the student and admins can access."
       },
       "/intranet_posts/{postId}": {
         "schema": {
@@ -277,6 +314,10 @@
        "/payments/{paymentId}": {
         "schema": { "$ref": "#/entities/Payment" },
         "description": "Stores all payment transactions. Admins can read all. Students can only read their own."
+      },
+      "/job_offers/{offerId}": {
+        "schema": { "$ref": "#/entities/JobOffer" },
+        "description": "Stores job and internship offers. Readable by all authenticated users, writable only by admins."
       }
     }
   }

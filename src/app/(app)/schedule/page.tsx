@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -7,6 +6,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Download, PlusCircle } from 'lucide-react';
+import { useUser } from '@/firebase';
 
 const upcomingEvents = [
   {
@@ -36,6 +36,9 @@ const eventTypes: { [key: string]: { label: string; className: string } } = {
 
 export default function SchedulePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const { profile } = useUser();
+
+  const canManageEvents = profile?.role === 'admin' || profile?.role === 'professor';
 
   return (
     <div className="grid gap-8 lg:grid-cols-3">
@@ -47,15 +50,16 @@ export default function SchedulePage() {
               <p className="text-muted-foreground">Consulta tus clases, exámenes y eventos académicos.</p>
             </div>
             <div className="flex gap-2">
-              {/* These buttons will be functional in future steps */}
               <Button variant="outline">
                 <Download className="mr-2" />
                 Exportar
               </Button>
-              <Button>
-                <PlusCircle className="mr-2" />
-                Crear Evento
-              </Button>
+              {canManageEvents && (
+                <Button>
+                  <PlusCircle className="mr-2" />
+                  Crear Evento
+                </Button>
+              )}
             </div>
           </div>
           <Card>

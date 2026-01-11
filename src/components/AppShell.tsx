@@ -45,18 +45,18 @@ import { useEffect } from 'react';
 import { Skeleton } from './ui/skeleton';
 
 const navItems = [
-  { href: '/intranet', icon: Newspaper, label: 'Intranet', roles: ['student', 'professor', 'admin'] },
-  { href: '/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin'] },
-  { href: '/cursos', icon: BookCopy, label: 'Cursos', roles: ['student', 'professor', 'admin'] },
-  { href: '/asistencia', icon: UserCheck, label: 'Asistencia', roles: ['professor', 'admin'] },
-  { href: '/grades', icon: GraduationCap, label: 'Calificaciones', roles: ['student', 'professor', 'admin'] },
-  { href: '/matricula', icon: ClipboardList, label: 'Matrícula', roles: ['student', 'professor', 'admin'] },
-  { href: '/plan-de-estudios', icon: BookMarked, label: 'Plan de Estudios', roles: ['student', 'professor', 'admin'] },
-  { href: '/tramites', icon: FileClock, label: 'Trámites', roles: ['student', 'professor', 'admin'] },
-  { href: '/pagos', icon: Landmark, label: 'Pagos', roles: ['student', 'professor', 'admin'] },
-  { href: '/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo', roles: ['student', 'professor', 'admin'] },
-  { href: '/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin'] },
-  { href: '/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard', icon: Newspaper, label: 'Intranet', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard/cursos', icon: BookCopy, label: 'Cursos', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard/asistencia', icon: UserCheck, label: 'Asistencia', roles: ['professor', 'admin'] },
+  { href: '/dashboard/grades', icon: GraduationCap, label: 'Calificaciones', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard/matricula', icon: ClipboardList, label: 'Matrícula', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard/plan-de-estudios', icon: BookMarked, label: 'Plan de Estudios', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard/tramites', icon: FileClock, label: 'Trámites', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard/pagos', icon: Landmark, label: 'Pagos', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin'] },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -187,7 +187,7 @@ function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => router.push('/profile')}>
+        <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
           <User className="w-4 h-4 mr-2" />
           Profile
         </DropdownMenuItem>
@@ -201,5 +201,3 @@ function UserMenu() {
     </DropdownMenu>
   );
 }
-
-    

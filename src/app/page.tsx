@@ -57,7 +57,7 @@ export default function LoginPage() {
       initiateEmailSignIn(auth, data.email, data.password);
       // The onAuthStateChanged listener in FirebaseProvider will handle redirection
       // For now, we can optimistically redirect. If login fails, onAuthStateChanged will clear user and redirect back.
-      router.push('/intranet');
+      router.push('/dashboard');
     } catch (error: any) {
       setIsLoading(false);
       toast({

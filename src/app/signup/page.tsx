@@ -96,7 +96,7 @@ export default function SignupPage() {
         description: 'You have been successfully registered.',
       });
 
-      router.push('/intranet');
+      router.push('/dashboard');
     } catch (error: any) {
       console.error('Sign up failed:', error);
       toast({

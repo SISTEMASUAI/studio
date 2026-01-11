@@ -33,6 +33,14 @@
           "description": "URL of the user's profile picture.",
           "format": "uri"
         },
+        "address": {
+            "type": "string",
+            "description": "The user's physical address."
+        },
+        "phone": {
+            "type": "string",
+            "description": "The user's phone number."
+        },
         "cvUrl": {
             "type": "string",
             "format": "uri",

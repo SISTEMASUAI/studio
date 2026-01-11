@@ -14,6 +14,7 @@ import {
   Briefcase,
   Activity,
   HeartPulse,
+  User,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -136,6 +137,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 function UserMenu() {
   const { user, profile, isUserLoading } = useUser();
   const auth = useAuth();
+  const router = useRouter();
 
   if (isUserLoading) {
     return <Skeleton className="w-8 h-8 rounded-full" />;
@@ -174,8 +176,11 @@ function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Profile</DropdownMenuItem>
-        <DropdownMenuItem>Settings</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push('/profile')}>
+          <User className="w-4 h-4 mr-2" />
+          Profile
+        </DropdownMenuItem>
+        <DropdownMenuItem disabled>Settings</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="w-4 h-4 mr-2" />

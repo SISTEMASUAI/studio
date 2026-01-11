@@ -170,7 +170,7 @@ export default function GradesPage() {
       default:
         return (
           <Card>
-            <CardContent>
+            <CardContent className="pt-6">
               <p>Cargando información del usuario...</p>
             </CardContent>
           </Card>

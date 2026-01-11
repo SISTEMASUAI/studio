@@ -183,6 +183,42 @@
         "statusChange": { "type": "string", "description": "Describes a status change, e.g., 'De \"En Proceso\" a \"Aprobado\"'." }
       },
       "required": ["updateId", "authorId", "timestamp", "comment"]
+    },
+     "FinancialInfo": {
+      "title": "FinancialInfo",
+      "description": "Stores a student's overall financial information.",
+      "type": "object",
+      "properties": {
+        "balance": { "type": "number", "description": "Current account balance." },
+        "lastUpdated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["balance", "lastUpdated"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Represents a single payment transaction.",
+      "type": "object",
+      "properties": {
+        "paymentId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "concept": { "type": "string", "description": "Description of the payment (e.g., 'Tuition Fee - September')." },
+        "status": { "type": "string", "enum": ["Pending", "Completed", "Failed"] }
+      },
+      "required": ["paymentId", "studentId", "amount", "date", "concept", "status"]
+    },
+    "Scholarship": {
+      "title": "Scholarship",
+      "description": "Represents a scholarship applied to a student's account.",
+      "type": "object",
+      "properties": {
+        "scholarshipId": { "type": "string" },
+        "name": { "type": "string", "description": "Name of the scholarship." },
+        "amount": { "type": "number" },
+        "appliedDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["scholarshipId", "name", "amount", "appliedDate"]
     }
   },
   "auth": {
@@ -197,6 +233,14 @@
           "$ref": "#/entities/UserProfile"
         },
         "description": "Stores public user profile information, accessible by other authenticated users. The document ID must match the user's UID."
+      },
+       "/users/{userId}/financialInfo/{infoId}": {
+        "schema": { "$ref": "#/entities/FinancialInfo" },
+        "description": "Stores the financial summary for a student. Only accessible by the student and admins."
+      },
+      "/users/{userId}/scholarships/{scholarshipId}": {
+        "schema": { "$ref": "#/entities/Scholarship" },
+        "description": "Stores scholarships awarded to a student. Accessible by the student and admins."
       },
       "/intranet_posts/{postId}": {
         "schema": {
@@ -229,6 +273,10 @@
       "/tramites/{tramiteId}/updates/{updateId}": {
         "schema": { "$ref": "#/entities/TramiteUpdate" },
         "description": "Stores the history of updates and comments for a specific administrative request. Readable by applicant and admins, writable by admins."
+      },
+       "/payments/{paymentId}": {
+        "schema": { "$ref": "#/entities/Payment" },
+        "description": "Stores all payment transactions. Admins can read all. Students can only read their own."
       }
     }
   }

@@ -10,6 +10,7 @@ import {
   ClipboardList,
   BookMarked,
   FileClock,
+  Landmark,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -44,6 +45,7 @@ const navItems = [
   { href: '/matricula', icon: ClipboardList, label: 'Matrícula' },
   { href: '/plan-de-estudios', icon: BookMarked, label: 'Plan de Estudios' },
   { href: '/tramites', icon: FileClock, label: 'Trámites' },
+  { href: '/pagos', icon: Landmark, label: 'Pagos' },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

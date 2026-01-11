@@ -1,5 +1,4 @@
 'use client';
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Building2,
@@ -34,6 +33,7 @@ import {
 import { useAuth, useUser } from '@/firebase';
 import { useEffect } from 'react';
 import { Skeleton } from './ui/skeleton';
+import Link from 'next/link';
 
 const navItems = [
   { href: '/intranet', icon: Newspaper, label: 'Intranet' },

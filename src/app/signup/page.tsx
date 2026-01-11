@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Building2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -31,11 +30,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, setDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { useState } from 'react';
 
 const FormSchema = z.object({
@@ -43,7 +42,7 @@ const FormSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email({ message: 'Please enter a valid email.' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
-  role: z.enum(['student', 'professor', 'admin', 'staff']),
+  role: z.enum(['student', 'professor', 'admin']),
 });
 
 export default function SignupPage() {
@@ -88,8 +87,9 @@ export default function SignupPage() {
         lastName: data.lastName,
         profilePicture: `https://i.pravatar.cc/150?u=${user.uid}`,
       };
-
-      await setDoc(doc(firestore, 'users', user.uid), userProfile);
+      
+      const userDocRef = doc(firestore, 'users', user.uid);
+      setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
 
       toast({
         title: 'Account Created!',
@@ -207,7 +207,6 @@ export default function SignupPage() {
                           <SelectItem value="student">Student</SelectItem>
                           <SelectItem value="professor">Professor</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
-                           <SelectItem value="staff">Staff</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

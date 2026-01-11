@@ -8,6 +8,7 @@ import {
   GraduationCap,
   Loader2,
   ClipboardList,
+  BookMarked,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -40,11 +41,12 @@ const navItems = [
   { href: '/schedule', icon: Calendar, label: 'Horarios' },
   { href: '/grades', icon: GraduationCap, label: 'Calificaciones' },
   { href: '/matricula', icon: ClipboardList, label: 'Matrícula' },
+  { href: '/plan-de-estudios', icon: BookMarked, label: 'Plan de Estudios' },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, profile, isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
   const auth = useAuth();
 

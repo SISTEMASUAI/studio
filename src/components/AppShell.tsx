@@ -7,6 +7,7 @@ import {
   Newspaper,
   Calendar,
   GraduationCap,
+  Loader2,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -42,7 +43,7 @@ const navItems = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, isUserLoading } = useUser();
+  const { user, profile, isUserLoading } = useUser();
   const router = useRouter();
   const auth = useAuth();
 
@@ -54,7 +55,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   
   if (isUserLoading || !user) {
     return (
-        <div className="flex items-center justify-center min-h-screen">
+        <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
     )
@@ -118,7 +119,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 function UserMenu() {
-    const { user, isUserLoading } = useUser();
+    const { user, profile, isUserLoading } = useUser();
     const auth = useAuth();
 
     if (isUserLoading) {
@@ -136,7 +137,7 @@ function UserMenu() {
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative w-8 h-8 rounded-full">
                     <Avatar className="w-8 h-8">
-                        <AvatarImage src={user?.photoURL || "https://i.pravatar.cc/150"} alt="User avatar" />
+                        <AvatarImage src={profile?.profilePicture || user?.photoURL || "https://i.pravatar.cc/150"} alt="User avatar" />
                         <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                 </Button>

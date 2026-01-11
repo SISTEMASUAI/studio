@@ -15,6 +15,7 @@ import {
   Activity,
   HeartPulse,
   User,
+  BookCopy,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -45,6 +46,7 @@ import { Skeleton } from './ui/skeleton';
 const navItems = [
   { href: '/intranet', icon: Newspaper, label: 'Intranet' },
   { href: '/schedule', icon: Calendar, label: 'Horarios' },
+  { href: '/cursos', icon: BookCopy, label: 'Cursos' },
   { href: '/grades', icon: GraduationCap, label: 'Calificaciones' },
   { href: '/matricula', icon: ClipboardList, label: 'Matrícula' },
   { href: '/plan-de-estudios', icon: BookMarked, label: 'Plan de Estudios' },

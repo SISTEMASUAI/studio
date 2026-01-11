@@ -13,6 +13,7 @@ import {
   Landmark,
   Briefcase,
   Activity,
+  HeartPulse,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -50,6 +51,7 @@ const navItems = [
   { href: '/pagos', icon: Landmark, label: 'Pagos' },
   { href: '/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo' },
   { href: '/actividades', icon: Activity, label: 'Actividades' },
+  { href: '/bienestar', icon: HeartPulse, label: 'Bienestar' },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

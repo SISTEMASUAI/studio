@@ -265,6 +265,20 @@
         "organizerId": { "type": "string", "description": "UID of the professor or admin who created the event." }
       },
       "required": ["eventId", "name", "description", "date", "organizerId"]
+    },
+    "WellnessAppointment": {
+      "title": "WellnessAppointment",
+      "description": "Represents a wellness service appointment.",
+      "type": "object",
+      "properties": {
+        "serviceId": { "type": "string" },
+        "userId": { "type": "string", "description": "UID of the user requesting the service." },
+        "serviceType": { "type": "string", "enum": ["orientation", "tutoring"] },
+        "status": { "type": "string", "enum": ["requested", "scheduled", "completed", "canceled"] },
+        "scheduledAt": { "type": "string", "format": "date-time" },
+        "tutorId": { "type": "string", "description": "UID of the assigned tutor/counselor." }
+      },
+      "required": ["serviceId", "userId", "serviceType", "status"]
     }
   },
   "auth": {
@@ -335,6 +349,10 @@
       "/events/{eventId}": {
         "schema": { "$ref": "#/entities/ExtracurricularEvent" },
         "description": "Stores extracurricular activities and events. Readable by all, writable by admins and professors."
+      },
+      "/wellness_services/{serviceId}": {
+        "schema": { "$ref": "#/entities/WellnessAppointment" },
+        "description": "Stores appointments for wellness services. Readable by the user and admins."
       }
     }
   }

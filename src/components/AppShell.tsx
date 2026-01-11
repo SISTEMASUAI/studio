@@ -12,6 +12,7 @@ import {
   FileClock,
   Landmark,
   Briefcase,
+  Activity,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -48,6 +49,7 @@ const navItems = [
   { href: '/tramites', icon: FileClock, label: 'Trámites' },
   { href: '/pagos', icon: Landmark, label: 'Pagos' },
   { href: '/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo' },
+  { href: '/actividades', icon: Activity, label: 'Actividades' },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

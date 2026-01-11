@@ -252,6 +252,19 @@
         "status": { "type": "string", "enum": ["Applied", "In Review", "Interviewing", "Offered", "Rejected"] }
       },
       "required": ["applicationId", "jobOfferId", "studentId", "appliedAt", "status"]
+    },
+    "ExtracurricularEvent": {
+      "title": "ExtracurricularEvent",
+      "description": "Represents an extracurricular event or activity.",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "organizerId": { "type": "string", "description": "UID of the professor or admin who created the event." }
+      },
+      "required": ["eventId", "name", "description", "date", "organizerId"]
     }
   },
   "auth": {
@@ -318,6 +331,10 @@
       "/job_offers/{offerId}": {
         "schema": { "$ref": "#/entities/JobOffer" },
         "description": "Stores job and internship offers. Readable by all authenticated users, writable only by admins."
+      },
+      "/events/{eventId}": {
+        "schema": { "$ref": "#/entities/ExtracurricularEvent" },
+        "description": "Stores extracurricular activities and events. Readable by all, writable by admins and professors."
       }
     }
   }

@@ -155,6 +155,34 @@
         }
       },
       "required": ["submissionId", "assignmentId", "studentId", "submittedAt", "fileUrl"]
+    },
+    "TramiteRequest": {
+      "title": "TramiteRequest",
+      "description": "Represents a single administrative request made by a user.",
+      "type": "object",
+      "properties": {
+        "requestId": { "type": "string", "description": "Unique identifier for the request." },
+        "applicantId": { "type": "string", "description": "UID of the user who initiated the request." },
+        "requestType": { "type": "string", "description": "The type of request (e.g., 'Certificado de Notas')." },
+        "status": { "type": "string", "enum": ["Enviado", "En Proceso", "Aprobado", "Rechazado", "Completado"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "generatedDocumentUrl": { "type": "string", "format": "uri", "description": "URL to a document generated as part of the request." }
+      },
+      "required": ["requestId", "applicantId", "requestType", "status", "createdAt", "updatedAt"]
+    },
+    "TramiteUpdate": {
+      "title": "TramiteUpdate",
+      "description": "Represents an update or comment in the history of a request.",
+      "type": "object",
+      "properties": {
+        "updateId": { "type": "string", "description": "Unique identifier for the update." },
+        "authorId": { "type": "string", "description": "UID of the admin who made the update." },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "comment": { "type": "string", "description": "Internal comment or note about the update." },
+        "statusChange": { "type": "string", "description": "Describes a status change, e.g., 'De \"En Proceso\" a \"Aprobado\"'." }
+      },
+      "required": ["updateId", "authorId", "timestamp", "comment"]
     }
   },
   "auth": {
@@ -193,6 +221,14 @@
           "$ref": "#/entities/AssignmentSubmission"
         },
         "description": "Stores student submissions for an assignment. Readable by the submitting student and the course instructor. Writable only by the student."
+      },
+      "/tramites/{tramiteId}": {
+        "schema": { "$ref": "#/entities/TramiteRequest" },
+        "description": "Stores individual administrative requests. Readable by the applicant and admins. Writable only by admins."
+      },
+      "/tramites/{tramiteId}/updates/{updateId}": {
+        "schema": { "$ref": "#/entities/TramiteUpdate" },
+        "description": "Stores the history of updates and comments for a specific administrative request. Readable by applicant and admins, writable by admins."
       }
     }
   }

@@ -13,6 +13,10 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
+    function isRole(role) {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+    }
+
     function isInstructor(courseId) {
       return get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
     }
@@ -51,6 +55,20 @@ service cloud.firestore {
         allow update: if isSignedIn() && isOwner(resource.data.studentId);
         // Only students can delete their own submissions
         allow delete: if isSignedIn() && isOwner(resource.data.studentId);
+    }
+
+    // Administrative Requests (Trámites)
+    match /tramites/{tramiteId} {
+      allow read: if isSignedIn() && (isOwner(resource.data.applicantId) || isRole('admin'));
+      allow create: if isSignedIn(); // Any signed-in user can create a request
+      allow update: if isRole('admin'); // Only admins can update the status/details
+
+      // Updates/History for a request
+      match /updates/{updateId} {
+        allow read: if isSignedIn() && (isOwner(get(/databases/$(database)/documents/tramites/$(tramiteId)).data.applicantId) || isRole('admin'));
+        allow create: if isRole('admin'); // Only admins can add comments/updates
+        allow update, delete: if isRole('admin');
+      }
     }
   }
 }

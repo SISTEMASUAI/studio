@@ -42,6 +42,10 @@ import {
   AlertTriangle,
   XCircle,
   Users,
+  Search as SearchIcon,
+  Clock,
+  CircleDot,
+  CheckCircle,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -64,18 +68,31 @@ const userRequests = [
     type: 'Certificado de Notas',
     status: 'Completado',
     date: '2024-07-15',
+    workflow: [
+        { stage: 'Completado', actionBy: 'Oficina de Registros', timestamp: '2024-07-15 11:00', comment: 'Documento adjunto generado.', icon: CheckCircle, color: 'text-green-500' },
+        { stage: 'Aprobado', actionBy: 'J. Smith', timestamp: '2024-07-15 09:30', comment: 'Aprobado para generación.', icon: Check, color: 'text-blue-500' },
+        { stage: 'En Revisión', actionBy: 'J. Smith', timestamp: '2024-07-14 14:00', comment: 'Solicitud en revisión.', icon: SearchIcon, color: 'text-yellow-500' },
+        { stage: 'Recibido', actionBy: 'Sistema', timestamp: '2024-07-14 10:00', comment: 'Solicitud enviada.', icon: CircleDot, color: 'text-gray-500' },
+    ]
   },
   {
     id: 'TR-124',
     type: 'Constancia de Matrícula',
     status: 'En Proceso',
     date: '2024-08-01',
+    workflow: [
+        { stage: 'En Revisión', actionBy: 'M. Jones', timestamp: '2024-08-01 15:00', comment: null, icon: SearchIcon, color: 'text-yellow-500' },
+        { stage: 'Recibido', actionBy: 'Sistema', timestamp: '2024-08-01 14:30', comment: 'Solicitud enviada.', icon: CircleDot, color: 'text-gray-500' },
+    ]
   },
   {
     id: 'TR-125',
     type: 'Carta de Presentación',
     status: 'Enviado',
     date: '2024-08-05',
+    workflow: [
+         { stage: 'Recibido', actionBy: 'Sistema', timestamp: '2024-08-05 09:00', comment: 'Solicitud enviada.', icon: CircleDot, color: 'text-gray-500' },
+    ]
   },
 ];
 
@@ -222,49 +239,69 @@ function UserProceduresView() {
               <TableHead>Tipo de Solicitud</TableHead>
               <TableHead>Fecha</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {userRequests.map((req) => (
-              <TableRow key={req.id}>
-                <TableCell className="font-medium">{req.id}</TableCell>
-                <TableCell>{req.type}</TableCell>
-                <TableCell>{req.date}</TableCell>
-                <TableCell>
-                  <Badge className={getStatusVariant(req.status)}>{req.status}</Badge>
-                </TableCell>
-                <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="sm" disabled={req.status !== 'Completado'}>
-                        <FileDown className="mr-2 h-4 w-4"/> Descargar
-                    </Button>
-                     <Dialog>
-                        <DialogTrigger asChild>
-                             <Button variant="destructive" size="sm" disabled={req.status !== 'En Proceso' && req.status !== 'Enviado'}>
-                                <XCircle className="mr-2 h-4 w-4"/> Cancelar
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Confirmar Cancelación</DialogTitle>
-                                <DialogDescription>
-                                    Estás a punto de cancelar la solicitud para "{req.type}". Esta acción no se puede deshacer.
-                                </DialogDescription>
-                            </DialogHeader>
-                             <div className="py-4 space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="cancel-reason">Motivo (Opcional)</Label>
-                                    <Textarea id="cancel-reason" placeholder="Si lo deseas, explica por qué estás cancelando."/>
+                <Dialog key={req.id}>
+                    <DialogTrigger asChild>
+                        <TableRow className="cursor-pointer">
+                            <TableCell className="font-medium">{req.id}</TableCell>
+                            <TableCell>{req.type}</TableCell>
+                            <TableCell>{req.date}</TableCell>
+                            <TableCell>
+                            <Badge className={getStatusVariant(req.status)}>{req.status}</Badge>
+                            </TableCell>
+                        </TableRow>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-3xl">
+                        <DialogHeader>
+                            <DialogTitle>Detalle del Trámite: {req.id}</DialogTitle>
+                            <DialogDescription>{req.type}</DialogDescription>
+                        </DialogHeader>
+                        <div className="grid md:grid-cols-2 gap-8 py-4">
+                            <div>
+                                <h4 className="font-semibold mb-4">Información de la Solicitud</h4>
+                                <div className="space-y-3 text-sm">
+                                    <p><span className="font-medium text-muted-foreground">Fecha:</span> {req.date}</p>
+                                    <p><span className="font-medium text-muted-foreground">Estado:</span> <Badge className={getStatusVariant(req.status)}>{req.status}</Badge></p>
+                                    <p><span className="font-medium text-muted-foreground">Tiempo Estimado:</span> {req.status === 'Completado' ? '-' : '2-3 días hábiles'}</p>
+                                </div>
+                                <div className="mt-6 space-y-4">
+                                     <Button variant="outline" className="w-full" disabled={req.status !== 'Completado'}>
+                                        <FileDown className="mr-2 h-4 w-4"/> Descargar Documento
+                                    </Button>
+                                    <Button variant="destructive" className="w-full" disabled={req.status !== 'En Proceso' && req.status !== 'Enviado'}>
+                                        <XCircle className="mr-2 h-4 w-4"/> Cancelar Solicitud
+                                    </Button>
                                 </div>
                             </div>
-                            <DialogFooter>
-                                <Button variant="outline">Cerrar</Button>
-                                <Button variant="destructive" disabled>Confirmar Cancelación</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </TableCell>
-              </TableRow>
+                            <div>
+                                <h4 className="font-semibold mb-4">Historial de la Solicitud</h4>
+                                <ul className="space-y-6">
+                                    {req.workflow.map((item, index) => (
+                                        <li key={index} className="flex gap-4">
+                                            <div className="flex flex-col items-center">
+                                                <div className={`flex items-center justify-center h-8 w-8 rounded-full bg-accent ${item.color}`}>
+                                                    <item.icon className="h-5 w-5 text-white bg-inherit"/>
+                                                </div>
+                                                {index < req.workflow.length - 1 && <div className="w-px h-full bg-border"></div>}
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold">{item.stage}</p>
+                                                <p className="text-xs text-muted-foreground">{item.timestamp} por {item.actionBy}</p>
+                                                {item.comment && <p className="text-sm mt-1 p-2 bg-accent/50 rounded-md">{item.comment}</p>}
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <DialogClose asChild><Button variant="outline">Cerrar</Button></DialogClose>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             ))}
           </TableBody>
         </Table>

@@ -69,6 +69,7 @@ interface Faculty extends DocumentData {
 const StudentSchema = z.object({
   firstName: z.string().min(2, "El nombre es requerido."),
   lastName: z.string().min(2, "El apellido es requerido."),
+  dni: z.string().length(8, "El DNI debe tener 8 dígitos."),
   email: z.string().email("Debe ser un email válido."),
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres."),
   facultyId: z.string().min(1, "Debe seleccionar una facultad."),
@@ -96,7 +97,7 @@ export default function AlumnosPage() {
     const studentForm = useForm<z.infer<typeof StudentSchema>>({
       resolver: zodResolver(StudentSchema),
       defaultValues: {
-        firstName: '', lastName: '', email: '', password: '', facultyId: '', programId: ''
+        firstName: '', lastName: '', dni: '', email: '', password: '', facultyId: '', programId: ''
       }
     })
 
@@ -106,13 +107,14 @@ export default function AlumnosPage() {
         if (!firestore || !auth) return;
 
         try {
-          const tempAuth = auth;
-          const userCredential = await createUserWithEmailAndPassword(tempAuth, values.email, values.password);
+          // Firebase Auth doesn't have a separate instance for signup, so we use the main one.
+          const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
           const user = userCredential.user;
 
           const userProfile = {
             uid: user.uid,
             email: values.email,
+            dni: values.dni,
             role: 'student',
             firstName: values.firstName,
             lastName: values.lastName,
@@ -130,12 +132,20 @@ export default function AlumnosPage() {
           setIsCreateStudentOpen(false);
 
         } catch (error: any) {
-            console.error("Error creating student: ", error);
-            toast({
-                variant: "destructive",
-                title: "Error al crear estudiante",
-                description: error.message || "No se pudo crear el estudiante. Verifique si el email ya existe.",
-            });
+            if (error.code === 'auth/email-already-in-use') {
+                 toast({
+                    variant: "destructive",
+                    title: "Error al crear estudiante",
+                    description: "El correo electrónico ya está registrado. Por favor, utiliza otro.",
+                });
+            } else {
+                console.error("Error creating student: ", error);
+                toast({
+                    variant: "destructive",
+                    title: "Error al crear estudiante",
+                    description: error.message || "No se pudo crear el estudiante. Verifique si el email ya existe.",
+                });
+            }
         }
     }
 
@@ -172,7 +182,7 @@ export default function AlumnosPage() {
                                       <DialogTitle>Crear Nuevo Estudiante</DialogTitle>
                                       <DialogDescription>Completa el formulario para registrar un nuevo estudiante.</DialogDescription>
                                   </DialogHeader>
-                                  <div className="py-4 space-y-4">
+                                  <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-4">
                                       <div className="grid grid-cols-2 gap-4">
                                           <FormField control={studentForm.control} name="firstName" render={({ field }) => (
                                               <FormItem><FormLabel>Nombres</FormLabel><FormControl><Input placeholder="John" {...field} /></FormControl><FormMessage /></FormItem>
@@ -181,6 +191,9 @@ export default function AlumnosPage() {
                                               <FormItem><FormLabel>Apellidos</FormLabel><FormControl><Input placeholder="Doe" {...field} /></FormControl><FormMessage /></FormItem>
                                           )}/>
                                       </div>
+                                      <FormField control={studentForm.control} name="dni" render={({ field }) => (
+                                          <FormItem><FormLabel>DNI</FormLabel><FormControl><Input placeholder="12345678" {...field} /></FormControl><FormMessage /></FormItem>
+                                      )}/>
                                       <FormField control={studentForm.control} name="email" render={({ field }) => (
                                           <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" placeholder="j.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem>
                                       )}/>

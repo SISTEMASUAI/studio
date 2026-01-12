@@ -18,6 +18,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+  } from "@/components/ui/select";
+import {
     Landmark,
     CreditCard,
     Receipt,
@@ -29,10 +45,12 @@ import {
     UserCog,
     Scale,
     Percent,
+    AlertTriangle,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 const studentFinancials = {
     balance: -250.00, // Negative means debt
@@ -96,7 +114,49 @@ function StudentFinanceView() {
                                     <TableCell>{p.dueDate}</TableCell>
                                     <TableCell className="text-right font-medium">${p.amount.toFixed(2)}</TableCell>
                                     <TableCell className="text-right">
-                                        <Button size="sm"><Banknote className="mr-2"/> Pagar</Button>
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button size="sm"><Banknote className="mr-2"/> Pagar</Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-md">
+                                                <DialogHeader>
+                                                    <DialogTitle>Realizar Pago</DialogTitle>
+                                                    <DialogDescription>
+                                                        Estás a punto de pagar por el concepto: "{p.concept}".
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <div className="py-4 space-y-6">
+                                                    <div className="flex justify-between items-center bg-accent/50 p-3 rounded-md">
+                                                        <span className="text-muted-foreground">Monto a pagar:</span>
+                                                        <span className="text-lg font-bold">${p.amount.toFixed(2)}</span>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Método de Pago</Label>
+                                                        <Select>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Selecciona un método"/>
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="credit_card">Tarjeta de Crédito/Débito</SelectItem>
+                                                                <SelectItem value="bank_transfer" disabled>Transferencia Bancaria</SelectItem>
+                                                                <SelectItem value="digital_wallet" disabled>Billetera Digital</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <Alert>
+                                                        <AlertTriangle className="h-4 w-4" />
+                                                        <AlertTitle>En Desarrollo</AlertTitle>
+                                                        <AlertDescription>
+                                                            La integración con pasarelas de pago seguras (Niubiz, Culqi, etc.) y la lógica de procesamiento de pagos se implementará próximamente.
+                                                        </AlertDescription>
+                                                    </Alert>
+                                                </div>
+                                                <DialogFooter>
+                                                    <Button variant="outline">Cancelar</Button>
+                                                    <Button disabled><CreditCard className="mr-2"/> Proceder al Pago</Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -128,7 +188,7 @@ function StudentFinanceView() {
                                     <TableCell><Badge className={getStatusVariant(p.status)}>{p.status}</Badge></TableCell>
                                     <TableCell className="text-right">${p.amount.toFixed(2)}</TableCell>
                                     <TableCell className="text-right">
-                                        <Button size="sm" variant="outline"><FileDown className="mr-2"/> Descargar</Button>
+                                        <Button size="sm" variant="outline" disabled={p.status !== 'Completado'}><FileDown className="mr-2"/> Descargar</Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -147,8 +207,55 @@ function StudentFinanceView() {
                         <p className="text-muted-foreground">Deuda Total</p>
                         <p className="text-4xl font-bold text-destructive">${Math.abs(studentFinancials.balance).toFixed(2)}</p>
                     </div>
-                    <Button className="w-full"><CreditCard className="mr-2"/> Realizar Pago General</Button>
-                    <Button variant="secondary" className="w-full"><Scale className="mr-2"/> Solicitar Plan de Pagos</Button>
+                    <Button className="w-full" disabled><CreditCard className="mr-2"/> Realizar Pago General</Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="secondary" className="w-full"><Scale className="mr-2"/> Solicitar Plan de Pagos</Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-lg">
+                            <DialogHeader>
+                                <DialogTitle>Solicitar Plan de Pagos</DialogTitle>
+                                <DialogDescription>
+                                    Envía una solicitud para fraccionar tu deuda pendiente en cuotas.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4 space-y-6">
+                                <div className="space-y-2">
+                                    <Label>Monto a fraccionar</Label>
+                                    <p className="text-xl font-bold">${Math.abs(studentFinancials.balance).toFixed(2)}</p>
+                                    <p className="text-xs text-muted-foreground">Este es el monto total de tu deuda actual que será fraccionado.</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Cantidad de Cuotas</Label>
+                                    <Select>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Selecciona el número de cuotas"/>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="3">3 Cuotas</SelectItem>
+                                            <SelectItem value="6">6 Cuotas</SelectItem>
+                                            <SelectItem value="9" disabled>9 Cuotas (Requiere evaluación)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="plan-reason">Motivo de la solicitud (Opcional)</Label>
+                                    <Textarea id="plan-reason" placeholder="Si lo deseas, explica brevemente por qué solicitas el plan de pagos."/>
+                                </div>
+                                 <Alert>
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>Revisión Manual</AlertTitle>
+                                    <AlertDescription>
+                                        Tu solicitud será enviada al departamento financiero para su revisión y aprobación.
+                                    </AlertDescription>
+                                </Alert>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline">Cancelar</Button>
+                                <Button disabled><Scale className="mr-2"/> Enviar Solicitud</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </CardContent>
             </Card>
              <Card>

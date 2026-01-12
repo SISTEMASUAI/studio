@@ -18,6 +18,7 @@ import {
   BookCopy,
   UserCheck,
   Settings,
+  Users,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -49,6 +50,7 @@ const navItems = [
   { href: '/intranet', icon: Newspaper, label: 'Intranet', roles: ['student', 'professor', 'admin'] },
   { href: '/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin'] },
   { href: '/cursos', icon: BookCopy, label: 'Cursos', roles: ['student', 'professor', 'admin'] },
+  { href: '/alumnos', icon: Users, label: 'Alumnos', roles: ['admin'] },
   { href: '/asistencia', icon: UserCheck, label: 'Asistencia', roles: ['professor', 'admin'] },
   { href: '/grades', icon: GraduationCap, label: 'Calificaciones', roles: ['student', 'professor', 'admin'] },
   { href: '/matricula', icon: ClipboardList, label: 'Matrícula', roles: ['student', 'professor', 'admin'] },

@@ -148,7 +148,11 @@ export default function AlumnosPage() {
         const studentFaculty = programs?.find(p => p.id === student.programId)?.facultyId || '';
         setSelectedStudent(student);
         updateStudentForm.reset({
-            ...student,
+            firstName: student.firstName || '',
+            lastName: student.lastName || '',
+            dni: student.dni || '',
+            email: student.email || '',
+            programId: student.programId || '',
             facultyId: studentFaculty,
         });
         setIsEditStudentOpen(true);

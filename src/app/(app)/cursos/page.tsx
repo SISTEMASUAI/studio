@@ -67,7 +67,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { collection, query, where, DocumentData } from 'firebase/firestore';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
@@ -82,6 +81,8 @@ interface Enrollment {
   courseCode: string;
   professorId: string;
   professorName: string;
+  professorProfilePicture: string;
+  courseImage: string;
   semester: string;
   year: number;
 }
@@ -118,26 +119,31 @@ function StudentCoursesView() {
   }
   
   if (!enrollments || enrollments.length === 0) {
-    return <p>No estás inscrito en ningún curso este semestre.</p>;
+    return (
+        <Alert>
+            <BookCopy className="h-4 w-4" />
+            <AlertTitle>No tienes cursos inscritos</AlertTitle>
+            <AlertDescription>
+                Actualmente no estás inscrito en ningún curso. Visita la sección de Matrícula para inscribirte.
+            </AlertDescription>
+        </Alert>
+    );
   }
 
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {enrollments.map((enrollment) => {
-        const image = PlaceHolderImages.find(p => p.id === enrollment.courseId);
         return (
             <Card key={enrollment.id} className="flex flex-col">
-              {image && (
-                <Image
-                  src={image.imageUrl}
-                  alt={enrollment.courseName}
-                  width={400}
-                  height={200}
-                  className="w-full h-40 object-cover rounded-t-lg"
-                  data-ai-hint={image.imageHint}
-                />
-              )}
+              <Image
+                src={enrollment.courseImage || `https://picsum.photos/seed/${enrollment.courseId}/400/200`}
+                alt={enrollment.courseName}
+                width={400}
+                height={200}
+                className="w-full h-40 object-cover rounded-t-lg"
+                data-ai-hint="university course"
+              />
               <CardHeader>
                 <CardTitle>{enrollment.courseName}</CardTitle>
                 <CardDescription>{enrollment.professorName}</CardDescription>
@@ -217,6 +223,14 @@ function ProfessorCoursesView() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {courses.map((course) => (
                  <Card key={course.id} className="flex flex-col">
+                    <Image
+                        src={`https://picsum.photos/seed/${course.id}/400/200`}
+                        alt={course.name}
+                        width={400}
+                        height={200}
+                        className="w-full h-40 object-cover rounded-t-lg bg-muted"
+                        data-ai-hint="university course abstract"
+                    />
                      <CardHeader>
                          <CardTitle>{course.name}</CardTitle>
                          <CardDescription>Semestre {enrollments?.find(e => e.courseId === course.id)?.semester} - {enrollments?.find(e => e.courseId === course.id)?.year}</CardDescription>

@@ -376,8 +376,10 @@
         "courseId": { "type": "string", "description": "The ID of the course." },
         "courseCode": { "type": "string", "description": "The code of the course (e.g., CS101)." },
         "courseName": { "type": "string", "description": "The name of the course." },
+        "courseImage": { "type": "string", "format": "uri", "description": "URL of the course's promotional image." },
         "professorId": { "type": "string", "description": "The UID of the professor teaching the course." },
         "professorName": { "type": "string", "description": "The full name of the professor." },
+        "professorProfilePicture": { "type": "string", "format": "uri", "description": "URL of the professor's profile picture." },
         "semester": { "type": "string", "description": "The semester of enrollment (e.g., '2024-2')." },
         "year": { "type": "number", "description": "The year of enrollment." }
       },

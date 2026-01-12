@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useDoc, useMemoFirebase, useFirestore, useUser } from '@/firebase';
@@ -772,4 +773,19 @@ export default function CourseDetailPage() {
                                             <AlertTitle>Función en Desarrollo</AlertTitle>
                                             <AlertDescription>
                                                 La lógica para procesar la baja del curso se implementará próximamente.
-                                            </Aler
+                                            </AlertDescription>
+                                        </Alert>
+                                        <Button variant="outline">Cancelar</Button>
+                                        <Button variant="destructive" disabled>Confirmar Baja</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </CardContent>
+                    </Card>
+                </>
+            )}
+        </aside>
+      </div>
+    </div>
+  );
+}

@@ -23,12 +23,15 @@ import {
   } from "@/components/ui/tabs"
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail } from 'lucide-react';
+import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail, Users, Library, UserCheck as UserCheckIcon, Search } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import CourseSchedule from '@/components/cursos/CourseSchedule';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
 
 interface ScheduleItem {
     day: string;
@@ -61,6 +64,30 @@ interface InstructorProfile {
     profilePicture: string;
     email: string;
 }
+
+// Mock data for classmates
+const classmates = [
+    { id: 'user-2', name: 'Alicia Keys', avatar: 'https://i.pravatar.cc/150?u=user-2' },
+    { id: 'user-3', name: 'Ben Carter', avatar: 'https://i.pravatar.cc/150?u=user-3' },
+    { id: 'user-4', name: 'Carla Diaz', avatar: 'https://i.pravatar.cc/150?u=user-4' },
+    { id: 'user-5', name: 'David Evans', avatar: 'https://i.pravatar.cc/150?u=user-5' },
+];
+
+// Mock data for bibliography
+const bibliography = [
+    { id: 'bib-1', text: 'Clean Code: A Handbook of Agile Software Craftsmanship by Robert C. Martin', available: true, digital: true },
+    { id: 'bib-2', text: 'Structure and Interpretation of Computer Programs by Harold Abelson', available: true, digital: false },
+    { id: 'bib-3', text: 'Introduction to Algorithms by Thomas H. Cormen', available: false, digital: false },
+];
+
+// Mock data for attendance
+const attendance = [
+    { date: '2024-08-05', status: 'presente' },
+    { date: '2024-08-07', status: 'presente' },
+    { date: '2024-08-12', status: 'ausente' },
+    { date: '2024-08-14', status: 'tarde' },
+    { date: '2024-08-19', status: 'presente' },
+];
 
 function CourseHeader({ course, instructor }: { course: CourseDetails, instructor: InstructorProfile | null }) {
     const image = PlaceHolderImages.find(p => p.id === course.id);
@@ -163,10 +190,13 @@ export default function CourseDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           <Tabs defaultValue="description" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="description"><Info className="mr-2"/>Descripción</TabsTrigger>
               <TabsTrigger value="content"><BookMarked className="mr-2"/>Contenido</TabsTrigger>
               <TabsTrigger value="prerequisites"><ListChecks className="mr-2"/>Prerrequisitos</TabsTrigger>
+              <TabsTrigger value="classmates"><Users className="mr-2"/>Compañeros</TabsTrigger>
+              <TabsTrigger value="bibliography"><Library className="mr-2"/>Bibliografía</TabsTrigger>
+              <TabsTrigger value="attendance"><UserCheckIcon className="mr-2"/>Asistencia</TabsTrigger>
             </TabsList>
             <TabsContent value="description" className="mt-6">
                 <Card>
@@ -227,6 +257,120 @@ export default function CourseDetailPage() {
                             <AlertTitle>Visualización en Desarrollo</AlertTitle>
                             <AlertDescription>
                                 Próximamente, se mostrará el nombre completo de los cursos y tu estado académico real.
+                            </AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+             <TabsContent value="classmates" className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Compañeros de Clase</CardTitle>
+                        <CardDescription>Lista de estudiantes inscritos en este curso.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <div className="mb-4 flex gap-2">
+                            <Input placeholder="Buscar por nombre..." />
+                            <Button variant="outline"><Search className="h-4 w-4"/></Button>
+                         </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {classmates.map(student => (
+                                <div key={student.id} className="flex flex-col items-center text-center gap-2">
+                                    <Avatar>
+                                        <AvatarImage src={student.avatar} alt={student.name} />
+                                        <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <p className="text-sm font-medium">{student.name}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <Alert className="mt-6">
+                            <Users className="h-4 w-4" />
+                            <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>
+                            <AlertDescription>
+                                La lista completa de compañeros y la funcionalidad de búsqueda se conectarán a datos reales próximamente. La información sensible del estudiante no será expuesta.
+                            </AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="bibliography" className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Bibliografía del Curso</CardTitle>
+                        <CardDescription>Recursos y lecturas recomendadas.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ul className="space-y-4">
+                            {bibliography.map(item => (
+                                <li key={item.id} className="flex flex-col sm:flex-row justify-between gap-2">
+                                    <p className="text-muted-foreground flex-grow">{item.text}</p>
+                                    <div className="flex gap-2 shrink-0">
+                                        <Button variant="outline" size="sm" disabled={!item.available}>
+                                            <Library className="mr-2" />
+                                            {item.available ? 'En Biblioteca' : 'No Disponible'}
+                                        </Button>
+                                         <Button size="sm" disabled={!item.digital}>
+                                            <BookOpen className="mr-2" />
+                                            Acceso Digital
+                                        </Button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                         <Alert className="mt-6">
+                            <Library className="h-4 w-4" />
+                            <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>
+                            <AlertDescription>
+                                La integración con el sistema de biblioteca para verificar disponibilidad y acceso digital se implementará próximamente.
+                            </AlertDescription>
+                        </Alert>
+                    </CardContent>
+                </Card>
+            </TabsContent>
+            <TabsContent value="attendance" className="mt-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Mi Asistencia</CardTitle>
+                        <CardDescription>Tu registro de asistencia para este curso.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid md:grid-cols-2 gap-6 mb-6">
+                            <div>
+                               <p className="text-sm font-medium mb-2">Resumen de Asistencia</p>
+                               <Progress value={60} className="h-2" />
+                               <p className="text-xs text-muted-foreground mt-1">60% de Asistencia (3 de 5 clases)</p>
+                            </div>
+                             <div className="hidden md:block">
+                                {/* Placeholder for a chart */}
+                                <p className="text-sm font-medium mb-2">Tendencia</p>
+                                <div className="h-10 w-full bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">Gráfico en desarrollo</div>
+                             </div>
+                        </div>
+
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Fecha</TableHead>
+                                    <TableHead>Estado</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {attendance.map(record => (
+                                    <TableRow key={record.date}>
+                                        <TableCell>{record.date}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={record.status === 'ausente' ? 'destructive' : 'secondary'} className="capitalize">{record.status}</Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                         <Alert className="mt-6">
+                            <UserCheckIcon className="h-4 w-4" />
+                            <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>
+                            <AlertDescription>
+                                Próximamente, esta sección se conectará con tus datos reales de asistencia para este curso.
                             </AlertDescription>
                         </Alert>
                     </CardContent>

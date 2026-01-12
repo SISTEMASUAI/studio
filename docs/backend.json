@@ -348,7 +348,7 @@
         "studentId": { "type": "string", "description": "UID of the student." },
         "courseId": { "type": "string", "description": "ID of the course." },
         "date": { "type": "string", "format": "date-time", "description": "The date of the class." },
-        "status": { "type": "string", "enum": ["present", "absent", "late", "justified"] },
+        "status": { "type": "string", "enum": ["presente", "ausente", "tarde", "justificado"] },
         "notes": { "type": "string", "description": "Optional notes, e.g., for a justification." }
       },
       "required": ["attendanceId", "studentId", "courseId", "date", "status"]

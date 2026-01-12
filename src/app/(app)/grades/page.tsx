@@ -24,6 +24,7 @@ import {
   BarChart2,
   TrendingUp,
   Download,
+  FileText,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
@@ -275,9 +276,20 @@ function StudentGradesView() {
           </CardContent>
         </Card>
         <Card>
-            <CardHeader><CardTitle>Acciones</CardTitle></CardHeader>
-            <CardContent>
-                 <Button variant="outline" className="w-full" disabled><Download className="mr-2" /> Descargar Historial (PDF)</Button>
+            <CardHeader>
+                <CardTitle>Acciones y Certificados</CardTitle>
+                <CardDescription>Descarga documentos o solicita certificados oficiales.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <Button variant="outline" className="w-full" disabled>
+                    <Download className="mr-2" /> Descargar Historial (No Oficial)
+                </Button>
+                 <Button className="w-full" disabled>
+                    <FileText className="mr-2" /> Solicitar Certificado Oficial
+                </Button>
+                 <p className="text-xs text-muted-foreground text-center">
+                    La solicitud de certificados oficiales puede tener un costo y se procesará a través del módulo de trámites.
+                 </p>
             </CardContent>
         </Card>
       </aside>

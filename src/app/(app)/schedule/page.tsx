@@ -7,6 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Download, PlusCircle } from 'lucide-react';
 import { useUser } from '@/firebase';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const upcomingEvents = [
   {
@@ -57,10 +63,63 @@ export default function SchedulePage() {
               Exportar
             </Button>
             {canManageEvents && (
-              <Button disabled>
-                <PlusCircle className="mr-2" />
-                Crear Evento
-              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button>
+                    <PlusCircle className="mr-2" />
+                    Crear Evento
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Crear Nuevo Evento Académico</DialogTitle>
+                    <DialogDescription>
+                      Completa el formulario para añadir un nuevo examen, entrega o evento al calendario.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="event-title">Título del Evento</Label>
+                      <Input id="event-title" placeholder="Ej: Examen Parcial de Cálculo" />
+                    </div>
+                     <div className="space-y-2">
+                      <Label htmlFor="event-desc">Descripción</Label>
+                      <Textarea id="event-desc" placeholder="Temas a evaluar: Derivadas e Integrales."/>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="event-date">Fecha</Label>
+                        <Input id="event-date" type="date"/>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Tipo de Evento</Label>
+                        <Select>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar tipo..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="exam">Examen</SelectItem>
+                            <SelectItem value="assignment">Entrega</SelectItem>
+                            <SelectItem value="academic">Evento Académico</SelectItem>
+                            <SelectItem value="other">Otro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                     <Alert>
+                        <PlusCircle className="h-4 w-4" />
+                        <AlertTitle>En Desarrollo</AlertTitle>
+                        <AlertDescription>
+                            La lógica para guardar el evento y notificar a los estudiantes se implementará próximamente.
+                        </AlertDescription>
+                    </Alert>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline">Cancelar</Button>
+                    <Button disabled>Guardar Evento</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             )}
           </div>
         </div>

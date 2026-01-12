@@ -25,6 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
     FileClock,
@@ -271,9 +272,31 @@ function UserProceduresView() {
                                      <Button variant="outline" className="w-full" disabled={req.status !== 'Completado'}>
                                         <FileDown className="mr-2 h-4 w-4"/> Descargar Documento
                                     </Button>
-                                    <Button variant="destructive" className="w-full" disabled={req.status !== 'En Proceso' && req.status !== 'Enviado'}>
-                                        <XCircle className="mr-2 h-4 w-4"/> Cancelar Solicitud
-                                    </Button>
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button variant="destructive" className="w-full" disabled={req.status !== 'En Proceso' && req.status !== 'Enviado'}>
+                                                <XCircle className="mr-2 h-4 w-4"/> Cancelar Solicitud
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Confirmar Cancelación</DialogTitle>
+                                                <DialogDescription>
+                                                    ¿Estás seguro de que deseas cancelar la solicitud para "{req.type}"?
+                                                </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="py-4">
+                                                <Label htmlFor="cancel-reason">Motivo (opcional)</Label>
+                                                <Textarea id="cancel-reason" placeholder="Describe por qué estás cancelando..."/>
+                                            </div>
+                                            <DialogFooter>
+                                                <DialogClose asChild>
+                                                    <Button variant="outline">No, mantener</Button>
+                                                </DialogClose>
+                                                <Button variant="destructive" disabled>Sí, Cancelar</Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
                                 </div>
                             </div>
                             <div>
@@ -397,7 +420,7 @@ function AdminProceduresView() {
             <UserCog className="h-4 w-4" />
             <AlertTitle>En Desarrollo</AlertTitle>
             <AlertDescription>
-                La lógica para aprobar, rechazar, reasignar y ver los detalles de cada solicitud (incluyendo la generación y firma de documentos) se implementará próximamente.
+                La lógica para aprobar, rechazar, reasignar, generar y firmar documentos, así como ver los detalles de cada solicitud, se implementará próximamente.
             </AlertDescription>
         </Alert>
       </CardContent>

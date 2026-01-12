@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useCollection, useMemoFirebase, useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
@@ -75,7 +74,7 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -106,13 +105,26 @@ interface Course extends DocumentData {
     department: string;
     level: string;
     instructorId: string;
-    programId?: string;
+    programId: string;
+    facultyId: string;
     semesterStartDate?: string;
     semesterEndDate?: string;
     schedule?: { day: string; startTime: string; endTime: string; classroom: string }[];
     mode?: string;
 }
 
+interface Program extends DocumentData {
+    id: string;
+    programId: string;
+    name: string;
+    facultyId: string;
+}
+
+interface Faculty extends DocumentData {
+    id: string;
+    facultyId: string;
+    name: string;
+}
 
 function StudentCoursesView() {
   const { user } = useUser();
@@ -274,10 +286,10 @@ const CourseSchema = z.object({
   name: z.string().min(5, "El nombre debe tener al menos 5 caracteres."),
   description: z.string().min(10, "La descripción debe tener al menos 10 caracteres."),
   credits: z.coerce.number().min(1, "Debe tener al menos 1 crédito."),
-  department: z.string().min(1, "Debe seleccionar un departamento."),
+  facultyId: z.string().min(1, "Debe seleccionar una facultad."),
+  programId: z.string().min(1, "Debe seleccionar un programa."),
   level: z.string().min(1, "Debe seleccionar un nivel."),
   instructorId: z.string().min(1, "Debe seleccionar un instructor."),
-  programId: z.string().min(1, "Debe seleccionar un programa."),
   mode: z.string().min(1, "Debe seleccionar una modalidad."),
   semesterStartDate: z.string().min(1, "Debe seleccionar una fecha de inicio."),
   semesterEndDate: z.string().min(1, "Debe seleccionar una fecha de fin."),
@@ -301,13 +313,17 @@ function AdminCoursesView() {
     const programsQuery = useMemoFirebase(() =>
         firestore ? collection(firestore, 'programs') : null,
     [firestore]);
-    const { data: programs } = useCollection(programsQuery);
+    const { data: programs } = useCollection<Program>(programsQuery);
+
+    const facultiesQuery = useMemoFirebase(() => 
+        firestore ? collection(firestore, 'faculties') : null,
+    [firestore]);
+    const { data: faculties } = useCollection<Faculty>(facultiesQuery);
 
     const coursesQuery = useMemoFirebase(() => 
         firestore ? collection(firestore, 'courses') : null,
     [firestore]);
     const { data: courses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
-
 
     const form = useForm<z.infer<typeof CourseSchema>>({
         resolver: zodResolver(CourseSchema),
@@ -316,19 +332,23 @@ function AdminCoursesView() {
             name: '',
             description: '',
             credits: 1,
-            department: '',
+            facultyId: '',
+            programId: '',
             level: 'Pregrado',
             instructorId: '',
-            programId: '',
             mode: 'Presencial',
             semesterStartDate: '',
             semesterEndDate: '',
         },
     });
+    
+    const selectedFacultyId = form.watch('facultyId');
 
     const updateForm = useForm<z.infer<typeof CourseSchema>>({
         resolver: zodResolver(CourseSchema),
     });
+
+    const selectedFacultyIdUpdate = updateForm.watch('facultyId');
 
     const handleOpenEditDialog = (course: Course) => {
         setSelectedCourse(course);
@@ -354,6 +374,7 @@ function AdminCoursesView() {
                 methodology: "",
                 syllabusUrl: "",
                 virtualRoomUrl: "",
+                department: "" // Keep department for now, though unused in form
             });
             
             toast({
@@ -425,26 +446,6 @@ function AdminCoursesView() {
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input placeholder="Buscar por código o nombre..." className="pl-9" />
                             </div>
-                            <Select>
-                                <SelectTrigger className="w-full sm:w-[180px]">
-                                    <SelectValue placeholder="Departamento" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="cs">Ciencias de la Computación</SelectItem>
-                                    <SelectItem value="math">Matemáticas</SelectItem>
-                                    <SelectItem value="humanities">Humanidades</SelectItem>
-                                    <SelectItem value="finance">Economía y Finanzas</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Select>
-                                <SelectTrigger className="w-full sm:w-[150px]">
-                                    <SelectValue placeholder="Nivel" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="undergrad">Pregrado</SelectItem>
-                                    <SelectItem value="postgrad">Postgrado</SelectItem>
-                                </SelectContent>
-                            </Select>
                             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button className="w-full sm:w-auto">
@@ -483,28 +484,11 @@ function AdminCoursesView() {
                                                     </FormItem>
                                                 )} />
                                                 
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <FormField control={form.control} name="credits" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Créditos</FormLabel>
                                                             <FormControl><Input type="number" placeholder="4" {...field} /></FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={form.control} name="department" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>Departamento</FormLabel>
-                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                                <FormControl>
-                                                                    <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
-                                                                </FormControl>
-                                                                <SelectContent>
-                                                                    <SelectItem value="Ciencias de la Computación">Ciencias de la Computación</SelectItem>
-                                                                    <SelectItem value="Matemáticas">Matemáticas</SelectItem>
-                                                                    <SelectItem value="Humanidades">Humanidades</SelectItem>
-                                                                    <SelectItem value="Economía y Finanzas">Economía y Finanzas</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
@@ -518,6 +502,36 @@ function AdminCoursesView() {
                                                                 <SelectContent>
                                                                     <SelectItem value="Pregrado">Pregrado</SelectItem>
                                                                     <SelectItem value="Postgrado">Postgrado</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <FormField control={form.control} name="facultyId" render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Facultad</FormLabel>
+                                                            <Select onValueChange={(value) => { field.onChange(value); form.setValue('programId', ''); }} defaultValue={field.value}>
+                                                                <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una facultad..."/></SelectTrigger></FormControl>
+                                                                <SelectContent>
+                                                                    {faculties ? faculties.map(fac => (
+                                                                        <SelectItem key={fac.id} value={fac.id}>{fac.name}</SelectItem>
+                                                                    )) : <SelectItem value="loading" disabled>Cargando...</SelectItem>}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name="programId" render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Programa Académico</FormLabel>
+                                                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedFacultyId}>
+                                                                <FormControl><SelectTrigger><SelectValue placeholder={!selectedFacultyId ? "Selecciona una facultad primero" : "Asigna un programa..."}/></SelectTrigger></FormControl>
+                                                                <SelectContent>
+                                                                    {programs?.filter(p => p.facultyId === selectedFacultyId).map(prog => (
+                                                                        <SelectItem key={prog.id} value={prog.id}>{prog.name}</SelectItem>
+                                                                    ))}
                                                                 </SelectContent>
                                                             </Select>
                                                             <FormMessage />
@@ -540,20 +554,6 @@ function AdminCoursesView() {
                                                         </FormItem>
                                                     )} />
                                                 </div>
-                                                <FormField control={form.control} name="programId" render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Programa Académico</FormLabel>
-                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                            <FormControl><SelectTrigger><SelectValue placeholder="Asigna un programa..."/></SelectTrigger></FormControl>
-                                                            <SelectContent>
-                                                                {programs ? programs.map(prog => (
-                                                                    <SelectItem key={prog.id} value={prog.id}>{prog.name}</SelectItem>
-                                                                )) : <SelectItem value="loading" disabled>Cargando...</SelectItem>}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )} />
                                                 <FormField control={form.control} name="instructorId" render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Instructor</FormLabel>
@@ -575,7 +575,6 @@ function AdminCoursesView() {
                                                 
                                                 <div className="space-y-4 rounded-md border p-4">
                                                     <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
-                                                    
                                                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                                         <div className="space-y-2">
                                                             <Label>Día</Label>
@@ -648,7 +647,7 @@ function AdminCoursesView() {
                                 <TableRow>
                                     <TableHead>Código</TableHead>
                                     <TableHead>Nombre del Curso</TableHead>
-                                    <TableHead>Departamento</TableHead>
+                                    <TableHead>Programa</TableHead>
                                     <TableHead>Créditos</TableHead>
                                     <TableHead>Nivel</TableHead>
                                     <TableHead className="text-right">Acciones</TableHead>
@@ -666,7 +665,7 @@ function AdminCoursesView() {
                                         <TableRow key={course.id}>
                                             <TableCell className="font-mono">{course.courseId}</TableCell>
                                             <TableCell className="font-medium">{course.name}</TableCell>
-                                            <TableCell>{course.department}</TableCell>
+                                            <TableCell>{programs?.find(p => p.id === course.programId)?.name || 'N/A'}</TableCell>
                                             <TableCell>{course.credits}</TableCell>
                                             <TableCell>{course.level}</TableCell>
                                             <TableCell className="text-right">
@@ -804,26 +803,11 @@ function AdminCoursesView() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <FormField control={updateForm.control} name="credits" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Créditos</FormLabel>
                                             <FormControl><Input type="number" {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                    <FormField control={updateForm.control} name="department" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Departamento</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Ciencias de la Computación">Ciencias de la Computación</SelectItem>
-                                                    <SelectItem value="Matemáticas">Matemáticas</SelectItem>
-                                                    <SelectItem value="Humanidades">Humanidades</SelectItem>
-                                                    <SelectItem value="Economía y Finanzas">Economía y Finanzas</SelectItem>
-                                                </SelectContent>
-                                            </Select>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -835,6 +819,36 @@ function AdminCoursesView() {
                                                 <SelectContent>
                                                     <SelectItem value="Pregrado">Pregrado</SelectItem>
                                                     <SelectItem value="Postgrado">Postgrado</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <FormField control={updateForm.control} name="facultyId" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Facultad</FormLabel>
+                                            <Select onValueChange={(value) => { field.onChange(value); updateForm.setValue('programId', ''); }} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una facultad..."/></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    {faculties ? faculties.map(fac => (
+                                                        <SelectItem key={fac.id} value={fac.id}>{fac.name}</SelectItem>
+                                                    )) : <SelectItem value="loading" disabled>Cargando...</SelectItem>}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={updateForm.control} name="programId" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Programa Académico</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedFacultyIdUpdate || hasCourseStarted(selectedCourse)}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder={!selectedFacultyIdUpdate ? "Selecciona una facultad primero" : "Asigna un programa..."}/></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    {programs?.filter(p => p.facultyId === selectedFacultyIdUpdate).map(prog => (
+                                                        <SelectItem key={prog.id} value={prog.id}>{prog.name}</SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -857,20 +871,6 @@ function AdminCoursesView() {
                                         </FormItem>
                                     )} />
                                 </div>
-                                <FormField control={updateForm.control} name="programId" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Programa Académico</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Asigna un programa..."/></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                {programs ? programs.map(prog => (
-                                                    <SelectItem key={prog.id} value={prog.id}>{prog.name}</SelectItem>
-                                                )) : <SelectItem value="loading" disabled>Cargando...</SelectItem>}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
                                 <FormField control={updateForm.control} name="instructorId" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Instructor</FormLabel>
@@ -990,5 +990,3 @@ export default function CoursesPage() {
     </div>
   );
 }
-
-    

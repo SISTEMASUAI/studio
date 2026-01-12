@@ -35,12 +35,20 @@ import {
   FileText,
   QrCode,
   ShieldCheck,
+  Smartphone,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+
+
+const activeSessions = [
+    { id: 'sess-1', device: 'Chrome on Windows', location: 'Lima, PE (190.42.XX.XX)', lastActive: 'Ahora', isCurrent: true, icon: Monitor },
+    { id: 'sess-2', device: 'Safari on iPhone', location: 'Arequipa, PE (179.7.XX.XX)', lastActive: 'Hace 2 horas', isCurrent: false, icon: Smartphone },
+    { id: 'sess-3', device: 'Firefox on macOS', location: 'Bogotá, CO (200.118.XX.XX)', lastActive: 'Ayer', isCurrent: false, icon: Monitor },
+];
 
 
 function UserProfileView() {
@@ -229,8 +237,40 @@ function UserProfileView() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            <Button variant="outline" className="w-full justify-start" disabled><Monitor className="mr-2"/> Ver Sesiones Activas</Button>
-            <Button variant="destructive" className="w-full justify-start" disabled><LogOut className="mr-2"/> Cerrar Sesiones Remotas</Button>
+             <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start"><Monitor className="mr-2"/> Ver Sesiones Activas</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                     <DialogHeader>
+                        <DialogTitle>Sesiones Activas</DialogTitle>
+                        <DialogDescription>
+                            Estas son las sesiones donde tu cuenta está actualmente iniciada.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <ul className="space-y-4">
+                            {activeSessions.map(session => (
+                                <li key={session.id} className="flex items-center gap-4 p-3 rounded-lg border">
+                                    <session.icon className="h-8 w-8 text-muted-foreground" />
+                                    <div className="flex-grow">
+                                        <p className="font-semibold">{session.device}</p>
+                                        <p className="text-sm text-muted-foreground">{session.location} - Última actividad: {session.lastActive}</p>
+                                    </div>
+                                    {session.isCurrent ? (
+                                        <Badge variant="secondary">Esta sesión</Badge>
+                                    ) : (
+                                        <Button variant="ghost" size="sm" disabled>Cerrar sesión</Button>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="destructive" disabled><LogOut className="mr-2"/> Cerrar todas las sesiones remotas</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </aside>

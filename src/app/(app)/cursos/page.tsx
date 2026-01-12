@@ -741,8 +741,7 @@ function AdminCoursesView() {
                             <AlertTitle>En Desarrollo</AlertTitle>
                             <AlertDescription>
                                 La vista detallada de cada estudiante, junto con las acciones de gestión (inscripción forzosa, retiro, modificación de GPA), se implementará próximamente.
-                            </Aler
-tDescription>
+                            </AlertDescription>
                         </Alert>
                     </CardContent>
                 </Card>

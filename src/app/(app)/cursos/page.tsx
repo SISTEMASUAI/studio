@@ -64,6 +64,7 @@ import {
   Eye,
   User,
   GraduationCap,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -216,28 +217,6 @@ function ProfessorCoursesView() {
       <div className="space-y-8">
         <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">Mis Cursos Impartidos</h2>
-            <Dialog>
-                <DialogTrigger asChild>
-                    <Button><PlusCircle className="mr-2" /> Crear Nuevo Curso</Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Crear Curso</DialogTitle>
-                        <DialogDescription>Esta función está en desarrollo.</DialogDescription>
-                    </DialogHeader>
-                    <Alert>
-                        <UserCog className="h-4 w-4" />
-                        <AlertTitle>En Desarrollo</AlertTitle>
-                        <AlertDescription>
-                            La lógica para guardar el nuevo curso en la base de datos se implementará próximamente.
-                        </AlertDescription>
-                    </Alert>
-                    <DialogFooter>
-                        <Button variant="outline">Cancelar</Button>
-                        <Button disabled>Guardar</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
         {courses && courses.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -299,12 +278,14 @@ const CreateCourseSchema = z.object({
   department: z.string().min(1, "Debe seleccionar un departamento."),
   level: z.string().min(1, "Debe seleccionar un nivel."),
   instructorId: z.string().min(1, "Debe seleccionar un instructor."),
+  mode: z.string().min(1, "Debe seleccionar una modalidad."),
 });
 
 
 function AdminCoursesView() {
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [schedule, setSchedule] = useState([{ day: '', startTime: '', endTime: '', classroom: '' }]);
     const firestore = useFirestore();
 
     const professorsQuery = useMemoFirebase(() => 
@@ -328,7 +309,8 @@ function AdminCoursesView() {
             credits: 1,
             department: '',
             level: 'Pregrado',
-            instructorId: ''
+            instructorId: '',
+            mode: 'Presencial',
         },
     });
 
@@ -340,8 +322,7 @@ function AdminCoursesView() {
             
             await addDocumentNonBlocking(courseCollection, {
                 ...values,
-                schedule: [],
-                mode: "Presencial",
+                schedule: schedule.filter(s => s.day && s.startTime && s.endTime),
                 prerequisites: [],
                 objectives: [],
                 methodology: "",
@@ -354,6 +335,7 @@ function AdminCoursesView() {
                 description: `El curso "${values.name}" ha sido creado exitosamente.`,
             });
             form.reset();
+            setSchedule([{ day: '', startTime: '', endTime: '', classroom: '' }]);
             setIsDialogOpen(false);
         } catch (error) {
             console.error("Error creating course: ", error);
@@ -503,6 +485,57 @@ function AdminCoursesView() {
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
+                                                
+                                                <div className="space-y-4 rounded-md border p-4">
+                                                    <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
+                                                    
+                                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                        <div className="space-y-2">
+                                                            <Label>Día</Label>
+                                                            <Select onValueChange={(value) => setSchedule(prev => [{...prev[0], day: value}])}>
+                                                                <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Lunes">Lunes</SelectItem>
+                                                                    <SelectItem value="Martes">Martes</SelectItem>
+                                                                    <SelectItem value="Miércoles">Miércoles</SelectItem>
+                                                                    <SelectItem value="Jueves">Jueves</SelectItem>
+                                                                    <SelectItem value="Viernes">Viernes</SelectItem>
+                                                                    <SelectItem value="Sábado">Sábado</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label>Hora de Inicio</Label>
+                                                            <Input type="time" onChange={(e) => setSchedule(prev => [{...prev[0], startTime: e.target.value}])} />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label>Hora de Fin</Label>
+                                                            <Input type="time" onChange={(e) => setSchedule(prev => [{...prev[0], endTime: e.target.value}])} />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label>Aula</Label>
+                                                            <Input placeholder="Ej: Aula 101" onChange={(e) => setSchedule(prev => [{...prev[0], classroom: e.target.value}])} />
+                                                        </div>
+                                                     </div>
+                                                      <FormField control={form.control} name="mode" render={({ field }) => (
+                                                         <FormItem>
+                                                            <FormLabel>Modalidad</FormLabel>
+                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                                <FormControl>
+                                                                    <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Presencial">Presencial</SelectItem>
+                                                                    <SelectItem value="Online">Online</SelectItem>
+                                                                    <SelectItem value="Híbrido">Híbrido</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <p className="text-xs text-muted-foreground">Actualmente solo se puede agregar un horario. La funcionalidad para múltiples horarios se implementará.</p>
+                                                </div>
+
                                                 <div className="space-y-2">
                                                     <Label>Prerrequisitos</Label>
                                                     <Button variant="outline" disabled>Seleccionar cursos</Button>

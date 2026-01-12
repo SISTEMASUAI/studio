@@ -130,6 +130,14 @@ export default function AlumnosPage() {
     
     const updateStudentForm = useForm<z.infer<typeof UpdateStudentSchema>>({
         resolver: zodResolver(UpdateStudentSchema),
+        defaultValues: {
+            firstName: '',
+            lastName: '',
+            dni: '',
+            email: '',
+            facultyId: '',
+            programId: '',
+        }
     });
 
     const selectedFacultyIdStudent = studentForm.watch('facultyId');

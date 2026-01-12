@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
+import { useUser, useCollection, useMemoFirebase, useFirestore, addDocumentNonBlocking } from '@/firebase';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -33,6 +33,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -72,6 +73,12 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 // Define the type for the enrollment data we expect from Firestore
 interface Enrollment {
@@ -264,7 +271,7 @@ function ProfessorCoursesView() {
     );
   }
 
-  const allCoursesData = [
+const allCoursesData = [
     { id: 'CRS-001', code: 'CS101', name: 'Introducción a la Programación', department: 'Ciencias de la Computación', credits: 4, level: 'Pregrado', sections: 5 },
     { id: 'CRS-002', code: 'MA203', name: 'Cálculo Avanzado', department: 'Matemáticas', credits: 4, level: 'Pregrado', sections: 3 },
     { id: 'CRS-003', code: 'HI105', name: 'Historia del Siglo XX', department: 'Humanidades', credits: 3, level: 'Pregrado', sections: 8 },
@@ -279,7 +286,75 @@ const allStudentsData = [
     { id: 'STU-004', name: 'Rodríguez, María', program: 'Ingeniería de Software', semester: 5, gpa: 4.0, status: 'Honor' },
 ]
 
+const CreateCourseSchema = z.object({
+  courseId: z.string().min(3, "El código debe tener al menos 3 caracteres."),
+  name: z.string().min(5, "El nombre debe tener al menos 5 caracteres."),
+  description: z.string().min(10, "La descripción debe tener al menos 10 caracteres."),
+  credits: z.coerce.number().min(1, "Debe tener al menos 1 crédito."),
+  department: z.string().min(1, "Debe seleccionar un departamento."),
+  level: z.string().min(1, "Debe seleccionar un nivel."),
+  instructorId: z.string().min(1, "Debe seleccionar un instructor."),
+});
+
+
 function AdminCoursesView() {
+    const { toast } = useToast();
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const firestore = useFirestore();
+
+    const professorsQuery = useMemoFirebase(() => 
+        firestore ? query(collection(firestore, 'users'), where('role', '==', 'professor')) : null,
+    [firestore]);
+
+    const { data: professors } = useCollection(professorsQuery);
+
+    const form = useForm<z.infer<typeof CreateCourseSchema>>({
+        resolver: zodResolver(CreateCourseSchema),
+        defaultValues: {
+            courseId: '',
+            name: '',
+            description: '',
+            credits: 1,
+            department: '',
+            level: 'Pregrado',
+            instructorId: ''
+        },
+    });
+
+    async function onSubmit(values: z.infer<typeof CreateCourseSchema>) {
+        if (!firestore) return;
+        
+        try {
+            const courseCollection = collection(firestore, 'courses');
+            
+            await addDocumentNonBlocking(courseCollection, {
+                ...values,
+                schedule: [],
+                mode: "Presencial",
+                prerequisites: [],
+                objectives: [],
+                methodology: "",
+                syllabusUrl: "",
+                virtualRoomUrl: "",
+            });
+            
+            toast({
+                title: "Curso Creado",
+                description: `El curso "${values.name}" ha sido creado exitosamente.`,
+            });
+            form.reset();
+            setIsDialogOpen(false);
+        } catch (error) {
+            console.error("Error creating course: ", error);
+            toast({
+                variant: "destructive",
+                title: "Error al crear el curso",
+                description: "Hubo un problema al guardar el curso. Por favor, inténtalo de nuevo.",
+            });
+        }
+    }
+
+
     return (
         <Tabs defaultValue="courses">
             <TabsList>
@@ -320,76 +395,118 @@ function AdminCoursesView() {
                                     <SelectItem value="postgrad">Postgrado</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Dialog>
+                            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button className="w-full sm:w-auto">
                                         <PlusCircle className="mr-2" /> Crear Curso
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-3xl">
-                                    <DialogHeader>
-                                        <DialogTitle>Crear Nuevo Curso</DialogTitle>
-                                        <DialogDescription>Completa el formulario para registrar un nuevo curso en el sistema.</DialogDescription>
-                                    </DialogHeader>
-                                    <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label>Código del Curso</Label>
-                                                <Input placeholder="Ej: CS-101" />
+                                    <Form {...form}>
+                                        <form onSubmit={form.handleSubmit(onSubmit)}>
+                                            <DialogHeader>
+                                                <DialogTitle>Crear Nuevo Curso</DialogTitle>
+                                                <DialogDescription>Completa el formulario para registrar un nuevo curso en el sistema.</DialogDescription>
+                                            </DialogHeader>
+                                            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <FormField control={form.control} name="courseId" render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Código del Curso</FormLabel>
+                                                            <FormControl><Input placeholder="Ej: CS-101" {...field} /></FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name="name" render={({ field }) => (
+                                                         <FormItem>
+                                                            <FormLabel>Nombre del Curso</FormLabel>
+                                                            <FormControl><Input placeholder="Introducción a la Programación" {...field} /></FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                </div>
+                                                <FormField control={form.control} name="description" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Descripción Breve</FormLabel>
+                                                        <FormControl><Textarea placeholder="Describe el curso en una o dos frases." {...field} /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                                
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    <FormField control={form.control} name="credits" render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Créditos</FormLabel>
+                                                            <FormControl><Input type="number" placeholder="4" {...field} /></FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name="department" render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Departamento</FormLabel>
+                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                                <FormControl>
+                                                                    <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Ciencias de la Computación">Ciencias de la Computación</SelectItem>
+                                                                    <SelectItem value="Matemáticas">Matemáticas</SelectItem>
+                                                                    <SelectItem value="Humanidades">Humanidades</SelectItem>
+                                                                    <SelectItem value="Economía y Finanzas">Economía y Finanzas</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name="level" render={({ field }) => (
+                                                         <FormItem>
+                                                            <FormLabel>Nivel</FormLabel>
+                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                                <FormControl>
+                                                                    <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Pregrado">Pregrado</SelectItem>
+                                                                    <SelectItem value="Postgrado">Postgrado</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                </div>
+                                                <FormField control={form.control} name="instructorId" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Instructor</FormLabel>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Asigna un instructor al curso..."/>
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                {professors ? professors.map(prof => (
+                                                                    <SelectItem key={prof.id} value={prof.id}>{prof.firstName} {prof.lastName}</SelectItem>
+                                                                )) : <SelectItem value="loading" disabled>Cargando...</SelectItem>}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                                <div className="space-y-2">
+                                                    <Label>Prerrequisitos</Label>
+                                                    <Button variant="outline" disabled>Seleccionar cursos</Button>
+                                                    <p className="text-xs text-muted-foreground">Funcionalidad para seleccionar prerrequisitos en desarrollo.</p>
+                                                </div>
                                             </div>
-                                            <div className="space-y-2">
-                                                <Label>Nombre del Curso</Label>
-                                                <Input placeholder="Introducción a la Programación" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Descripción Breve</Label>
-                                            <Textarea placeholder="Describe el curso en una o dos frases." />
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div className="space-y-2">
-                                                <Label>Créditos</Label>
-                                                <Input type="number" placeholder="4" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Departamento</Label>
-                                                <Select>
-                                                    <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="cs">Ciencias de la Computación</SelectItem>
-                                                        <SelectItem value="math">Matemáticas</SelectItem>
-                                                        <SelectItem value="humanities">Humanidades</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Nivel</Label>
-                                                <Select>
-                                                    <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="Pregrado">Pregrado</SelectItem>
-                                                        <SelectItem value="Postgrado">Postgrado</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Prerrequisitos</Label>
-                                            <Button variant="outline" disabled>Seleccionar cursos</Button>
-                                            <p className="text-xs text-muted-foreground">Funcionalidad para seleccionar prerrequisitos en desarrollo.</p>
-                                        </div>
-                                        <Alert>
-                                            <UserCog className="h-4 w-4" />
-                                            <AlertTitle>En Desarrollo</AlertTitle>
-                                            <AlertDescription>
-                                                La lógica para guardar el nuevo curso en la base de datos se implementará próximamente.
-                                            </AlertDescription>
-                                        </Alert>
-                                    </div>
-                                    <DialogFooter>
-                                        <Button variant="outline">Cancelar</Button>
-                                        <Button disabled><PlusCircle className="mr-2"/> Guardar Curso</Button>
-                                    </DialogFooter>
+                                            <DialogFooter>
+                                                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
+                                                <Button type="submit" disabled={form.formState.isSubmitting}>
+                                                    {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                    Guardar Curso
+                                                </Button>
+                                            </DialogFooter>
+                                        </form>
+                                    </Form>
                                 </DialogContent>
                             </Dialog>
                         </div>

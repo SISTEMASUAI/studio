@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -253,7 +253,7 @@ export default function SchedulePage() {
 
   const { data: courses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
   
-  const allEvents = useMemoFirebase(() => {
+  const allEvents = useMemo(() => {
       if (!courses) return [];
       return generateClassEvents(courses);
   }, [courses]);
@@ -267,8 +267,8 @@ export default function SchedulePage() {
 
   const modifiersStyles = {
     classDay: {
-        fontWeight: 'bold',
-        position: 'relative',
+      backgroundColor: 'hsl(var(--primary))',
+      color: 'hsl(var(--primary-foreground))',
     },
   };
 
@@ -302,14 +302,13 @@ export default function SchedulePage() {
         <div className="lg:col-span-2 space-y-8">
           <Card>
             <CardContent className="p-0">
-              <style>{`.day-is-class:after { content: "•"; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); color: hsl(var(--primary)); font-size: 1.2rem; line-height: 0; }`}</style>
               <Calendar
                 mode="single"
                 selected={date}
                 onSelect={setDate}
                 className="w-full"
-                modifiers={{ classDay: classDays }}
-                modifiersClassNames={{ classDay: 'day-is-class' }}
+                modifiers={modifiers}
+                modifiersStyles={modifiersStyles}
                 locale={es}
               />
             </CardContent>

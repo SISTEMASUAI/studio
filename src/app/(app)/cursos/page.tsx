@@ -161,7 +161,7 @@ function ProfessorCoursesView() {
                      <CardFooter className="flex gap-2">
                         <Button asChild className="w-full">
                            <Link href={`/cursos/${course.courseId}`}>
-                             Gestionar <ArrowRight className="ml-2" />
+                             Gestionar
                            </Link>
                         </Button>
                      </CardFooter>

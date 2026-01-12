@@ -18,6 +18,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
     FileClock,
   UserCog,
   FileDown,
@@ -29,6 +38,8 @@ import {
   X,
   MoreHorizontal,
   GraduationCap,
+  Upload,
+  AlertTriangle,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -41,6 +52,9 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { useState } from 'react';
 
 const userRequests = [
   {
@@ -96,6 +110,8 @@ function getStatusVariant(status: string) {
   }
 
 function UserProceduresView() {
+  const [requestType, setRequestType] = useState('');
+
   return (
     <Card>
       <CardHeader>
@@ -106,7 +122,87 @@ function UserProceduresView() {
                 Realiza el seguimiento del estado de tus solicitudes.
                 </CardDescription>
             </div>
-            <Button><FilePlus className="mr-2"/> Iniciar Nuevo Trámite</Button>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button><FilePlus className="mr-2"/> Iniciar Nuevo Trámite</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Iniciar Nuevo Trámite</DialogTitle>
+                        <DialogDescription>
+                            Selecciona el tipo de trámite y completa la información requerida.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="request-type">Tipo de Solicitud</Label>
+                            <Select onValueChange={setRequestType}>
+                                <SelectTrigger id="request-type">
+                                    <SelectValue placeholder="Selecciona un tipo de trámite..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="grade-certificate">Certificado de Notas</SelectItem>
+                                    <SelectItem value="enrollment-proof">Constancia de Matrícula</SelectItem>
+                                    <SelectItem value="graduate-certificate">Certificado de Egresado</SelectItem>
+                                    <SelectItem value="custom-request">Otro tipo de solicitud</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {requestType === 'grade-certificate' && (
+                             <div className="p-4 border rounded-md space-y-4">
+                                <h4 className="font-semibold">Opciones para Certificado de Notas</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                     <div className="space-y-2">
+                                        <Label>Idioma</Label>
+                                        <Select defaultValue="es">
+                                            <SelectTrigger><SelectValue/></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="es">Español</SelectItem>
+                                                <SelectItem value="en">Inglés</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>N° de Copias</Label>
+                                        <Input type="number" min="1" max="5" defaultValue="1" />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div className="space-y-2">
+                            <Label htmlFor="request-reason">Motivo / Uso de la Solicitud</Label>
+                            <Textarea id="request-reason" placeholder="Ej: Para postulación a beca en el extranjero." />
+                        </div>
+
+                         <div className="space-y-2">
+                            <Label>Documentos de Respaldo (Opcional)</Label>
+                            <Button variant="outline" asChild className="w-full">
+                                <label className="cursor-pointer flex items-center gap-2">
+                                    <Upload className="h-4 w-4"/>
+                                    <span>Adjuntar archivos (PDF, JPG, PNG)</span>
+                                    <input type="file" multiple className="sr-only" />
+                                </label>
+                            </Button>
+                            <p className="text-xs text-muted-foreground">Puedes adjuntar hasta 5 archivos (máx 20MB total).</p>
+                        </div>
+                        
+                        <Alert>
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>Próximos Pasos</AlertTitle>
+                            <AlertDescription>
+                                La lógica para enviar la solicitud, realizar validaciones de pago y generar el documento se implementará próximamente.
+                            </Aler
+tDescription>
+                        </Alert>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline">Cancelar</Button>
+                        <Button disabled><FilePlus className="mr-2"/> Enviar Solicitud</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
       </CardHeader>
       <CardContent>

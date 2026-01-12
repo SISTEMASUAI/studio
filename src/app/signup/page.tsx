@@ -86,9 +86,16 @@ export default function SignupPage() {
         firstName: data.firstName,
         lastName: data.lastName,
         profilePicture: `https://i.pravatar.cc/150?u=${user.uid}`,
+        address: '',
+        phone: '',
+        cvUrl: '',
+        bio: '',
+        specialization: [],
+        officeHours: '',
       };
       
       const userDocRef = doc(firestore, 'users', user.uid);
+      // Use the non-blocking function to create the user profile document
       setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
 
       toast({

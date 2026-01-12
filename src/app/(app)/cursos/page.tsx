@@ -23,7 +23,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -43,6 +53,8 @@ import {
   MoreHorizontal,
   Search,
   Book,
+  Trash2,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -51,6 +63,8 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { collection, query, where, DocumentData } from 'firebase/firestore';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 // Define the type for the enrollment data we expect from Firestore
 interface Enrollment {
@@ -143,6 +157,7 @@ function ProfessorCoursesView() {
 
     const coursesQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
+        // This is not optimal, we should query courses directly
         return query(collection(firestore, 'enrollments'), where('professorId', '==', user.uid));
     }, [firestore, user]);
 
@@ -207,11 +222,11 @@ function ProfessorCoursesView() {
   }
 
   const allCoursesData = [
-    { code: 'CS101', name: 'Introducción a la Programación', department: 'Ciencias de la Computación', credits: 4, level: 'Pregrado', sections: 5 },
-    { code: 'MA203', name: 'Cálculo Avanzado', department: 'Matemáticas', credits: 4, level: 'Pregrado', sections: 3 },
-    { code: 'HI105', name: 'Historia del Siglo XX', department: 'Humanidades', credits: 3, level: 'Pregrado', sections: 8 },
-    { code: 'DS501', name: 'Machine Learning Aplicado', department: 'Ciencias de la Computación', credits: 4, level: 'Postgrado', sections: 2 },
-    { code: 'FIN310', name: 'Mercados Financieros', department: 'Economía y Finanzas', credits: 3, level: 'Pregrado', sections: 4 },
+    { id: 'CRS-001', code: 'CS101', name: 'Introducción a la Programación', department: 'Ciencias de la Computación', credits: 4, level: 'Pregrado', sections: 5 },
+    { id: 'CRS-002', code: 'MA203', name: 'Cálculo Avanzado', department: 'Matemáticas', credits: 4, level: 'Pregrado', sections: 3 },
+    { id: 'CRS-003', code: 'HI105', name: 'Historia del Siglo XX', department: 'Humanidades', credits: 3, level: 'Pregrado', sections: 8 },
+    { id: 'CRS-004', code: 'DS501', name: 'Machine Learning Aplicado', department: 'Ciencias de la Computación', credits: 4, level: 'Postgrado', sections: 2 },
+    { id: 'CRS-005', code: 'FIN310', name: 'Mercados Financieros', department: 'Economía y Finanzas', credits: 3, level: 'Pregrado', sections: 4 },
 ];
 
 function AdminCoursesView() {
@@ -249,9 +264,78 @@ function AdminCoursesView() {
                     <SelectItem value="postgrad">Postgrado</SelectItem>
                 </SelectContent>
             </Select>
-            <Button className="w-full sm:w-auto">
-                <PlusCircle className="mr-2" /> Crear Curso
-            </Button>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button className="w-full sm:w-auto">
+                        <PlusCircle className="mr-2" /> Crear Curso
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>Crear Nuevo Curso</DialogTitle>
+                        <DialogDescription>Completa el formulario para registrar un nuevo curso en el sistema.</DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Código del Curso</Label>
+                                <Input placeholder="Ej: CS-101" />
+                            </div>
+                             <div className="space-y-2">
+                                <Label>Nombre del Curso</Label>
+                                <Input placeholder="Introducción a la Programación" />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Descripción Breve</Label>
+                            <Textarea placeholder="Describe el curso en una o dos frases." />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label>Créditos</Label>
+                                <Input type="number" placeholder="4" />
+                            </div>
+                             <div className="space-y-2">
+                                <Label>Departamento</Label>
+                                <Select>
+                                    <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="cs">Ciencias de la Computación</SelectItem>
+                                        <SelectItem value="math">Matemáticas</SelectItem>
+                                        <SelectItem value="humanities">Humanidades</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                             <div className="space-y-2">
+                                <Label>Nivel</Label>
+                                <Select>
+                                    <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Pregrado">Pregrado</SelectItem>
+                                        <SelectItem value="Postgrado">Postgrado</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                         <div className="space-y-2">
+                            <Label>Prerrequisitos</Label>
+                            <Button variant="outline" disabled>Seleccionar cursos</Button>
+                            <p className="text-xs text-muted-foreground">Funcionalidad para seleccionar prerrequisitos en desarrollo.</p>
+                        </div>
+                        <Alert>
+                            <UserCog className="h-4 w-4" />
+                            <AlertTitle>En Desarrollo</AlertTitle>
+                            <AlertDescription>
+                                La lógica para guardar el nuevo curso en la base de datos se implementará próximamente.
+                            </AlertDescription>
+                        </Alert>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline">Cancelar</Button>
+                        <Button disabled><PlusCircle className="mr-2"/> Guardar Curso</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
           </div>
         </CardHeader>
         <CardContent>
@@ -277,17 +361,77 @@ function AdminCoursesView() {
                             <TableCell>{course.level}</TableCell>
                             <TableCell className="text-center">{course.sections}</TableCell>
                             <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon">
-                                            <MoreHorizontal />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        <DropdownMenuItem><Book className="mr-2"/>Ver Secciones</DropdownMenuItem>
-                                        <DropdownMenuItem><Edit className="mr-2"/>Editar Curso</DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <Dialog>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon">
+                                                <MoreHorizontal />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            <DropdownMenuItem><Eye className="mr-2"/>Ver Secciones</DropdownMenuItem>
+                                            <DropdownMenuItem><Edit className="mr-2"/>Editar Curso</DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DialogTrigger asChild>
+                                                <DropdownMenuItem><PlusCircle className="mr-2"/>Crear Sección</DropdownMenuItem>
+                                            </DialogTrigger>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem className="text-destructive"><Trash2 className="mr-2"/>Desactivar</DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Crear Sección para "{course.name}"</DialogTitle>
+                                            <DialogDescription>Configura los detalles para la nueva sección de este curso.</DialogDescription>
+                                        </DialogHeader>
+                                        <div className="grid gap-4 py-4">
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label>N° de Sección</Label>
+                                                    <Input placeholder="Ej: A1" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Semestre</Label>
+                                                    <Input placeholder="2024-2" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Año</Label>
+                                                    <Input type="number" placeholder="2024" />
+                                                </div>
+                                            </div>
+                                             <div className="grid grid-cols-2 gap-4">
+                                                 <div className="space-y-2">
+                                                    <Label>Profesor</Label>
+                                                    <Select>
+                                                        <SelectTrigger><SelectValue placeholder="Asignar profesor..."/></SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="prof1">Dr. Alan Turing</SelectItem>
+                                                            <SelectItem value="prof2">Dra. Ada Lovelace</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                 <div className="space-y-2">
+                                                    <Label>Capacidad</Label>
+                                                    <Input type="number" placeholder="30" />
+                                                </div>
+                                             </div>
+                                            <div className="space-y-2">
+                                                <Label>Horario</Label>
+                                                <Button variant="outline" disabled>Configurar Horario</Button>
+                                                <p className="text-xs text-muted-foreground">La interfaz de gestión de horarios se implementará próximamente.</p>
+                                            </div>
+                                            <Alert>
+                                                <UserCog className="h-4 w-4" />
+                                                <AlertTitle>En Desarrollo</AlertTitle>
+                                                <AlertDescription>La lógica para guardar la sección se implementará próximamente.</AlertDescription>
+                                            </Alert>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button variant="outline">Cancelar</Button>
+                                            <Button disabled><PlusCircle className="mr-2"/>Guardar Sección</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                             </TableCell>
                         </TableRow>
                     ))}

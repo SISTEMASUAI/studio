@@ -58,9 +58,37 @@
         "officeHours": {
             "type": "string",
             "description": "A string describing office hours for professors (e.g., 'Mon/Wed 10-12')."
+        },
+        "programId": {
+          "type": "string",
+          "description": "The ID of the university program the student is enrolled in."
         }
       },
       "required": ["uid", "email", "role", "firstName", "lastName"]
+    },
+    "UniversityProgram": {
+      "title": "UniversityProgram",
+      "type": "object",
+      "description": "Represents a university academic program or career.",
+      "properties": {
+        "programId": {
+          "type": "string",
+          "description": "Unique identifier for the program (e.g., 'soft-eng')."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the program (e.g., 'Ingeniería de Software')."
+        },
+        "faculty": {
+          "type": "string",
+          "description": "The faculty or school the program belongs to (e.g., 'Facultad de Ingeniería')."
+        },
+        "totalCredits": {
+          "type": "number",
+          "description": "Total number of credits required to complete the program."
+        }
+      },
+      "required": ["programId", "name", "faculty", "totalCredits"]
     },
     "IntranetPost": {
       "title": "IntranetPost",
@@ -103,6 +131,10 @@
         "courseId": {
           "type": "string",
           "description": "Unique identifier for the course."
+        },
+        "programId": {
+          "type": "string",
+          "description": "The ID of the program this course belongs to."
         },
         "name": {
           "type": "string",
@@ -178,7 +210,7 @@
           "description": "Link to the virtual classroom if mode is Online or Hybrid."
         }
       },
-      "required": ["courseId", "name", "description", "instructorId", "schedule", "mode"]
+      "required": ["courseId", "name", "description", "instructorId", "schedule", "mode", "programId"]
     },
     "CourseAssignment": {
       "title": "CourseAssignment",
@@ -421,6 +453,10 @@
         "schema": { "$ref": "#/entities/JobApplication" },
         "description": "Stores job applications for a student. Only the student and admins can access."
       },
+       "/programs/{programId}": {
+        "schema": { "$ref": "#/entities/UniversityProgram" },
+        "description": "Stores the academic programs (careers) offered by the university."
+      },
       "/intranet_posts/{postId}": {
         "schema": {
           "$ref": "#/entities/IntranetPost"
@@ -482,3 +518,6 @@
     }
   }
 }
+
+
+    

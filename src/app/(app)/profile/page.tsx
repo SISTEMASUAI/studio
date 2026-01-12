@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser } from '@/firebase';
@@ -9,6 +8,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+  } from "@/components/ui/dialog"
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -24,14 +32,16 @@ import {
   Mail,
   Phone,
   Home,
-  GraduationCap,
   FileText,
+  QrCode,
+  ShieldCheck,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+
 
 function UserProfileView() {
   const { profile } = useUser();
@@ -130,8 +140,95 @@ function UserProfileView() {
             <CardDescription>Gestiona tu contraseña y seguridad.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full justify-start" disabled><KeyRound className="mr-2"/> Cambiar Contraseña</Button>
-            <Button variant="outline" className="w-full justify-start" disabled><Fingerprint className="mr-2"/> Configurar 2FA</Button>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start"><KeyRound className="mr-2"/> Cambiar Contraseña</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Cambiar Contraseña</DialogTitle>
+                        <DialogDescription>
+                            Para mayor seguridad, tu nueva contraseña debe cumplir con los requisitos mínimos.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="current-password">Contraseña Actual</Label>
+                            <Input id="current-password" type="password" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="new-password">Nueva Contraseña</Label>
+                            <Input id="new-password" type="password" />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="confirm-password">Confirmar Nueva Contraseña</Label>
+                            <Input id="confirm-password" type="password" />
+                        </div>
+                        <Alert variant="destructive">
+                            <ShieldCheck className="h-4 w-4"/>
+                            <AlertTitle>Requisitos de Contraseña</AlertTitle>
+                            <AlertDescription>
+                                <ul className="list-disc list-inside text-xs">
+                                    <li>Mínimo 8 caracteres</li>
+                                    <li>Al menos una mayúscula</li>
+                                    <li>Al menos un número</li>
+                                    <li>Al menos un carácter especial</li>
+                                </ul>
+                            </AlertDescription>
+                        </Alert>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline">Cancelar</Button>
+                        <Button disabled>Actualizar Contraseña</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start"><Fingerprint className="mr-2"/> Configurar 2FA</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Autenticación de Dos Factores (2FA)</DialogTitle>
+                        <DialogDescription>
+                            Añade una capa extra de seguridad a tu cuenta.
+                        </DialogDescription>
+                    </DialogHeader>
+                     <div className="py-4 space-y-6">
+                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <div className="space-y-0.5">
+                                <Label>Habilitar 2FA</Label>
+                                <p className="text-xs text-muted-foreground">
+                                    Se te pedirá un código de tu app de autenticación al iniciar sesión.
+                                </p>
+                            </div>
+                            <Switch />
+                        </div>
+                        <div className="text-center space-y-2">
+                             <Label>1. Escanea el código QR</Label>
+                             <div className="flex justify-center items-center h-40 w-40 bg-muted rounded-lg mx-auto">
+                                <QrCode className="h-16 w-16 text-muted-foreground"/>
+                             </div>
+                             <p className="text-xs text-muted-foreground">Usa una app como Google Authenticator o Authy.</p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="2fa-code">2. Ingresa el código de verificación</Label>
+                            <Input id="2fa-code" placeholder="123456"/>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                         <Alert>
+                            <UserCog className="h-4 w-4"/>
+                            <AlertTitle>En Desarrollo</AlertTitle>
+                            <AlertDescription>
+                                La lógica para generar el QR y verificar el código se implementará próximamente.
+                            </AlertDescription>
+                        </Alert>
+                        <Button variant="outline">Cancelar</Button>
+                        <Button disabled>Verificar y Habilitar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             <Button variant="outline" className="w-full justify-start" disabled><Monitor className="mr-2"/> Ver Sesiones Activas</Button>
             <Button variant="destructive" className="w-full justify-start" disabled><LogOut className="mr-2"/> Cerrar Sesiones Remotas</Button>
           </CardContent>

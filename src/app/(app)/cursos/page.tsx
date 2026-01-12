@@ -109,6 +109,7 @@ interface Course extends DocumentData {
     instructorId: string;
     programId: string;
     facultyId: string;
+    cycle?: number;
     semesterStartDate?: string;
     semesterEndDate?: string;
     schedule?: { day: string; startTime: string; endTime: string; classroom: string }[];
@@ -121,6 +122,7 @@ interface Program extends DocumentData {
     programId: string;
     name: string;
     facultyId: string;
+    totalCycles: number;
 }
 
 interface Faculty extends DocumentData {
@@ -292,6 +294,7 @@ const CourseSchema = z.object({
     capacity: z.coerce.number().min(0, "La capacidad no puede ser negativa."),
     facultyId: z.string().min(1, "Debe seleccionar una facultad."),
     programId: z.string().min(1, "Debe seleccionar un programa."),
+    cycle: z.coerce.number().min(1, "Debe seleccionar un ciclo."),
     level: z.string().min(1, "Debe seleccionar un nivel."),
     instructorId: z.string().min(1, "Debe seleccionar un instructor."),
     mode: z.string().min(1, "Debe seleccionar una modalidad."),
@@ -338,6 +341,7 @@ function AdminCoursesView() {
             capacity: 30,
             facultyId: '',
             programId: '',
+            cycle: 1,
             level: 'Pregrado',
             instructorId: '',
             mode: 'Presencial',
@@ -347,12 +351,14 @@ function AdminCoursesView() {
     });
     
     const selectedFacultyIdCourse = courseForm.watch('facultyId');
+    const selectedProgramIdCourse = courseForm.watch('programId');
 
     const updateCourseForm = useForm<z.infer<typeof CourseSchema>>({
         resolver: zodResolver(CourseSchema),
     });
 
     const selectedFacultyIdUpdateCourse = updateCourseForm.watch('facultyId');
+    const selectedProgramIdUpdateCourse = updateCourseForm.watch('programId');
     
     const selectedCourseFacultyId = useMemo(() => {
         if (!selectedCourse || !programs) return '';
@@ -450,6 +456,19 @@ function AdminCoursesView() {
         return new Date(course.semesterStartDate) < new Date();
     }
 
+    const cyclesForSelectedProgramCreate = useMemo(() => {
+        if (!selectedProgramIdCourse || !programs) return [];
+        const program = programs.find(p => p.id === selectedProgramIdCourse);
+        return program ? Array.from({ length: program.totalCycles }, (_, i) => i + 1) : [];
+    }, [selectedProgramIdCourse, programs]);
+
+    const cyclesForSelectedProgramUpdate = useMemo(() => {
+        const programId = selectedProgramIdUpdateCourse || selectedCourse?.programId;
+        if (!programId || !programs) return [];
+        const program = programs.find(p => p.id === programId);
+        return program ? Array.from({ length: program.totalCycles }, (_, i) => i + 1) : [];
+    }, [selectedProgramIdUpdateCourse, selectedCourse, programs]);
+
     return (
         <Tabs defaultValue="courses">
             <TabsList>
@@ -542,7 +561,7 @@ function AdminCoursesView() {
                                                     <FormField control={courseForm.control} name="facultyId" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Facultad</FormLabel>
-                                                            <Select onValueChange={(value) => { field.onChange(value); courseForm.setValue('programId', ''); }} defaultValue={field.value}>
+                                                            <Select onValueChange={(value) => { field.onChange(value); courseForm.setValue('programId', ''); courseForm.setValue('cycle', 1); }} defaultValue={field.value}>
                                                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una facultad..."/></SelectTrigger></FormControl>
                                                                 <SelectContent>
                                                                     {faculties ? faculties.map(fac => (
@@ -556,7 +575,7 @@ function AdminCoursesView() {
                                                     <FormField control={courseForm.control} name="programId" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Programa Académico</FormLabel>
-                                                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedFacultyIdCourse}>
+                                                            <Select onValueChange={(value) => { field.onChange(value); courseForm.setValue('cycle', 1); }} value={field.value} disabled={!selectedFacultyIdCourse}>
                                                                 <FormControl><SelectTrigger><SelectValue placeholder={!selectedFacultyIdCourse ? "Selecciona una facultad primero" : "Asigna un programa..."}/></SelectTrigger></FormControl>
                                                                 <SelectContent>
                                                                     {programs?.filter(p => p.facultyId === selectedFacultyIdCourse).map(prog => (
@@ -568,6 +587,20 @@ function AdminCoursesView() {
                                                         </FormItem>
                                                     )} />
                                                 </div>
+                                                <FormField control={courseForm.control} name="cycle" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Ciclo</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={String(field.value)} disabled={!selectedProgramIdCourse}>
+                                                            <FormControl><SelectTrigger><SelectValue placeholder={!selectedProgramIdCourse ? "Selecciona un programa primero" : "Asigna un ciclo..."}/></SelectTrigger></FormControl>
+                                                            <SelectContent>
+                                                                {cyclesForSelectedProgramCreate.map(cycleNum => (
+                                                                    <SelectItem key={cycleNum} value={String(cycleNum)}>Ciclo {cycleNum}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
                                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                     <FormField control={courseForm.control} name="semesterStartDate" render={({ field }) => (
                                                         <FormItem>
@@ -684,6 +717,7 @@ function AdminCoursesView() {
                                     <TableHead>Código</TableHead>
                                     <TableHead>Nombre del Curso</TableHead>
                                     <TableHead>Programa</TableHead>
+                                    <TableHead>Ciclo</TableHead>
                                     <TableHead>Créditos</TableHead>
                                     <TableHead>Nivel</TableHead>
                                     <TableHead className="text-right">Acciones</TableHead>
@@ -692,7 +726,7 @@ function AdminCoursesView() {
                             <TableBody>
                                {areCoursesLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center">
+                                        <TableCell colSpan={7} className="text-center">
                                             <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                                         </TableCell>
                                     </TableRow>
@@ -702,7 +736,8 @@ function AdminCoursesView() {
                                             <TableCell className="font-mono">{course.courseId}</TableCell>
                                             <TableCell className="font-medium">{course.name}</TableCell>
                                             <TableCell>{programs?.find(p => p.id === course.programId)?.name || 'N/A'}</TableCell>
-                                            <TableCell>{course.credits}</TableCell>
+                                            <TableCell className="text-center">{course.cycle}</TableCell>
+                                            <TableCell className="text-center">{course.credits}</TableCell>
                                             <TableCell>{course.level}</TableCell>
                                             <TableCell className="text-right">
                                                     <DropdownMenu>
@@ -727,7 +762,7 @@ function AdminCoursesView() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center">No se encontraron cursos.</TableCell>
+                                        <TableCell colSpan={7} className="text-center">No se encontraron cursos.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
@@ -809,7 +844,7 @@ function AdminCoursesView() {
                                      <FormField control={updateCourseForm.control} name="facultyId" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Facultad</FormLabel>
-                                            <Select onValueChange={(value) => { field.onChange(value); updateCourseForm.setValue('programId', ''); }} value={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                            <Select onValueChange={(value) => { field.onChange(value); updateCourseForm.setValue('programId', ''); updateCourseForm.setValue('cycle', 1); }} value={field.value} disabled={hasCourseStarted(selectedCourse)}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una facultad..."/></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     {faculties ? faculties.map(fac => (
@@ -823,7 +858,7 @@ function AdminCoursesView() {
                                     <FormField control={updateCourseForm.control} name="programId" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Programa Académico</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value} disabled={!selectedFacultyIdUpdateCourse || hasCourseStarted(selectedCourse)}>
+                                            <Select onValueChange={(value) => { field.onChange(value); updateCourseForm.setValue('cycle', 1); }} value={field.value} disabled={!selectedFacultyIdUpdateCourse || hasCourseStarted(selectedCourse)}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder={!selectedFacultyIdUpdateCourse ? "Selecciona una facultad primero" : "Asigna un programa..."}/></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     {programs?.filter(p => p.facultyId === selectedFacultyIdUpdateCourse).map(prog => (
@@ -835,6 +870,20 @@ function AdminCoursesView() {
                                         </FormItem>
                                     )} />
                                 </div>
+                                 <FormField control={updateCourseForm.control} name="cycle" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Ciclo</FormLabel>
+                                        <Select onValueChange={field.onChange} value={String(field.value)} disabled={!selectedProgramIdUpdateCourse || hasCourseStarted(selectedCourse)}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder={!selectedProgramIdUpdateCourse ? "Selecciona un programa primero" : "Asigna un ciclo..."}/></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {cyclesForSelectedProgramUpdate.map(cycleNum => (
+                                                    <SelectItem key={cycleNum} value={String(cycleNum)}>Ciclo {cycleNum}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}/>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <FormField control={updateCourseForm.control} name="semesterStartDate" render={({ field }) => (
                                         <FormItem>

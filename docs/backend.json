@@ -233,6 +233,10 @@
           "format": "uri",
           "description": "Link to the virtual classroom if mode is Online or Hybrid."
         },
+        "cycle": {
+          "type": "number",
+          "description": "The academic cycle or semester number this course belongs to."
+        },
         "capacity": {
             "type": "number",
             "description": "The total number of students that can enroll in the course."

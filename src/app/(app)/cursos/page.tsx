@@ -25,6 +25,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { collection, query, where, DocumentData } from 'firebase/firestore';
+import Link from 'next/link';
 
 // Define the type for the enrollment data we expect from Firestore
 interface Enrollment {
@@ -97,8 +98,10 @@ function StudentCoursesView() {
                 <Badge variant="secondary">{enrollment.courseCode}</Badge>
               </CardContent>
               <CardFooter>
-                <Button className="w-full">
-                  Ver Curso <ArrowRight className="ml-2" />
+                <Button asChild className="w-full">
+                  <Link href={`/cursos/${enrollment.courseId}`}>
+                    Ver Curso <ArrowRight className="ml-2" />
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>

@@ -102,6 +102,33 @@
         "instructorId": {
           "type": "string",
           "description": "The UID of the instructor for the course."
+        },
+        "objectives": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of learning objectives for the course."
+        },
+        "methodology": {
+            "type": "string",
+            "description": "Teaching methodology used in the course."
+        },
+        "syllabusUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to the course syllabus document."
+        },
+        "level": {
+            "type": "string",
+            "description": "The academic level of the course (e.g., 'Beginner', 'Advanced')."
+        },
+        "department": {
+            "type": "string",
+            "description": "The department offering the course."
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of course IDs that are prerequisites for this course."
         }
       },
       "required": ["courseId", "name", "description", "instructorId"]

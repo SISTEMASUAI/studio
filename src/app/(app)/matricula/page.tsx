@@ -47,6 +47,7 @@ import {
   XCircle,
   Users,
   Calendar,
+  ListPlus,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -66,6 +67,7 @@ const availableCourses = [
     schedule: 'Lun/Mié 10:00-12:00',
     prerequisiteStatus: 'met', // 'met', 'partial', 'unmet'
     conflict: false,
+    waitlistStatus: 'none', // 'none', 'on_waitlist'
   },
   {
     code: 'HI202',
@@ -77,6 +79,7 @@ const availableCourses = [
     schedule: 'Mar/Jue 14:00-16:00',
     prerequisiteStatus: 'met',
     conflict: true,
+    waitlistStatus: 'none',
   },
   {
     code: 'MA501',
@@ -88,17 +91,19 @@ const availableCourses = [
     schedule: 'Vie 08:00-11:00',
     prerequisiteStatus: 'unmet',
     conflict: false,
+    waitlistStatus: 'none',
   },
    {
     code: 'DS301',
     name: 'Bases de Datos Avanzadas',
     credits: 4,
-    enrolled: 15,
+    enrolled: 40,
     capacity: 40,
     professor: 'Dr. Edgar Codd',
     schedule: 'Mar/Jue 14:00-16:00',
-    prerequisiteStatus: 'partial',
+    prerequisiteStatus: 'met',
     conflict: true,
+    waitlistStatus: 'on_waitlist',
   },
 ];
 
@@ -160,6 +165,28 @@ function StudentEnrollmentView() {
     )
   }
 
+  const renderActionButton = (course: (typeof availableCourses)[0]) => {
+    const isFull = course.enrolled >= course.capacity;
+
+    if (course.waitlistStatus === 'on_waitlist') {
+        return <Button variant="outline" size="sm" className="w-full" disabled><ListPlus className="mr-2 h-4 w-4" /> Estás en la lista de espera</Button>;
+    }
+
+    if (isFull) {
+        return (
+            <Button variant="secondary" size="sm" className="w-full" disabled={!isEnrollmentPeriod || course.prerequisiteStatus === 'unmet'}>
+                <ListPlus className="mr-2 h-4 w-4" /> Unirse a lista de espera
+            </Button>
+        );
+    }
+    
+    return (
+        <Button size="sm" className="w-full" disabled={!isEnrollmentPeriod || course.prerequisiteStatus === 'unmet' || course.conflict}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Inscribir
+        </Button>
+    );
+  }
+
   return (
     <div className="grid gap-8 lg:grid-cols-3">
       <div className="lg:col-span-2 space-y-8">
@@ -176,7 +203,6 @@ function StudentEnrollmentView() {
             </CardHeader>
             <CardContent className="space-y-4">
                 {availableCourses.map((course) => {
-                    const isFull = course.enrolled >= course.capacity;
                     return (
                         <Card key={course.code} className={`border-2 ${course.conflict ? 'border-destructive/50' : 'border-transparent'}`}>
                         <CardHeader className="pb-2">
@@ -208,16 +234,7 @@ function StudentEnrollmentView() {
                                 </div>
                         </CardContent>
                             <CardFooter>
-                                {isFull ? (
-                                    <Button variant="secondary" size="sm" className="w-full" disabled={!isEnrollmentPeriod || course.prerequisiteStatus === 'unmet'}>
-                                        Unirse a lista de espera
-                                    </Button>
-                                ) : (
-                                    <Button size="sm" className="w-full" disabled={!isEnrollmentPeriod || course.prerequisiteStatus === 'unmet' || course.conflict}>
-                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                        Inscribir
-                                    </Button>
-                                )}
+                                {renderActionButton(course)}
                             </CardFooter>
                         </Card>
                     )

@@ -32,7 +32,7 @@ import {
   } from "@/components/ui/tabs"
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail, Users, Library, UserCheck as UserCheckIcon, Search, AlertTriangle, FileUp, GraduationCap, ClipboardList, Folder, File, Download, Tv, Book, Settings, Trash2, Edit, Megaphone, UserCog, PlusCircle, Check, Eye } from 'lucide-react';
+import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail, Users, Library, UserCheck as UserCheckIcon, Search, AlertTriangle, FileUp, GraduationCap, ClipboardList, Folder, File, Download, Tv, Book, Settings, Trash2, Edit, Megaphone, UserCog, PlusCircle, Check, Eye, BarChart2 } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
@@ -293,6 +293,7 @@ export default function CourseDetailPage() {
         <TabsTrigger value="assignments"><ClipboardList /> Tareas</TabsTrigger>
         <TabsTrigger value="grades"><GraduationCap/> Calificaciones</TabsTrigger>
         <TabsTrigger value="materials"><Book /> Materiales</TabsTrigger>
+        <TabsTrigger value="stats"><BarChart2 /> Estadísticas</TabsTrigger>
     </>
   )
 
@@ -303,7 +304,7 @@ export default function CourseDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
             <Tabs defaultValue={isStudent ? "assignments" : "students"} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className={`grid w-full ${isStudent ? 'grid-cols-4' : 'grid-cols-5'}`}>
                     {isStudent ? studentTabs : professorTabs}
                 </TabsList>
 
@@ -581,6 +582,42 @@ export default function CourseDetailPage() {
                         </CardContent>
                     </Card>
                 </TabsContent>
+                {isInstructor && (
+                    <TabsContent value="stats" className="mt-6">
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Estadísticas del Curso</CardTitle>
+                                    <CardDescription>Dashboard analítico con el rendimiento general de la clase.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Alert>
+                                        <BarChart2 className="w-4 h-4"/>
+                                        <AlertTitle>En Desarrollo</AlertTitle>
+                                        <AlertDescription>
+                                            Aquí se mostrará el dashboard analítico con gráficos sobre rendimiento, asistencia y más.
+                                        </AlertDescription>
+                                    </Alert>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader>
+                                    <CardTitle>Generación de Reportes</CardTitle>
+                                    <CardDescription>Exporta informes académicos del curso.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Alert>
+                                        <FileText className="w-4 h-4"/>
+                                        <AlertTitle>En Desarrollo</AlertTitle>
+                                        <AlertDescription>
+                                            Desde aquí podrás generar y exportar reportes de asistencia, calificaciones y desempeño en formato PDF y Excel.
+                                        </AlertDescription>
+                                    </Alert>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+                )}
             </Tabs>
         </div>
         <aside className="space-y-8">
@@ -735,19 +772,4 @@ export default function CourseDetailPage() {
                                             <AlertTitle>Función en Desarrollo</AlertTitle>
                                             <AlertDescription>
                                                 La lógica para procesar la baja del curso se implementará próximamente.
-                                            </AlertDescription>
-                                        </Alert>
-                                        <DialogTrigger asChild><Button variant="outline">Cancelar</Button></DialogTrigger>
-                                        <Button variant="destructive" disabled>Confirmar Baja</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        </CardContent>
-                    </Card>
-                </>
-            )}
-        </aside>
-      </div>
-    </div>
-  );
-}
+                                            </Aler

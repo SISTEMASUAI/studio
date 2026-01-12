@@ -32,7 +32,7 @@ import {
   } from "@/components/ui/tabs"
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail, Users, Library, UserCheck as UserCheckIcon, Search, AlertTriangle, FileUp } from 'lucide-react';
+import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail, Users, Library, UserCheck as UserCheckIcon, Search, AlertTriangle, FileUp, GraduationCap, ClipboardList } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
@@ -44,6 +44,8 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import CourseGrades from '@/components/cursos/CourseGrades';
+import CourseAssignments from '@/components/cursos/CourseAssignments';
 
 interface ScheduleItem {
     day: string;
@@ -214,259 +216,237 @@ export default function CourseDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          <Tabs defaultValue="description" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="description"><Info className="mr-2"/>Descripción</TabsTrigger>
-              <TabsTrigger value="content"><BookMarked className="mr-2"/>Contenido</TabsTrigger>
-              <TabsTrigger value="prerequisites"><ListChecks className="mr-2"/>Prerrequisitos</TabsTrigger>
-              <TabsTrigger value="classmates"><Users className="mr-2"/>Compañeros</TabsTrigger>
-              <TabsTrigger value="bibliography"><Library className="mr-2"/>Bibliografía</TabsTrigger>
-              <TabsTrigger value="attendance"><UserCheckIcon className="mr-2"/>Asistencia</TabsTrigger>
-            </TabsList>
-            <TabsContent value="description" className="mt-6">
-                <Card>
-                    <CardHeader><CardTitle>Descripción del Curso</CardTitle></CardHeader>
-                    <CardContent className="space-y-4">
-                        <p className="text-muted-foreground">{course.description}</p>
-                        <h3 className="font-semibold">Metodología</h3>
-                        <p className="text-muted-foreground">{course.methodology || 'No especificada.'}</p>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-            <TabsContent value="content" className="mt-6">
-                 <Card>
-                    <CardHeader><CardTitle>Contenido y Objetivos</CardTitle></CardHeader>
-                    <CardContent className="space-y-6">
-                        <div>
-                            <h3 className="font-semibold mb-2">Objetivos de Aprendizaje</h3>
-                            {course.objectives && course.objectives.length > 0 ? (
-                                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                                    {course.objectives.map((obj, i) => <li key={i}>{obj}</li>)}
-                                </ul>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">No se han especificado objetivos.</p>
-                            )}
-                        </div>
-                         <div>
-                            <h3 className="font-semibold mb-2">Syllabus del Curso</h3>
-                            {course.syllabusUrl ? (
-                                <Button asChild>
-                                    <Link href={course.syllabusUrl} target="_blank"><FileText className="mr-2"/> Descargar Syllabus (PDF)</Link>
-                                </Button>
-                            ): (
-                                <p className="text-sm text-muted-foreground">El syllabus no está disponible actualmente.</p>
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-            <TabsContent value="prerequisites" className="mt-6">
-                <Card>
-                    <CardHeader><CardTitle>Prerrequisitos</CardTitle></CardHeader>
-                    <CardContent>
-                        {course.prerequisites && course.prerequisites.length > 0 ? (
-                             <ul className="space-y-2">
-                                {course.prerequisites.map(prereq => (
-                                    <li key={prereq} className="flex items-center gap-2 text-muted-foreground">
-                                        {approvedPrerequisites.includes(prereq) ? <CheckCircle className="text-green-500"/> : <XCircle className="text-destructive"/>}
-                                        <span>{prereq}</span>
-                                        {approvedPrerequisites.includes(prereq) ? <Badge variant="secondary" className="bg-green-100 text-green-800">Aprobado</Badge> : null}
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">Este curso no tiene prerrequisitos.</p>
-                        )}
-                         <Alert className="mt-6">
-                            <BookOpen className="h-4 w-4" />
-                            <AlertTitle>Visualización en Desarrollo</AlertTitle>
-                            <AlertDescription>
-                                Próximamente, se mostrará el nombre completo de los cursos y tu estado académico real.
-                            </AlertDescription>
-                        </Alert>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-             <TabsContent value="classmates" className="mt-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Compañeros de Clase</CardTitle>
-                        <CardDescription>Lista de estudiantes inscritos en este curso.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <div className="mb-4 flex gap-2">
-                            <Input placeholder="Buscar por nombre..." />
-                            <Button variant="outline"><Search className="h-4 w-4"/></Button>
-                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            {classmates.map(student => (
-                                <div key={student.id} className="flex flex-col items-center text-center gap-2">
-                                    <Avatar>
-                                        <AvatarImage src={student.avatar} alt={student.name} />
-                                        <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <p className="text-sm font-medium">{student.name}</p>
-                                </div>
-                            ))}
-                        </div>
-                        <Alert className="mt-6">
-                            <Users className="h-4 w-4" />
-                            <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>
-                            <AlertDescription>
-                                La lista completa de compañeros y la funcionalidad de búsqueda se conectarán a datos reales próximamente. La información sensible del estudiante no será expuesta.
-                            </AlertDescription>
-                        </Alert>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-            <TabsContent value="bibliography" className="mt-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Bibliografía del Curso</CardTitle>
-                        <CardDescription>Recursos y lecturas recomendadas.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="space-y-4">
-                            {bibliography.map(item => (
-                                <li key={item.id} className="flex flex-col sm:flex-row justify-between gap-2">
-                                    <p className="text-muted-foreground flex-grow">{item.text}</p>
-                                    <div className="flex gap-2 shrink-0">
-                                        <Button variant="outline" size="sm" disabled={!item.available}>
-                                            <Library className="mr-2" />
-                                            {item.available ? 'En Biblioteca' : 'No Disponible'}
-                                        </Button>
-                                         <Button size="sm" disabled={!item.digital}>
-                                            <BookOpen className="mr-2" />
-                                            Acceso Digital
-                                        </Button>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                         <Alert className="mt-6">
-                            <Library className="h-4 w-4" />
-                            <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>
-                            <AlertDescription>
-                                La integración con el sistema de biblioteca para verificar disponibilidad y acceso digital se implementará próximamente.
-                            </AlertDescription>
-                        </Alert>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-            <TabsContent value="attendance" className="mt-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Mi Asistencia</CardTitle>
-                        <CardDescription>Tu registro de asistencia para este curso.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-8">
-                        <div>
-                            <p className="text-sm font-medium mb-2">Resumen de Asistencia</p>
-                            <div className="space-y-2">
-                                <Progress value={attendancePercentage} className="h-2 [&>div]:bg-green-500" indicatorClassName={getProgressColor(attendancePercentage)} />
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                    <span>{validAttendance} de {totalClasses} clases asistidas</span>
-                                    <span>{attendancePercentage}%</span>
-                                </div>
-                                {attendancePercentage < attendancePolicy && (
-                                     <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3"/> Mínimo requerido: {attendancePolicy}%</p>
+            <CourseAssignments />
+            <CourseGrades />
+            <Tabs defaultValue="description" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="description"><Info className="mr-2"/>Descripción</TabsTrigger>
+                <TabsTrigger value="content"><BookMarked className="mr-2"/>Contenido</TabsTrigger>
+                <TabsTrigger value="classmates"><Users className="mr-2"/>Compañeros</TabsTrigger>
+                <TabsTrigger value="attendance"><UserCheckIcon className="mr-2"/>Asistencia</TabsTrigger>
+                </TabsList>
+                <TabsContent value="description" className="mt-6">
+                    <Card>
+                        <CardHeader><CardTitle>Descripción del Curso</CardTitle></CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-muted-foreground">{course.description}</p>
+                             <div>
+                                <h3 className="font-semibold mb-2">Metodología</h3>
+                                <p className="text-muted-foreground">{course.methodology || 'No especificada.'}</p>
+                            </div>
+                            <div>
+                                <h3 className="font-semibold mb-2">Prerrequisitos</h3>
+                                {course.prerequisites && course.prerequisites.length > 0 ? (
+                                    <ul className="space-y-2">
+                                        {course.prerequisites.map(prereq => (
+                                            <li key={prereq} className="flex items-center gap-2 text-muted-foreground">
+                                                {approvedPrerequisites.includes(prereq) ? <CheckCircle className="text-green-500"/> : <XCircle className="text-destructive"/>}
+                                                <span>{prereq}</span>
+                                                {approvedPrerequisites.includes(prereq) ? <Badge variant="secondary" className="bg-green-100 text-green-800">Aprobado</Badge> : null}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">Este curso no tiene prerrequisitos.</p>
                                 )}
                             </div>
-                        </div>
-
-                         <div>
-                            <h3 className="font-semibold mb-4">Justificar Inasistencias</h3>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Fecha</TableHead>
-                                        <TableHead>Estado</TableHead>
-                                        <TableHead className="text-right">Acción</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {absences.length > 0 ? absences.map(record => (
-                                        <TableRow key={record.date}>
-                                            <TableCell>{record.date}</TableCell>
-                                            <TableCell>
-                                                <Badge variant='destructive' className="capitalize">{record.status}</Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                 <Dialog>
-                                                    <DialogTrigger asChild>
-                                                        <Button variant="outline" size="sm">Justificar</Button>
-                                                    </DialogTrigger>
-                                                    <DialogContent className="sm:max-w-[425px]">
-                                                        <DialogHeader>
-                                                            <DialogTitle>Justificar Inasistencia</DialogTitle>
-                                                            <DialogDescription>
-                                                                Fecha: {record.date}. Completa el formulario para enviar tu justificación.
-                                                            </DialogDescription>
-                                                        </DialogHeader>
-                                                        <div className="grid gap-4 py-4">
-                                                            <div className="grid grid-cols-4 items-center gap-4">
-                                                                <Label htmlFor="reason" className="text-right">Motivo</Label>
-                                                                <Select>
-                                                                    <SelectTrigger className="col-span-3">
-                                                                        <SelectValue placeholder="Selecciona un motivo" />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="medical">Médico</SelectItem>
-                                                                        <SelectItem value="family">Familiar</SelectItem>
-                                                                        <SelectItem value="work">Laboral</SelectItem>
-                                                                        <SelectItem value="other">Otro</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                            <div className="grid grid-cols-4 items-center gap-4">
-                                                                <Label htmlFor="description" className="text-right">Descripción</Label>
-                                                                <Textarea id="description" className="col-span-3" placeholder="Explica brevemente tu ausencia."/>
-                                                            </div>
-                                                            <div className="grid grid-cols-4 items-center gap-4">
-                                                                <Label htmlFor="attachment" className="text-right">Sustento</Label>
-                                                                <Button variant="outline" asChild className="col-span-3">
-                                                                    <label htmlFor="file-upload" className="cursor-pointer flex items-center gap-2">
-                                                                        <FileUp className="h-4 w-4"/>
-                                                                        <span>Adjuntar archivo (PDF, JPG)</span>
-                                                                        <input id="file-upload" name="file-upload" type="file" className="sr-only" />
-                                                                    </label>
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                        <DialogFooter>
-                                                             <Alert>
-                                                                <AlertTriangle className="h-4 w-4" />
-                                                                <AlertTitle>Función en Desarrollo</AlertTitle>
-                                                                <AlertDescription>
-                                                                    La lógica para enviar la justificación y notificar al profesor se implementará próximamente.
-                                                                </AlertDescription>
-                                                            </Alert>
-                                                            <Button type="submit">Enviar Justificación</Button>
-                                                        </DialogFooter>
-                                                    </DialogContent>
-                                                </Dialog>
-                                            </TableCell>
-                                        </TableRow>
-                                    )) : (
-                                        <TableRow>
-                                            <TableCell colSpan={3} className="text-center text-muted-foreground">No tienes inasistencias por justificar.</TableCell>
-                                        </TableRow>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="content" className="mt-6">
+                    <Card>
+                        <CardHeader><CardTitle>Contenido y Objetivos</CardTitle></CardHeader>
+                        <CardContent className="space-y-6">
+                            <div>
+                                <h3 className="font-semibold mb-2">Objetivos de Aprendizaje</h3>
+                                {course.objectives && course.objectives.length > 0 ? (
+                                    <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                                        {course.objectives.map((obj, i) => <li key={i}>{obj}</li>)}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No se han especificado objetivos.</p>
+                                )}
+                            </div>
+                            <div>
+                                <h3 className="font-semibold mb-2">Syllabus y Bibliografía</h3>
+                                {course.syllabusUrl ? (
+                                    <Button asChild>
+                                        <Link href={course.syllabusUrl} target="_blank"><FileText className="mr-2"/> Descargar Syllabus (PDF)</Link>
+                                    </Button>
+                                ): (
+                                    <p className="text-sm text-muted-foreground">El syllabus no está disponible actualmente.</p>
+                                )}
+                                <div className="mt-4 space-y-4">
+                                    <h4 className="font-medium">Bibliografía</h4>
+                                     <ul className="space-y-4">
+                                        {bibliography.map(item => (
+                                            <li key={item.id} className="flex flex-col sm:flex-row justify-between gap-2">
+                                                <p className="text-muted-foreground flex-grow">{item.text}</p>
+                                                <div className="flex gap-2 shrink-0">
+                                                    <Button variant="outline" size="sm" disabled={!item.available}>
+                                                        <Library className="mr-2" />
+                                                        {item.available ? 'En Biblioteca' : 'No Disponible'}
+                                                    </Button>
+                                                    <Button size="sm" disabled={!item.digital}>
+                                                        <BookOpen className="mr-2" />
+                                                        Acceso Digital
+                                                    </Button>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                
+                <TabsContent value="classmates" className="mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Compañeros de Clase</CardTitle>
+                            <CardDescription>Lista de estudiantes inscritos en este curso.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="mb-4 flex gap-2">
+                                <Input placeholder="Buscar por nombre..." />
+                                <Button variant="outline"><Search className="h-4 w-4"/></Button>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {classmates.map(student => (
+                                    <div key={student.id} className="flex flex-col items-center text-center gap-2">
+                                        <Avatar>
+                                            <AvatarImage src={student.avatar} alt={student.name} />
+                                            <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <p className="text-sm font-medium">{student.name}</p>
+                                    </div>
+                                ))}
+                            </div>
+                            <Alert className="mt-6">
+                                <Users className="h-4 w-4" />
+                                <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>
+                                <AlertDescription>
+                                    La lista completa de compañeros y la funcionalidad de búsqueda se conectarán a datos reales próximamente. La información sensible del estudiante no será expuesta.
+                                </AlertDescription>
+                            </Alert>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="attendance" className="mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Mi Asistencia</CardTitle>
+                            <CardDescription>Tu registro de asistencia para este curso.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-8">
+                            <div>
+                                <p className="text-sm font-medium mb-2">Resumen de Asistencia</p>
+                                <div className="space-y-2">
+                                    <Progress value={attendancePercentage} className="h-2 [&>div]:bg-green-500" indicatorClassName={getProgressColor(attendancePercentage)} />
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>{validAttendance} de {totalClasses} clases asistidas</span>
+                                        <span>{attendancePercentage}%</span>
+                                    </div>
+                                    {attendancePercentage < attendancePolicy && (
+                                        <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3"/> Mínimo requerido: {attendancePolicy}%</p>
                                     )}
-                                </TableBody>
-                            </Table>
-                         </div>
+                                </div>
+                            </div>
 
-                         <Alert className="mt-6">
-                            <UserCheckIcon className="h-4 w-4" />
-                            <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>
-                            <AlertDescription>
-                                Próximamente, esta sección se conectará con tus datos reales de asistencia para este curso.
-                            </AlertDescription>
-                        </Alert>
-                    </CardContent>
-                </Card>
-            </TabsContent>
-          </Tabs>
+                            <div>
+                                <h3 className="font-semibold mb-4">Justificar Inasistencias</h3>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Fecha</TableHead>
+                                            <TableHead>Estado</TableHead>
+                                            <TableHead className="text-right">Acción</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {absences.length > 0 ? absences.map(record => (
+                                            <TableRow key={record.date}>
+                                                <TableCell>{record.date}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant='destructive' className="capitalize">{record.status}</Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="outline" size="sm">Justificar</Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="sm:max-w-[425px]">
+                                                            <DialogHeader>
+                                                                <DialogTitle>Justificar Inasistencia</DialogTitle>
+                                                                <DialogDescription>
+                                                                    Fecha: {record.date}. Completa el formulario para enviar tu justificación.
+                                                                </DialogDescription>
+                                                            </DialogHeader>
+                                                            <div className="grid gap-4 py-4">
+                                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                                    <Label htmlFor="reason" className="text-right">Motivo</Label>
+                                                                    <Select>
+                                                                        <SelectTrigger className="col-span-3">
+                                                                            <SelectValue placeholder="Selecciona un motivo" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="medical">Médico</SelectItem>
+                                                                            <SelectItem value="family">Familiar</SelectItem>
+                                                                            <SelectItem value="work">Laboral</SelectItem>
+                                                                            <SelectItem value="other">Otro</SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                                    <Label htmlFor="description" className="text-right">Descripción</Label>
+                                                                    <Textarea id="description" className="col-span-3" placeholder="Explica brevemente tu ausencia."/>
+                                                                </div>
+                                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                                    <Label htmlFor="attachment" className="text-right">Sustento</Label>
+                                                                    <Button variant="outline" asChild className="col-span-3">
+                                                                        <label htmlFor="file-upload" className="cursor-pointer flex items-center gap-2">
+                                                                            <FileUp className="h-4 w-4"/>
+                                                                            <span>Adjuntar archivo (PDF, JPG)</span>
+                                                                            <input id="file-upload" name="file-upload" type="file" className="sr-only" />
+                                                                        </label>
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                            <DialogFooter>
+                                                                <Alert>
+                                                                    <AlertTriangle className="h-4 w-4" />
+                                                                    <AlertTitle>Función en Desarrollo</AlertTitle>
+                                                                    <AlertDescription>
+                                                                        La lógica para enviar la justificación y notificar al profesor se implementará próximamente.
+                                                                    </AlertDescription>
+                                                                </Alert>
+                                                                <Button type="submit">Enviar Justificación</Button>
+                                                            </DialogFooter>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                </TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="text-center text-muted-foreground">No tienes inasistencias por justificar.</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            <Alert className="mt-6">
+                                <UserCheckIcon className="h-4 w-4" />
+                                <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>
+                                <AlertDescription>
+                                    Próximamente, esta sección se conectará con tus datos reales de asistencia para este curso.
+                                </AlertDescription>
+                            </Alert>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
         <aside className="space-y-8">
             <CourseSchedule 

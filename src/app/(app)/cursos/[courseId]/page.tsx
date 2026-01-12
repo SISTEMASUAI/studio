@@ -32,7 +32,7 @@ import {
   } from "@/components/ui/tabs"
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail, Users, Library, UserCheck as UserCheckIcon, Search, AlertTriangle, FileUp, GraduationCap, ClipboardList, Folder, File, Download, Tv, Book, Settings, Trash2 } from 'lucide-react';
+import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail, Users, Library, UserCheck as UserCheckIcon, Search, AlertTriangle, FileUp, GraduationCap, ClipboardList, Folder, File, Download, Tv, Book, Settings, Trash2, Edit, Megaphone, UserCog } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
@@ -119,6 +119,9 @@ const courseMaterials = [
 ];
 
 function CourseHeader({ course, instructor }: { course: CourseDetails, instructor: InstructorProfile | null }) {
+    const { profile } = useUser();
+    const isInstructor = profile?.uid === course.instructorId;
+
     const image = PlaceHolderImages.find(p => p.id === course.id);
     
     return (
@@ -139,6 +142,38 @@ function CourseHeader({ course, instructor }: { course: CourseDetails, instructo
                 <div className="absolute bottom-0 left-0 p-6">
                     <h1 className="text-3xl font-bold font-headline text-white">{course.name}</h1>
                 </div>
+                 {isInstructor && (
+                    <div className="absolute top-4 right-4 flex gap-2">
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                 <Button variant="secondary" size="sm"><Edit className="mr-2"/> Editar</Button>
+                            </DialogTrigger>
+                             <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Editar Información del Curso</DialogTitle>
+                                    <DialogDescription>
+                                        Realiza cambios en la descripción, objetivos y otros detalles del curso.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                     <div className="space-y-2">
+                                        <Label>Descripción</Label>
+                                        <Textarea defaultValue={course.description} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Metodología</Label>
+                                        <Textarea defaultValue={course.methodology} />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline">Cancelar</Button>
+                                    <Button disabled>Guardar Cambios</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                        <Button variant="secondary" size="sm" disabled><Megaphone className="mr-2"/> Publicar Anuncio</Button>
+                    </div>
+                )}
             </div>
              <CardContent className="pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 {instructor ? (
@@ -180,6 +215,8 @@ export default function CourseDetailPage() {
   const params = useParams();
   const courseId = params.courseId as string;
   const firestore = useFirestore();
+  const { profile } = useUser();
+
 
   // Memoize the document reference for the course
   const courseDocRef = useMemoFirebase(() => {
@@ -216,6 +253,10 @@ export default function CourseDetailPage() {
     );
   }
 
+  const isInstructor = profile?.uid === course.instructorId;
+  const isStudent = profile?.role === 'student';
+
+
   // Placeholder for approved prerequisites
   const approvedPrerequisites = ['CS101'];
 
@@ -231,25 +272,70 @@ export default function CourseDetailPage() {
     return 'bg-red-500';
   };
 
+  const studentTabs = (
+    <>
+      <TabsTrigger value="assignments"><ClipboardList /> Tareas</TabsTrigger>
+      <TabsTrigger value="grades"><GraduationCap/> Calificaciones</TabsTrigger>
+      <TabsTrigger value="info"><Info /> Información</TabsTrigger>
+      <TabsTrigger value="materials"><Book /> Materiales</TabsTrigger>
+    </>
+  );
+
+  const professorTabs = (
+     <>
+        <TabsTrigger value="students"><Users/> Estudiantes</TabsTrigger>
+        <TabsTrigger value="assignments"><ClipboardList /> Tareas</TabsTrigger>
+        <TabsTrigger value="grades"><GraduationCap/> Calificaciones</TabsTrigger>
+        <TabsTrigger value="materials"><Book /> Materiales</TabsTrigger>
+    </>
+  )
+
   return (
     <div className="space-y-8">
       <CourseHeader course={course} instructor={instructor} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-            <Tabs defaultValue="assignments" className="w-full">
+            <Tabs defaultValue={isStudent ? "assignments" : "students"} className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="assignments"><ClipboardList /> Tareas</TabsTrigger>
-                    <TabsTrigger value="grades"><GraduationCap/> Calificaciones</TabsTrigger>
-                    <TabsTrigger value="info"><Info /> Información</TabsTrigger>
-                    <TabsTrigger value="materials"><Book /> Materiales</TabsTrigger>
+                    {isStudent ? studentTabs : professorTabs}
                 </TabsList>
-                <TabsContent value="assignments" className="mt-6">
-                    <CourseAssignments />
-                </TabsContent>
-                <TabsContent value="grades" className="mt-6">
-                    <CourseGrades />
-                </TabsContent>
+
+                {isStudent && (
+                    <>
+                        <TabsContent value="assignments" className="mt-6">
+                            <CourseAssignments />
+                        </TabsContent>
+                        <TabsContent value="grades" className="mt-6">
+                            <CourseGrades />
+                        </TabsContent>
+                    </>
+                )}
+
+                {isInstructor && (
+                    <>
+                     <TabsContent value="students" className="mt-6">
+                        <Card>
+                            <CardHeader><CardTitle>Gestión de Estudiantes</CardTitle></CardHeader>
+                            <CardContent><Alert><UserCog className="w-4 h-4"/><AlertTitle>En Desarrollo</AlertTitle><AlertDescription>Aquí podrás ver la lista de estudiantes, gestionar la asistencia y comunicarte con la clase.</AlertDescription></Alert></CardContent>
+                        </Card>
+                     </TabsContent>
+                     <TabsContent value="assignments" className="mt-6">
+                         <Card>
+                            <CardHeader><CardTitle>Gestión de Tareas</CardTitle></CardHeader>
+                            <CardContent><Alert><UserCog className="w-4 h-4"/><AlertTitle>En Desarrollo</AlertTitle><AlertDescription>Aquí podrás crear, editar y calificar las tareas y evaluaciones del curso.</AlertDescription></Alert></CardContent>
+                        </Card>
+                     </TabsContent>
+                     <TabsContent value="grades" className="mt-6">
+                        <Card>
+                            <CardHeader><CardTitle>Gestión de Calificaciones</CardTitle></CardHeader>
+                            <CardContent><Alert><UserCog className="w-4 h-4"/><AlertTitle>En Desarrollo</AlertTitle><AlertDescription>Aquí podrás ingresar y publicar las calificaciones de los estudiantes.</AlertDescription></Alert></CardContent>
+                        </Card>
+                     </TabsContent>
+                    </>
+                )}
+
+
                 <TabsContent value="info" className="mt-6">
                     <Tabs defaultValue="description" className="w-full">
                         <TabsList className="grid w-full grid-cols-3">
@@ -274,7 +360,7 @@ export default function CourseDetailPage() {
                                                     <li key={prereq} className="flex items-center gap-2 text-muted-foreground">
                                                         {approvedPrerequisites.includes(prereq) ? <CheckCircle className="text-green-500"/> : <XCircle className="text-destructive"/>}
                                                         <span>{prereq}</span>
-                                                        {approvedPrerequisites.includes(prereq) ? <Badge variant="secondary" className="bg-green-100 text-green-800">Aprobado</Badge> : null}
+                                                        {isStudent && approvedPrerequisites.includes(prereq) ? <Badge variant="secondary" className="bg-green-100 text-green-800">Aprobado</Badge> : null}
                                                     </li>
                                                 ))}
                                             </ul>
@@ -413,162 +499,165 @@ export default function CourseDetailPage() {
                 mode={course.mode}
                 virtualRoomUrl={course.virtualRoomUrl}
             />
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><UserCheckIcon/> Mi Asistencia</CardTitle>
-                </CardHeader>
-                 <CardContent className="space-y-6">
-                    <div>
-                        <p className="text-sm font-medium mb-2">Resumen de Asistencia</p>
-                        <div className="space-y-2">
-                            <Progress value={attendancePercentage} className="h-2 [&>div]:bg-green-500" indicatorClassName={getProgressColor(attendancePercentage)} />
-                            <div className="flex justify-between text-xs text-muted-foreground">
-                                <span>{validAttendance} de {totalClasses} clases asistidas</span>
-                                <span>{attendancePercentage}%</span>
-                            </div>
-                            {attendancePercentage < attendancePolicy && (
-                                <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3"/> Mínimo requerido: {attendancePolicy}%</p>
-                            )}
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 className="font-semibold mb-2 text-sm">Justificar Inasistencias</h3>
-                        <Table>
-                            <TableBody>
-                                {absences.length > 0 ? absences.map(record => (
-                                    <TableRow key={record.date}>
-                                        <TableCell className="p-2">
-                                            <p className="text-sm">{record.date}</p>
-                                            <Badge variant='destructive' className="capitalize text-xs h-5">{record.status}</Badge>
-                                        </TableCell>
-                                        <TableCell className="p-2 text-right">
-                                            <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="outline" size="sm">Justificar</Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="sm:max-w-[425px]">
-                                                    <DialogHeader>
-                                                        <DialogTitle>Justificar Inasistencia</DialogTitle>
-                                                        <DialogDescription>
-                                                            Fecha: {record.date}. Completa el formulario para enviar tu justificación.
-                                                        </DialogDescription>
-                                                    </DialogHeader>
-                                                    <div className="grid gap-4 py-4">
-                                                        <div className="grid grid-cols-4 items-center gap-4">
-                                                            <Label htmlFor="reason" className="text-right">Motivo</Label>
-                                                            <Select>
-                                                                <SelectTrigger className="col-span-3">
-                                                                    <SelectValue placeholder="Selecciona un motivo" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="medical">Médico</SelectItem>
-                                                                    <SelectItem value="family">Familiar</SelectItem>
-                                                                    <SelectItem value="work">Laboral</SelectItem>
-                                                                    <SelectItem value="other">Otro</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
-                                                        <div className="grid grid-cols-4 items-center gap-4">
-                                                            <Label htmlFor="description" className="text-right">Descripción</Label>
-                                                            <Textarea id="description" className="col-span-3" placeholder="Explica brevemente tu ausencia."/>
-                                                        </div>
-                                                        <div className="grid grid-cols-4 items-center gap-4">
-                                                            <Label htmlFor="attachment" className="text-right">Sustento</Label>
-                                                            <Button variant="outline" asChild className="col-span-3">
-                                                                <label htmlFor="file-upload" className="cursor-pointer flex items-center gap-2">
-                                                                    <FileUp className="h-4 w-4"/>
-                                                                    <span>Adjuntar archivo (PDF, JPG)</span>
-                                                                    <input id="file-upload" name="file-upload" type="file" className="sr-only" />
-                                                                </label>
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                    <DialogFooter>
-                                                        <Button type="submit" disabled>Enviar Justificación</Button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
-                                        </TableCell>
-                                    </TableRow>
-                                )) : (
-                                    <TableRow>
-                                        <TableCell colSpan={2} className="text-center text-muted-foreground text-sm p-2">No tienes inasistencias por justificar.</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><Settings/> Administración</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="destructive" className="w-full">
-                                <Trash2 className="mr-2"/> Dar de Baja el Curso
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2"><AlertTriangle className="text-destructive"/>Confirmar Baja del Curso</DialogTitle>
-                                <DialogDescription>
-                                    Estás a punto de dar de baja "{course.name}". Esta acción no se puede deshacer.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="py-4 space-y-4">
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>¡Atención!</AlertTitle>
-                                    <AlertDescription>
-                                        <ul className="list-disc list-inside">
-                                            <li>Perderás todo el avance y calificaciones.</li>
-                                            <li>No habrá reembolso de pagos realizados.</li>
-                                            <li>Esta acción puede afectar tu carga académica y progreso.</li>
-                                        </ul>
-                                    </AlertDescription>
-                                </Alert>
-                                 <div className="space-y-2">
-                                    <Label htmlFor="reason">Motivo de la baja (requerido)</Label>
-                                    <Select>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Selecciona un motivo..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="academic">Académico</SelectItem>
-                                            <SelectItem value="personal">Personal</SelectItem>
-                                            <SelectItem value="health">Salud</SelectItem>
-                                            <SelectItem value="work">Laboral</SelectItem>
-                                            <SelectItem value="other">Otro</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+            {isStudent && (
+                <>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><UserCheckIcon/> Mi Asistencia</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div>
+                                <p className="text-sm font-medium mb-2">Resumen de Asistencia</p>
                                 <div className="space-y-2">
-                                    <Label htmlFor="comments">Comentarios (opcional)</Label>
-                                    <Textarea id="comments" placeholder="Si lo deseas, puedes añadir un comentario."/>
+                                    <Progress value={attendancePercentage} className="h-2 [&>div]:bg-green-500" indicatorClassName={getProgressColor(attendancePercentage)} />
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>{validAttendance} de {totalClasses} clases asistidas</span>
+                                        <span>{attendancePercentage}%</span>
+                                    </div>
+                                    {attendancePercentage < attendancePolicy && (
+                                        <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3"/> Mínimo requerido: {attendancePolicy}%</p>
+                                    )}
                                 </div>
                             </div>
-                            <DialogFooter>
-                                <Alert>
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Función en Desarrollo</AlertTitle>
-                                    <AlertDescription>
-                                        La lógica para procesar la baja del curso se implementará próximamente.
-                                    </AlertDescription>
-                                </Alert>
-                                <DialogTrigger asChild><Button variant="outline">Cancelar</Button></DialogTrigger>
-                                <Button variant="destructive" disabled>Confirmar Baja</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </CardContent>
-            </Card>
+
+                            <div>
+                                <h3 className="font-semibold mb-2 text-sm">Justificar Inasistencias</h3>
+                                <Table>
+                                    <TableBody>
+                                        {absences.length > 0 ? absences.map(record => (
+                                            <TableRow key={record.date}>
+                                                <TableCell className="p-2">
+                                                    <p className="text-sm">{record.date}</p>
+                                                    <Badge variant='destructive' className="capitalize text-xs h-5">{record.status}</Badge>
+                                                </TableCell>
+                                                <TableCell className="p-2 text-right">
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="outline" size="sm">Justificar</Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="sm:max-w-[425px]">
+                                                            <DialogHeader>
+                                                                <DialogTitle>Justificar Inasistencia</DialogTitle>
+                                                                <DialogDescription>
+                                                                    Fecha: {record.date}. Completa el formulario para enviar tu justificación.
+                                                                </DialogDescription>
+                                                            </DialogHeader>
+                                                            <div className="grid gap-4 py-4">
+                                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                                    <Label htmlFor="reason" className="text-right">Motivo</Label>
+                                                                    <Select>
+                                                                        <SelectTrigger className="col-span-3">
+                                                                            <SelectValue placeholder="Selecciona un motivo" />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent>
+                                                                            <SelectItem value="medical">Médico</SelectItem>
+                                                                            <SelectItem value="family">Familiar</SelectItem>
+                                                                            <SelectItem value="work">Laboral</SelectItem>
+                                                                            <SelectItem value="other">Otro</SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                                    <Label htmlFor="description" className="text-right">Descripción</Label>
+                                                                    <Textarea id="description" className="col-span-3" placeholder="Explica brevemente tu ausencia."/>
+                                                                </div>
+                                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                                    <Label htmlFor="attachment" className="text-right">Sustento</Label>
+                                                                    <Button variant="outline" asChild className="col-span-3">
+                                                                        <label htmlFor="file-upload" className="cursor-pointer flex items-center gap-2">
+                                                                            <FileUp className="h-4 w-4"/>
+                                                                            <span>Adjuntar archivo (PDF, JPG)</span>
+                                                                            <input id="file-upload" name="file-upload" type="file" className="sr-only" />
+                                                                        </label>
+                                                                    </Button>
+                                                                </div>
+                                                            </div>
+                                                            <DialogFooter>
+                                                                <Button type="submit" disabled>Enviar Justificación</Button>
+                                                            </DialogFooter>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                </TableCell>
+                                            </TableRow>
+                                        )) : (
+                                            <TableRow>
+                                                <TableCell colSpan={2} className="text-center text-muted-foreground text-sm p-2">No tienes inasistencias por justificar.</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><Settings/> Administración</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="destructive" className="w-full">
+                                        <Trash2 className="mr-2"/> Dar de Baja el Curso
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle className="flex items-center gap-2"><AlertTriangle className="text-destructive"/>Confirmar Baja del Curso</DialogTitle>
+                                        <DialogDescription>
+                                            Estás a punto de dar de baja "{course.name}". Esta acción no se puede deshacer.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="py-4 space-y-4">
+                                        <Alert variant="destructive">
+                                            <AlertTriangle className="h-4 w-4" />
+                                            <AlertTitle>¡Atención!</AlertTitle>
+                                            <AlertDescription>
+                                                <ul className="list-disc list-inside">
+                                                    <li>Perderás todo el avance y calificaciones.</li>
+                                                    <li>No habrá reembolso de pagos realizados.</li>
+                                                    <li>Esta acción puede afectar tu carga académica y progreso.</li>
+                                                </ul>
+                                            </AlertDescription>
+                                        </Alert>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="reason">Motivo de la baja (requerido)</Label>
+                                            <Select>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Selecciona un motivo..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="academic">Académico</SelectItem>
+                                                    <SelectItem value="personal">Personal</SelectItem>
+                                                    <SelectItem value="health">Salud</SelectItem>
+                                                    <SelectItem value="work">Laboral</SelectItem>
+                                                    <SelectItem value="other">Otro</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="comments">Comentarios (opcional)</Label>
+                                            <Textarea id="comments" placeholder="Si lo deseas, puedes añadir un comentario."/>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Alert>
+                                            <AlertTriangle className="h-4 w-4" />
+                                            <AlertTitle>Función en Desarrollo</AlertTitle>
+                                            <AlertDescription>
+                                                La lógica para procesar la baja del curso se implementará próximamente.
+                                            </AlertDescription>
+                                        </Alert>
+                                        <DialogTrigger asChild><Button variant="outline">Cancelar</Button></DialogTrigger>
+                                        <Button variant="destructive" disabled>Confirmar Baja</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </CardContent>
+                    </Card>
+                </>
+            )}
         </aside>
       </div>
     </div>
   );
 }
-

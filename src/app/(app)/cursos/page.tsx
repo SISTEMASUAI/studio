@@ -33,6 +33,7 @@ interface Enrollment {
   courseId: string;
   courseName: string;
   courseCode: string;
+  professorId: string;
   professorName: string;
   semester: string;
   year: number;
@@ -112,21 +113,70 @@ function StudentCoursesView() {
 }
 
 function ProfessorCoursesView() {
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    const coursesQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
+        return query(collection(firestore, 'enrollments'), where('professorId', '==', user.uid));
+    }, [firestore, user]);
+
+    const { data: courses, isLoading, error } = useCollection<Enrollment>(coursesQuery);
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    }
+
+    if (error) {
+        return <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>No se pudieron cargar los cursos.</AlertDescription></Alert>;
+    }
+    
+    // Aggregate courses to show a unique list
+    const uniqueCourses = courses ? Array.from(new Map(courses.map(c => [c.courseId, c])).values()) : [];
+
+
     return (
       <div className="space-y-8">
         <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">Mis Cursos Impartidos</h2>
-            <Button>
+            <Button disabled>
                 <PlusCircle className="mr-2" /> Crear Nuevo Curso
             </Button>
         </div>
-        <Alert>
-          <Loader2 className="h-4 w-4" />
-          <AlertTitle>En Desarrollo</AlertTitle>
-          <AlertDescription>
-            La lógica para mostrar los cursos impartidos por el profesor se implementará próximamente.
-          </AlertDescription>
-        </Alert>
+        {uniqueCourses.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {uniqueCourses.map((course) => (
+                 <Card key={course.courseId} className="flex flex-col">
+                     <CardHeader>
+                         <CardTitle>{course.courseName}</CardTitle>
+                         <CardDescription>Semestre {course.semester} - {course.year}</CardDescription>
+                     </CardHeader>
+                     <CardContent className="flex-grow">
+                        <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                            <Users /> 
+                            {/* This is a placeholder count */}
+                            {courses?.filter(c => c.courseId === course.courseId).length} Estudiantes
+                        </div>
+                     </CardContent>
+                     <CardFooter className="flex gap-2">
+                        <Button asChild className="w-full">
+                           <Link href={`/cursos/${course.courseId}`}>
+                             Gestionar <ArrowRight className="ml-2" />
+                           </Link>
+                        </Button>
+                     </CardFooter>
+                 </Card>
+            ))}
+        </div>
+        ) : (
+             <Alert>
+              <BookCopy className="h-4 w-4" />
+              <AlertTitle>No tienes cursos asignados</AlertTitle>
+              <AlertDescription>
+                Actualmente no estás asignado como profesor a ningún curso para el semestre actual.
+              </AlertDescription>
+            </Alert>
+        )}
       </div>
     );
   }
@@ -186,12 +236,12 @@ export default function CoursesPage() {
         <div>
           <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
             <BookCopy className="text-primary" />
-            Mis Cursos
+            {profile?.role === 'student' ? 'Mis Cursos' : 'Gestión de Cursos'}
           </h1>
           <p className="text-muted-foreground">
             {profile?.role === 'student'
               ? 'Accede a tus cursos y materiales de clase.'
-              : 'Gestiona los cursos y asignaturas.'}
+              : 'Gestiona los cursos y asignaturas que impartes.'}
           </p>
         </div>
       </section>

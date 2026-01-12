@@ -89,7 +89,7 @@ export default function LoginPage() {
             <Building2 className="w-12 h-12 text-primary" />
           </div>
           <h1 className="text-4xl font-headline font-bold text-foreground">
-            Campus Hub
+            Nuxtu
           </h1>
           <p className="mt-2 text-muted-foreground">
             Your unified campus portal.

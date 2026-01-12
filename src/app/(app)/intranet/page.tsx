@@ -50,7 +50,7 @@ export default function IntranetPage() {
     <div className="grid gap-8 lg:grid-cols-3">
       <div className="lg:col-span-2 space-y-8">
         <section>
-            <h1 className="text-3xl font-bold font-headline">Intranet Portal</h1>
+            <h1 className="text-3xl font-bold font-headline">Portal Nuxtu</h1>
             <p className="text-muted-foreground">Your central hub for campus communication.</p>
         </section>
 

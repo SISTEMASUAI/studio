@@ -127,7 +127,7 @@ export default function SignupPage() {
             Create an Account
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Join the Campus Hub community.
+            Join the Nuxtu community.
           </p>
         </div>
         <Card>

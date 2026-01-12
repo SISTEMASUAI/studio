@@ -21,7 +21,7 @@ const ptSans = PT_Sans({
 });
 
 // export const metadata: Metadata = {
-//   title: 'Campus Hub',
+//   title: 'Nuxtu',
 //   description: 'Unified portal for intranet and virtual classroom.',
 // };
 
@@ -44,7 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
        <head>
-        <title>Campus Hub</title>
+        <title>Nuxtu</title>
         <meta name="description" content="Unified portal for intranet and virtual classroom." />
       </head>
       <body className={`${poppins.variable} ${ptSans.variable} font-body antialiased`}>

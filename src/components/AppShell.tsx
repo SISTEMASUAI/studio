@@ -47,7 +47,7 @@ import { useEffect } from 'react';
 import { Skeleton } from './ui/skeleton';
 
 const navItems = [
-  { href: '/intranet', icon: Newspaper, label: 'Intranet', roles: ['student', 'professor', 'admin'] },
+  { href: '/intranet', icon: Newspaper, label: 'Nuxtu', roles: ['student', 'professor', 'admin'] },
   { href: '/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin'] },
   { href: '/cursos', icon: BookCopy, label: 'Cursos', roles: ['student', 'professor', 'admin'] },
   { href: '/alumnos', icon: Users, label: 'Alumnos', roles: ['admin'] },
@@ -99,7 +99,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2">
             <Building2 className="w-8 h-8 text-primary" />
             <h2 className="text-xl font-headline font-semibold text-foreground group-data-[collapsible=icon]:hidden">
-              Campus Hub
+              Nuxtu
             </h2>
           </div>
         </SidebarHeader>
@@ -136,7 +136,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-2 md:hidden">
             <SidebarTrigger />
             <span className="text-lg font-headline font-semibold">
-              Campus Hub
+              Nuxtu
             </span>
           </div>
           <div className="flex-1" />

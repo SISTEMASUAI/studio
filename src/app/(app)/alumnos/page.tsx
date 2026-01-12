@@ -53,7 +53,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Program extends DocumentData {
@@ -143,9 +143,13 @@ export default function AlumnosPage() {
     const selectedFacultyIdStudent = studentForm.watch('facultyId');
     const selectedFacultyIdUpdateStudent = updateStudentForm.watch('facultyId');
 
+    const selectedStudentFacultyId = useMemo(() => {
+        if (!selectedStudent || !programs) return '';
+        return programs.find(p => p.id === selectedStudent.programId)?.facultyId || '';
+    }, [selectedStudent, programs]);
+
 
     const handleOpenEditDialog = (student: StudentProfile) => {
-        const studentFaculty = programs?.find(p => p.id === student.programId)?.facultyId || '';
         setSelectedStudent(student);
         updateStudentForm.reset({
             firstName: student.firstName || '',
@@ -153,7 +157,7 @@ export default function AlumnosPage() {
             dni: student.dni || '',
             email: student.email || '',
             programId: student.programId || '',
-            facultyId: studentFaculty,
+            facultyId: selectedStudentFacultyId,
         });
         setIsEditStudentOpen(true);
     };

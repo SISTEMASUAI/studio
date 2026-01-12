@@ -39,6 +39,7 @@ import {
   Users,
   User,
   UserCog,
+  MoreHorizontal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -52,6 +53,7 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Program extends DocumentData {
     id: string;
@@ -64,6 +66,18 @@ interface Faculty extends DocumentData {
     id: string;
     facultyId: string;
     name: string;
+}
+
+interface StudentProfile extends DocumentData {
+  id: string;
+  dni: string;
+  firstName: string;
+  lastName: string;
+  programId: string;
+  // Placeholder fields until they are properly defined in the data model
+  semester?: number;
+  gpa?: number;
+  status?: string;
 }
 
 const StudentSchema = z.object({
@@ -93,6 +107,12 @@ export default function AlumnosPage() {
         firestore ? collection(firestore, 'faculties') : null,
     [firestore]);
     const { data: faculties } = useCollection<Faculty>(facultiesQuery);
+
+    const studentsQuery = useMemoFirebase(() =>
+      firestore ? query(collection(firestore, 'users'), where('role', '==', 'student')) : null,
+    [firestore]);
+    const { data: students, isLoading: areStudentsLoading } = useCollection<StudentProfile>(studentsQuery);
+
 
     const studentForm = useForm<z.infer<typeof StudentSchema>>({
       resolver: zodResolver(StudentSchema),
@@ -268,7 +288,7 @@ export default function AlumnosPage() {
                <Table>
                   <TableHeader>
                       <TableRow>
-                          <TableHead>Matrícula</TableHead>
+                          <TableHead>Matrícula (DNI)</TableHead>
                           <TableHead>Nombre Completo</TableHead>
                           <TableHead>Programa</TableHead>
                           <TableHead className="text-center">Semestre</TableHead>
@@ -278,11 +298,41 @@ export default function AlumnosPage() {
                       </TableRow>
                   </TableHeader>
                   <TableBody>
-                      <TableRow>
-                          <TableCell colSpan={7} className="text-center">
-                              No se encontraron estudiantes. La carga de datos está en desarrollo.
-                          </TableCell>
-                      </TableRow>
+                    {areStudentsLoading ? (
+                        <TableRow>
+                            <TableCell colSpan={7} className="text-center">
+                                <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                            </TableCell>
+                        </TableRow>
+                    ) : students && students.length > 0 ? (
+                        students.map(student => (
+                            <TableRow key={student.id}>
+                                <TableCell className="font-mono">{student.dni}</TableCell>
+                                <TableCell className="font-medium">{student.lastName}, {student.firstName}</TableCell>
+                                <TableCell>{programs?.find(p => p.id === student.programId)?.name || 'N/A'}</TableCell>
+                                <TableCell className="text-center">{student.semester || 'N/A'}</TableCell>
+                                <TableCell className="text-center">{student.gpa || 'N/A'}</TableCell>
+                                <TableCell>{student.status || 'Regular'}</TableCell>
+                                <TableCell className="text-right">
+                                  <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" size="icon"><MoreHorizontal /></Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent>
+                                          <DropdownMenuItem>Ver Expediente</DropdownMenuItem>
+                                          <DropdownMenuItem>Editar Alumno</DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    ) : (
+                        <TableRow>
+                            <TableCell colSpan={7} className="text-center">
+                                No se encontraron estudiantes.
+                            </TableCell>
+                        </TableRow>
+                    )}
                   </TableBody>
               </Table>
                <Alert className="mt-6">

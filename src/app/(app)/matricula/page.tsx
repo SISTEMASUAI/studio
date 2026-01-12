@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -48,6 +48,7 @@ import {
   Users,
   Calendar,
   ListPlus,
+  Loader2,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -55,72 +56,32 @@ import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { collection, query, where, DocumentData } from 'firebase/firestore';
 
-const availableCourses = [
-  {
-    code: 'CS404',
-    name: 'Algoritmos Avanzados',
-    credits: 4,
-    enrolled: 25,
-    capacity: 30,
-    professor: 'Dr. Alan Turing',
-    schedule: 'Lun/Mié 10:00-12:00',
-    prerequisiteStatus: 'met', // 'met', 'partial', 'unmet'
-    conflict: false,
-    waitlistStatus: 'none', // 'none', 'on_waitlist'
-  },
-  {
-    code: 'HI202',
-    name: 'Historia de la Tecnología',
-    credits: 3,
-    enrolled: 48,
-    capacity: 50,
-    professor: 'Dra. Ada Lovelace',
-    schedule: 'Mar/Jue 14:00-16:00',
-    prerequisiteStatus: 'met',
-    conflict: true,
-    waitlistStatus: 'none',
-  },
-  {
-    code: 'MA501',
-    name: 'Matemáticas Discretas II',
-    credits: 4,
-    enrolled: 30,
-    capacity: 30,
-    professor: 'Dr. John von Neumann',
-    schedule: 'Vie 08:00-11:00',
-    prerequisiteStatus: 'unmet',
-    conflict: false,
-    waitlistStatus: 'none',
-  },
-   {
-    code: 'DS301',
-    name: 'Bases de Datos Avanzadas',
-    credits: 4,
-    enrolled: 40,
-    capacity: 40,
-    professor: 'Dr. Edgar Codd',
-    schedule: 'Mar/Jue 14:00-16:00',
-    prerequisiteStatus: 'met',
-    conflict: true,
-    waitlistStatus: 'on_waitlist',
-  },
-];
+interface Course extends DocumentData {
+    id: string;
+    code: string;
+    name: string;
+    credits: number;
+    enrolled?: number;
+    capacity?: number;
+    professor?: string; // Should be professorId
+    schedule?: { day: string, startTime: string, endTime: string, classroom: string }[];
+    prerequisiteStatus?: 'met' | 'partial' | 'unmet';
+    conflict?: boolean;
+    waitlistStatus?: 'none' | 'on_waitlist';
+    programId: string;
+}
 
-const enrolledCourses = [
-  {
-    code: 'CS101',
-    name: 'Introducción a la Programación',
-    credits: 4,
-    professor: 'Dr. Guido van Rossum',
-  },
-  {
-    code: 'MA203',
-    name: 'Cálculo Avanzado',
-    credits: 4,
-    professor: 'Dr. Isaac Newton',
-  },
-];
+interface Enrollment extends DocumentData {
+    id: string;
+    courseId: string;
+    courseName: string;
+    courseCode: string;
+    credits: number;
+    professorName: string;
+}
+
 
 const PrerequisiteBadge = ({ status }: { status: string }) => {
   switch (status) {
@@ -136,8 +97,26 @@ const PrerequisiteBadge = ({ status }: { status: string }) => {
 }
 
 function StudentEnrollmentView() {
+  const { user, profile } = useUser();
+  const firestore = useFirestore();
+
   const isEnrollmentPeriod = true; // Placeholder
   const isEarlyWithdrawal = true; // Placeholder for withdrawal period logic
+
+  const availableCoursesQuery = useMemoFirebase(() => {
+      if (!firestore || !profile?.programId) return null;
+      return query(collection(firestore, 'courses'), where('programId', '==', profile.programId));
+  }, [firestore, profile]);
+
+  const { data: availableCourses, isLoading: areCoursesLoading } = useCollection<Course>(availableCoursesQuery);
+
+  const enrolledCoursesQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'enrollments'), where('studentId', '==', user.uid));
+  }, [firestore, user]);
+
+  const { data: enrolledCourses, isLoading: areEnrolledLoading } = useCollection<Enrollment>(enrolledCoursesQuery);
+
 
   const getProgressColor = (enrolled: number, capacity: number) => {
     const percentage = (enrolled / capacity) * 100;
@@ -165,8 +144,8 @@ function StudentEnrollmentView() {
     )
   }
 
-  const renderActionButton = (course: (typeof availableCourses)[0]) => {
-    const isFull = course.enrolled >= course.capacity;
+  const renderActionButton = (course: Course) => {
+    const isFull = (course.enrolled || 0) >= (course.capacity || 0);
 
     if (course.waitlistStatus === 'on_waitlist') {
         return <Button variant="outline" size="sm" className="w-full" disabled><ListPlus className="mr-2 h-4 w-4" /> Estás en la lista de espera</Button>;
@@ -199,12 +178,13 @@ function StudentEnrollmentView() {
                 Explora y inscríbete en las asignaturas para el próximo semestre.
                 <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800">Período de Matrícula Abierto</Badge>
             </CardDescription>
-            {/* TODO: Add filters here */}
             </CardHeader>
             <CardContent className="space-y-4">
-                {availableCourses.map((course) => {
-                    return (
-                        <Card key={course.code} className={`border-2 ${course.conflict ? 'border-destructive/50' : 'border-transparent'}`}>
+                {areCoursesLoading ? (
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
+                ) : availableCourses && availableCourses.length > 0 ? (
+                    availableCourses.map((course) => (
+                        <Card key={course.id} className={`border-2 ${course.conflict ? 'border-destructive/50' : 'border-transparent'}`}>
                         <CardHeader className="pb-2">
                             {course.conflict && (
                                 <Alert variant="destructive" className="mb-2">
@@ -215,30 +195,38 @@ function StudentEnrollmentView() {
                             <div className="flex justify-between items-start">
                                 <div>
                                     <CardTitle className="text-lg">{course.name}</CardTitle>
-                                    <CardDescription>{course.code} - {course.credits} créditos</CardDescription>
+                                    <CardDescription>{course.courseId} - {course.credits} créditos</CardDescription>
                                 </div>
-                                <PrerequisiteBadge status={course.prerequisiteStatus} />
+                                <PrerequisiteBadge status={course.prerequisiteStatus || 'met'} />
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-3">
                                 <div className="flex flex-col sm:flex-row justify-between text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-2"><UserCog /> {course.professor}</div>
-                                    <div className="flex items-center gap-2"><Calendar /> {course.schedule}</div>
+                                    <div className="flex items-center gap-2"><UserCog /> {course.professor || 'No asignado'}</div>
+                                    <div className="flex items-center gap-2"><Calendar /> {course.schedule?.[0]?.day} {course.schedule?.[0]?.startTime}-{course.schedule?.[0]?.endTime}</div>
                                 </div>
                                 <div>
                                     <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
                                         <span>Cupos</span>
-                                        <span>{course.enrolled}/{course.capacity}</span>
+                                        <span>{course.enrolled || 0}/{course.capacity || 0}</span>
                                     </div>
-                                    <Progress value={(course.enrolled / course.capacity) * 100} indicatorClassName={getProgressColor(course.enrolled, course.capacity)} />
+                                    <Progress value={((course.enrolled || 0) / (course.capacity || 1)) * 100} indicatorClassName={getProgressColor(course.enrolled || 0, course.capacity || 1)} />
                                 </div>
                         </CardContent>
                             <CardFooter>
                                 {renderActionButton(course)}
                             </CardFooter>
                         </Card>
-                    )
-                })}
+                    ))
+                ) : (
+                    <Alert>
+                        <BookOpenCheck className="h-4 w-4" />
+                        <AlertTitle>No hay cursos disponibles</AlertTitle>
+                        <AlertDescription>
+                            No hay cursos disponibles para tu programa en este momento.
+                        </AlertDescription>
+                    </Alert>
+                )}
             </CardContent>
         </Card>
       </div>
@@ -253,93 +241,105 @@ function StudentEnrollmentView() {
             </CardDescription>
             </CardHeader>
             <CardContent>
-            <Table>
-                <TableHeader>
-                <TableRow>
-                    <TableHead>Curso</TableHead>
-                    <TableHead className="text-right">Acción</TableHead>
-                </TableRow>
-                </TableHeader>
-                <TableBody>
-                {enrolledCourses.map((course) => (
-                    <TableRow key={course.code}>
-                    <TableCell>
-                        <div className="font-medium">{course.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                        {course.code} - {course.credits} créditos
-                        </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <Button size="sm" variant="outline" disabled={!isEnrollmentPeriod}>
-                                    <MinusCircle className="mr-2 h-4 w-4" />
-                                    Retirar
-                                </Button>
-                            </DialogTrigger>
-                             <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle className="flex items-center gap-2">
-                                        <AlertTriangle className="text-destructive" />
-                                        Confirmar Baja de Asignatura
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        Estás a punto de dar de baja "{course.name}".
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4 space-y-4">
-                                     <Alert variant={isEarlyWithdrawal ? "default" : "destructive"}>
-                                        <AlertTriangle className="h-4 w-4" />
-                                        <AlertTitle>¡Atención!</AlertTitle>
-                                        <AlertDescription>
-                                            {isEarlyWithdrawal
-                                                ? "Estás en el período de retiro sin penalización. El curso se eliminará de tu registro sin afectar tu promedio."
-                                                : "Ha finalizado el período sin penalización. El curso aparecerá en tu historial como 'Retirado' y no habrá reembolso."
-                                            }
-                                        </AlertDescription>
-                                    </Alert>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="reason-drop">Motivo de la baja (requerido)</Label>
-                                        <Select>
-                                            <SelectTrigger id="reason-drop">
-                                                <SelectValue placeholder="Selecciona un motivo..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="academic">Carga académica</SelectItem>
-                                                <SelectItem value="personal">Personal</SelectItem>
-                                                <SelectItem value="work">Laboral</SelectItem>
-                                                <SelectItem value="other">Otro</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="comments-drop">Comentarios (opcional)</Label>
-                                        <Textarea id="comments-drop" placeholder="Añade un comentario si es necesario." />
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <Checkbox id="terms-drop" />
-                                        <label
-                                            htmlFor="terms-drop"
-                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                        >
-                                            Entiendo y acepto las consecuencias de esta acción.
-                                        </label>
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="outline">Cancelar</Button>
-                                    <Button variant="destructive" disabled><MinusCircle className="mr-2"/> Confirmar Baja</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    </TableCell>
+            {areEnrolledLoading ? (
+                <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
+            ) : enrolledCourses && enrolledCourses.length > 0 ? (
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Curso</TableHead>
+                        <TableHead className="text-right">Acción</TableHead>
                     </TableRow>
-                ))}
-                </TableBody>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                    {enrolledCourses.map((course) => (
+                        <TableRow key={course.id}>
+                        <TableCell>
+                            <div className="font-medium">{course.courseName}</div>
+                            <div className="text-sm text-muted-foreground">
+                            {course.courseCode}
+                            </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button size="sm" variant="outline" disabled={!isEnrollmentPeriod}>
+                                        <MinusCircle className="mr-2 h-4 w-4" />
+                                        Retirar
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle className="flex items-center gap-2">
+                                            <AlertTriangle className="text-destructive" />
+                                            Confirmar Baja de Asignatura
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            Estás a punto de dar de baja "{course.courseName}".
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="py-4 space-y-4">
+                                        <Alert variant={isEarlyWithdrawal ? "default" : "destructive"}>
+                                            <AlertTriangle className="h-4 w-4" />
+                                            <AlertTitle>¡Atención!</AlertTitle>
+                                            <AlertDescription>
+                                                {isEarlyWithdrawal
+                                                    ? "Estás en el período de retiro sin penalización. El curso se eliminará de tu registro sin afectar tu promedio."
+                                                    : "Ha finalizado el período sin penalización. El curso aparecerá en tu historial como 'Retirado' y no habrá reembolso."
+                                                }
+                                            </AlertDescription>
+                                        </Alert>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="reason-drop">Motivo de la baja (requerido)</Label>
+                                            <Select>
+                                                <SelectTrigger id="reason-drop">
+                                                    <SelectValue placeholder="Selecciona un motivo..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="academic">Carga académica</SelectItem>
+                                                    <SelectItem value="personal">Personal</SelectItem>
+                                                    <SelectItem value="work">Laboral</SelectItem>
+                                                    <SelectItem value="other">Otro</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="comments-drop">Comentarios (opcional)</Label>
+                                            <Textarea id="comments-drop" placeholder="Añade un comentario si es necesario." />
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <Checkbox id="terms-drop" />
+                                            <label
+                                                htmlFor="terms-drop"
+                                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                            >
+                                                Entiendo y acepto las consecuencias de esta acción.
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button variant="outline">Cancelar</Button>
+                                        <Button variant="destructive" disabled><MinusCircle className="mr-2"/> Confirmar Baja</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+                ) : (
+                <Alert>
+                    <ClipboardList className="h-4 w-4" />
+                    <AlertTitle>Sin Cursos Inscritos</AlertTitle>
+                    <AlertDescription>
+                        Aún no has inscrito ningún curso.
+                    </AlertDescription>
+                </Alert>
+            )}
             </CardContent>
             <CardFooter className="flex-col gap-2">
-                <Button className="w-full" disabled>Confirmar Matrícula</Button>
+                <Button className="w-full" disabled={!enrolledCourses || enrolledCourses.length === 0}>Confirmar Matrícula</Button>
                 <p className="text-xs text-muted-foreground text-center">La confirmación guarda tu matrícula oficialmente.</p>
             </CardFooter>
         </Card>
@@ -401,10 +401,14 @@ function ProfessorEnrollmentView() {
   }
 
 export default function EnrollmentPage() {
-  const { profile } = useUser();
+  const { profile, isUserLoading } = useUser();
 
   const renderContent = () => {
-    switch (profile?.role) {
+    if (isUserLoading || !profile) {
+        return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8"/></div>
+    }
+
+    switch (profile.role) {
       case 'student':
         return <StudentEnrollmentView />;
       case 'admin':

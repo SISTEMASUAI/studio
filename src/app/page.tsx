@@ -24,11 +24,11 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useAuth } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const FormSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email.' }),
@@ -37,9 +37,16 @@ const FormSchema = z.object({
 
 export default function LoginPage() {
   const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.replace('/intranet');
+    }
+  }, [isUserLoading, user, router]);
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -56,8 +63,6 @@ export default function LoginPage() {
       // We are not awaiting this to avoid blocking, auth state is handled by the provider
       initiateEmailSignIn(auth, data.email, data.password);
       // The onAuthStateChanged listener in FirebaseProvider will handle redirection
-      // For now, we can optimistically redirect. If login fails, onAuthStateChanged will clear user and redirect back.
-      router.push('/dashboard');
     } catch (error: any) {
       setIsLoading(false);
       toast({
@@ -67,6 +72,14 @@ export default function LoginPage() {
       });
     }
   };
+
+  if (isUserLoading || user) {
+     return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <main className="flex items-center justify-center min-h-screen bg-background">

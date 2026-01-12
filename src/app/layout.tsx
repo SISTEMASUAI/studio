@@ -27,7 +27,7 @@ const ptSans = PT_Sans({
 
 function AppShellOrChildren({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const isAppPage = pathname.startsWith('/intranet') || pathname.startsWith('/cursos') || pathname.startsWith('/grades') || pathname.startsWith('/profile') || pathname.startsWith('/schedule') || pathname.startsWith('/matricula') || pathname.startsWith('/plan-de-estudios') || pathname.startsWith('/tramites') || pathname.startsWith('/pagos') || pathname.startsWith('/bolsa-de-trabajo') || pathname.startsWith('/actividades') || pathname.startsWith('/bienestar') || pathname.startsWith('/asistencia') || pathname.startsWith('/configuracion');
+    const isAppPage = !['/', '/signup'].includes(pathname);
 
     if (isAppPage) {
         return <AppShell>{children}</AppShell>;

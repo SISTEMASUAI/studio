@@ -233,7 +233,7 @@ export default function ProgramsPage() {
                                                 <FormField control={programForm.control} name="programId" render={({ field }) => (
                                                     <FormItem><FormLabel>ID del Programa</FormLabel><FormControl><Input placeholder="ej: ing-soft" {...field} /></FormControl><FormMessage /></FormItem>
                                                 )} />
-                                                <FormField control={programForm.control} name="name" render={={({ field }) => (
+                                                <FormField control={programForm.control} name="name" render={({ field }) => (
                                                     <FormItem><FormLabel>Nombre del Programa</FormLabel><FormControl><Input placeholder="Ingeniería de Software" {...field} /></FormControl><FormMessage /></FormItem>
                                                 )} />
                                                 <FormField control={programForm.control} name="facultyId" render={({ field }) => (
@@ -414,7 +414,3 @@ export default function ProgramsPage() {
     </div>
     );
 }
-
-    
-
-    

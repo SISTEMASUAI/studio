@@ -70,9 +70,9 @@ service cloud.firestore {
       }
     }
 
-    // Enrollments: Students can read their own, admins can read all.
+    // Enrollments: Students can read their own, professors and admins can read all.
     match /enrollments/{enrollmentId} {
-      allow read: if isRole('admin') || (isSignedIn() && resource.data.studentId == request.auth.uid);
+      allow read: if isOneOfRoles(['admin', 'professor']) || (isSignedIn() && resource.data.studentId == request.auth.uid);
       // Writing enrollments should likely be an admin-only or server-side task
       allow write: if isRole('admin');
     }

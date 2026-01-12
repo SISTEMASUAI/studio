@@ -656,7 +656,7 @@ function AdminCoursesView() {
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>
                                                             <DropdownMenuItem><Eye className="mr-2"/>Ver Secciones</DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleOpenEditDialog(course)}>
+                                                            <DropdownMenuItem onSelect={() => handleOpenEditDialog(course)}>
                                                                 <Edit className="mr-2"/>Editar Curso
                                                             </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
@@ -746,7 +746,7 @@ function AdminCoursesView() {
                             <AlertDescription>
                                 La vista detallada de cada estudiante, junto con las acciones de gestión (inscripción forzosa, retiro, modificación de GPA), se implementará próximamente.
                             </AlertDescription>
-                        </Alert>
+                         </Alert>
                     </CardContent>
                 </Card>
             </TabsContent>
@@ -954,3 +954,4 @@ export default function CoursesPage() {
     </div>
   );
 }
+

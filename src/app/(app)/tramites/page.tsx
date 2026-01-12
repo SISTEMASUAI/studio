@@ -395,7 +395,18 @@ function AdminProceduresView() {
                 <TableCell>{req.type}</TableCell>
                 <TableCell>{req.date}</TableCell>
                 <TableCell>
-                  <Badge className={getStatusVariant(req.status)}>{req.status}</Badge>
+                  <Select defaultValue={req.status}>
+                    <SelectTrigger className="w-40 focus:ring-0 border-0 shadow-none focus:ring-offset-0" style={{backgroundColor: 'transparent'}}>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="Enviado">Enviado</SelectItem>
+                        <SelectItem value="En Proceso">En Proceso</SelectItem>
+                        <SelectItem value="Aprobado">Aprobado</SelectItem>
+                        <SelectItem value="Rechazado">Rechazado</SelectItem>
+                        <SelectItem value="Completado">Completado</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </TableCell>
                 <TableCell className="text-right">
                     <DropdownMenu>
@@ -403,7 +414,7 @@ function AdminProceduresView() {
                         <Button variant="ghost" size="icon"><MoreHorizontal /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
-                        <DropdownMenuItem><MessageSquare className="mr-2"/> Ver Detalles</DropdownMenuItem>
+                        <DropdownMenuItem><MessageSquare className="mr-2"/> Ver Detalles / Comentar</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem disabled={req.status !== 'Enviado'}><Check className="mr-2"/> Aprobar</DropdownMenuItem>
                         <DropdownMenuItem disabled={req.status !== 'Enviado'} className="text-destructive"><X className="mr-2"/> Rechazar</DropdownMenuItem>
@@ -420,7 +431,7 @@ function AdminProceduresView() {
             <UserCog className="h-4 w-4" />
             <AlertTitle>En Desarrollo</AlertTitle>
             <AlertDescription>
-                La lógica para aprobar, rechazar, reasignar, generar y firmar documentos, así como ver los detalles de cada solicitud, se implementará próximamente.
+                La lógica para aprobar, rechazar, reasignar, generar y firmar documentos, así como ver los detalles y estadísticas de cada solicitud, se implementará próximamente.
             </AlertDescription>
         </Alert>
       </CardContent>

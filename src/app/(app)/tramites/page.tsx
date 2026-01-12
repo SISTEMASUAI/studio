@@ -41,6 +41,7 @@ import {
   Upload,
   AlertTriangle,
   XCircle,
+  Users,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -52,7 +53,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
@@ -342,9 +343,12 @@ function AdminProceduresView() {
                         <Button variant="ghost" size="icon"><MoreHorizontal /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
+                        <DropdownMenuItem><MessageSquare className="mr-2"/> Ver Detalles</DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem disabled={req.status !== 'Enviado'}><Check className="mr-2"/> Aprobar</DropdownMenuItem>
                         <DropdownMenuItem disabled={req.status !== 'Enviado'} className="text-destructive"><X className="mr-2"/> Rechazar</DropdownMenuItem>
-                        <DropdownMenuItem><MessageSquare className="mr-2"/> Ver Detalles</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem disabled><Users className="mr-2"/> Asignar a...</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </TableCell>
@@ -356,7 +360,7 @@ function AdminProceduresView() {
             <UserCog className="h-4 w-4" />
             <AlertTitle>En Desarrollo</AlertTitle>
             <AlertDescription>
-                La lógica para aprobar, rechazar y ver los detalles de cada solicitud (incluyendo la validación de prerrequisitos o deudas) se implementará próximamente.
+                La lógica para aprobar, rechazar, reasignar y ver los detalles de cada solicitud (incluyendo la generación y firma de documentos) se implementará próximamente.
             </AlertDescription>
         </Alert>
       </CardContent>

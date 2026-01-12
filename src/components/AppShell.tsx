@@ -181,7 +181,7 @@ function UserMenu() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none font-headline">
-              {user?.displayName || 'User'}
+              {profile?.firstName ? `${profile.firstName} ${profile.lastName}`: (user?.displayName || 'User')}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user?.email}

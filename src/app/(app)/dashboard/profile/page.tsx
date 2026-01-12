@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useUser } from '@/firebase';
@@ -31,6 +30,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 function UserProfileView() {
   const { profile } = useUser();
@@ -138,15 +139,11 @@ function UserProfileView() {
 }
 
 function AdminProfileView() {
-    return (
-        <Alert>
-            <UserCog className="h-4 w-4" />
-            <AlertTitle>Vista de Administrador</AlertTitle>
-            <AlertDescription>
-                Próximamente: Panel para buscar y ver el perfil de cualquier usuario.
-            </AlertDescription>
-        </Alert>
-    )
+    const router = useRouter();
+    useEffect(() => {
+        router.replace('/profile');
+    }, [router]);
+    return null;
 }
 
 export default function ProfilePage() {

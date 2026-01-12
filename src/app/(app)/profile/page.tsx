@@ -62,7 +62,7 @@ function UserProfileView() {
                 {profile.role}
               </Badge>
             </div>
-            <Button variant="outline">
+            <Button variant="outline" disabled>
               <Edit className="mr-2" /> Cambiar Foto
             </Button>
           </CardContent>
@@ -184,4 +184,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

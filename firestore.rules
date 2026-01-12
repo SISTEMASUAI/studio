@@ -49,6 +49,11 @@ service cloud.firestore {
       }
     }
 
+    // University Programs: Readable by admins, writable by admins.
+    match /programs/{programId} {
+      allow read, write: if isRole('admin');
+    }
+
     // Intranet Posts: Readable by all, writable only by the author or admins.
     match /intranet_posts/{postId} {
       allow read: if isSignedIn();

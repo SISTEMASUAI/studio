@@ -228,6 +228,14 @@
           "type": "string",
           "format": "uri",
           "description": "Link to the virtual classroom if mode is Online or Hybrid."
+        },
+        "capacity": {
+            "type": "number",
+            "description": "The total number of students that can enroll in the course."
+        },
+        "enrolled": {
+            "type": "number",
+            "description": "The current number of students enrolled in the course."
         }
       },
       "required": ["courseId", "name", "description", "instructorId", "schedule", "mode", "programId"]

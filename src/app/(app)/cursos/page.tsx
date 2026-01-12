@@ -113,6 +113,7 @@ interface Course extends DocumentData {
     semesterEndDate?: string;
     schedule?: { day: string; startTime: string; endTime: string; classroom: string }[];
     mode?: string;
+    capacity?: number;
 }
 
 interface Program extends DocumentData {
@@ -288,6 +289,7 @@ const CourseSchema = z.object({
     name: z.string().min(5, "El nombre debe tener al menos 5 caracteres."),
     description: z.string().min(10, "La descripción debe tener al menos 10 caracteres."),
     credits: z.coerce.number().min(1, "Debe tener al menos 1 crédito."),
+    capacity: z.coerce.number().min(0, "La capacidad no puede ser negativa."),
     facultyId: z.string().min(1, "Debe seleccionar una facultad."),
     programId: z.string().min(1, "Debe seleccionar un programa."),
     level: z.string().min(1, "Debe seleccionar un nivel."),
@@ -333,6 +335,7 @@ function AdminCoursesView() {
             name: '',
             description: '',
             credits: 1,
+            capacity: 30,
             facultyId: '',
             programId: '',
             level: 'Pregrado',
@@ -390,6 +393,7 @@ function AdminCoursesView() {
             
             await addDocumentNonBlocking(courseCollection, {
                 ...values,
+                enrolled: 0,
                 schedule: schedule.filter(s => s.day && s.startTime && s.endTime),
                 prerequisites: [],
                 objectives: [],
@@ -503,11 +507,18 @@ function AdminCoursesView() {
                                                     </FormItem>
                                                 )} />
                                                 
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                     <FormField control={courseForm.control} name="credits" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Créditos</FormLabel>
                                                             <FormControl><Input type="number" placeholder="4" {...field} /></FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={courseForm.control} name="capacity" render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Capacidad</FormLabel>
+                                                            <FormControl><Input type="number" placeholder="30" {...field} /></FormControl>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
@@ -765,11 +776,18 @@ function AdminCoursesView() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <FormField control={updateCourseForm.control} name="credits" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Créditos</FormLabel>
                                             <FormControl><Input type="number" {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={updateCourseForm.control} name="capacity" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Capacidad</FormLabel>
+                                            <FormControl><Input type="number" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />

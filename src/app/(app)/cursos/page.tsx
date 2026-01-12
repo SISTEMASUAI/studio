@@ -105,6 +105,10 @@ interface Course extends DocumentData {
     department: string;
     level: string;
     instructorId: string;
+    semesterStartDate?: string;
+    semesterEndDate?: string;
+    schedule?: { day: string; startTime: string; endTime: string; classroom: string }[];
+    mode?: string;
 }
 
 
@@ -263,7 +267,7 @@ function ProfessorCoursesView() {
     );
   }
 
-const CreateCourseSchema = z.object({
+const CourseSchema = z.object({
   courseId: z.string().min(3, "El código debe tener al menos 3 caracteres."),
   name: z.string().min(5, "El nombre debe tener al menos 5 caracteres."),
   description: z.string().min(10, "La descripción debe tener al menos 10 caracteres."),
@@ -276,16 +280,14 @@ const CreateCourseSchema = z.object({
   semesterEndDate: z.string().min(1, "Debe seleccionar una fecha de fin."),
 });
 
-const UpdateCourseSchema = z.object({
-    courseId: z.string().min(3, "El código debe tener al menos 3 caracteres."),
-    name: z.string().min(5, "El nombre debe tener al menos 5 caracteres."),
-});
 
 function AdminCoursesView() {
     const { toast } = useToast();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [schedule, setSchedule] = useState([{ day: '', startTime: '', endTime: '', classroom: '' }]);
+    const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+
     const firestore = useFirestore();
 
     const professorsQuery = useMemoFirebase(() => 
@@ -300,8 +302,8 @@ function AdminCoursesView() {
     const { data: courses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
 
 
-    const createForm = useForm<z.infer<typeof CreateCourseSchema>>({
-        resolver: zodResolver(CreateCourseSchema),
+    const form = useForm<z.infer<typeof CourseSchema>>({
+        resolver: zodResolver(CourseSchema),
         defaultValues: {
             courseId: '',
             name: '',
@@ -316,11 +318,21 @@ function AdminCoursesView() {
         },
     });
 
-    const updateForm = useForm<z.infer<typeof UpdateCourseSchema>>({
-        resolver: zodResolver(UpdateCourseSchema),
+    const updateForm = useForm<z.infer<typeof CourseSchema>>({
+        resolver: zodResolver(CourseSchema),
     });
 
-    async function onCreateSubmit(values: z.infer<typeof CreateCourseSchema>) {
+    const handleOpenEditDialog = (course: Course) => {
+        setSelectedCourse(course);
+        updateForm.reset({
+            ...course,
+            schedule: undefined, // schedule is handled separately
+        });
+        setSchedule(course.schedule || [{ day: '', startTime: '', endTime: '', classroom: '' }]);
+        setIsEditDialogOpen(true);
+    };
+
+    async function onCreateSubmit(values: z.infer<typeof CourseSchema>) {
         if (!firestore) return;
         
         try {
@@ -340,7 +352,7 @@ function AdminCoursesView() {
                 title: "Curso Creado",
                 description: `El curso "${values.name}" ha sido creado exitosamente.`,
             });
-            createForm.reset();
+            form.reset();
             setSchedule([{ day: '', startTime: '', endTime: '', classroom: '' }]);
             setIsCreateDialogOpen(false);
         } catch (error) {
@@ -353,19 +365,22 @@ function AdminCoursesView() {
         }
     }
 
-    async function onUpdateSubmit(values: z.infer<typeof UpdateCourseSchema>) {
-        const courseId = updateForm.getValues('courseId');
-        if (!firestore || !courseId) return;
+    async function onUpdateSubmit(values: z.infer<typeof CourseSchema>) {
+        if (!firestore || !selectedCourse) return;
 
         try {
-            const courseDocRef = doc(firestore, 'courses', courseId);
-            await updateDocumentNonBlocking(courseDocRef, values);
+            const courseDocRef = doc(firestore, 'courses', selectedCourse.id);
+            await updateDocumentNonBlocking(courseDocRef, {
+                ...values,
+                schedule: schedule.filter(s => s.day && s.startTime && s.endTime),
+            });
 
             toast({
                 title: "Curso Actualizado",
                 description: `El curso "${values.name}" ha sido actualizado.`,
             });
             setIsEditDialogOpen(false);
+            setSelectedCourse(null);
         } catch (error) {
              console.error("Error updating course: ", error);
             toast({
@@ -374,6 +389,11 @@ function AdminCoursesView() {
                 description: "Hubo un problema al guardar los cambios.",
             });
         }
+    }
+
+    const hasCourseStarted = (course: Course | null) => {
+        if (!course || !course.semesterStartDate) return false;
+        return new Date(course.semesterStartDate) < new Date();
     }
 
 
@@ -424,22 +444,22 @@ function AdminCoursesView() {
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-3xl">
-                                    <Form {...createForm}>
-                                        <form onSubmit={createForm.handleSubmit(onCreateSubmit)}>
+                                    <Form {...form}>
+                                        <form onSubmit={form.handleSubmit(onCreateSubmit)}>
                                             <DialogHeader>
                                                 <DialogTitle>Crear Nuevo Curso</DialogTitle>
                                                 <DialogDescription>Completa el formulario para registrar un nuevo curso en el sistema.</DialogDescription>
                                             </DialogHeader>
                                             <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <FormField control={createForm.control} name="courseId" render={({ field }) => (
+                                                    <FormField control={form.control} name="courseId" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Código del Curso</FormLabel>
                                                             <FormControl><Input placeholder="Ej: CS-101" {...field} /></FormControl>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
-                                                    <FormField control={createForm.control} name="name" render={({ field }) => (
+                                                    <FormField control={form.control} name="name" render={({ field }) => (
                                                          <FormItem>
                                                             <FormLabel>Nombre del Curso</FormLabel>
                                                             <FormControl><Input placeholder="Introducción a la Programación" {...field} /></FormControl>
@@ -447,7 +467,7 @@ function AdminCoursesView() {
                                                         </FormItem>
                                                     )} />
                                                 </div>
-                                                <FormField control={createForm.control} name="description" render={({ field }) => (
+                                                <FormField control={form.control} name="description" render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Descripción Breve</FormLabel>
                                                         <FormControl><Textarea placeholder="Describe el curso en una o dos frases." {...field} /></FormControl>
@@ -456,14 +476,14 @@ function AdminCoursesView() {
                                                 )} />
                                                 
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                    <FormField control={createForm.control} name="credits" render={({ field }) => (
+                                                    <FormField control={form.control} name="credits" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Créditos</FormLabel>
                                                             <FormControl><Input type="number" placeholder="4" {...field} /></FormControl>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
-                                                    <FormField control={createForm.control} name="department" render={({ field }) => (
+                                                    <FormField control={form.control} name="department" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Departamento</FormLabel>
                                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -480,7 +500,7 @@ function AdminCoursesView() {
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
-                                                    <FormField control={createForm.control} name="level" render={({ field }) => (
+                                                    <FormField control={form.control} name="level" render={({ field }) => (
                                                          <FormItem>
                                                             <FormLabel>Nivel</FormLabel>
                                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -497,14 +517,14 @@ function AdminCoursesView() {
                                                     )} />
                                                 </div>
                                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <FormField control={createForm.control} name="semesterStartDate" render={({ field }) => (
+                                                    <FormField control={form.control} name="semesterStartDate" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Fecha de Inicio del Semestre</FormLabel>
                                                             <FormControl><Input type="date" {...field} /></FormControl>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
-                                                    <FormField control={createForm.control} name="semesterEndDate" render={({ field }) => (
+                                                    <FormField control={form.control} name="semesterEndDate" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Fecha de Fin del Semestre</FormLabel>
                                                             <FormControl><Input type="date" {...field} /></FormControl>
@@ -512,7 +532,7 @@ function AdminCoursesView() {
                                                         </FormItem>
                                                     )} />
                                                 </div>
-                                                <FormField control={createForm.control} name="instructorId" render={({ field }) => (
+                                                <FormField control={form.control} name="instructorId" render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Instructor</FormLabel>
                                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -562,7 +582,7 @@ function AdminCoursesView() {
                                                             <Input placeholder="Ej: Aula 101" onChange={(e) => setSchedule(prev => [{...prev[0], classroom: e.target.value}])} />
                                                         </div>
                                                      </div>
-                                                      <FormField control={createForm.control} name="mode" render={({ field }) => (
+                                                      <FormField control={form.control} name="mode" render={({ field }) => (
                                                          <FormItem>
                                                             <FormLabel>Modalidad</FormLabel>
                                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -589,8 +609,8 @@ function AdminCoursesView() {
                                             </div>
                                             <DialogFooter>
                                                 <Button variant="outline" type="button" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
-                                                <Button type="submit" disabled={createForm.formState.isSubmitting}>
-                                                    {createForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                <Button type="submit" disabled={form.formState.isSubmitting}>
+                                                    {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                     Guardar Curso
                                                 </Button>
                                             </DialogFooter>
@@ -628,7 +648,6 @@ function AdminCoursesView() {
                                             <TableCell>{course.credits}</TableCell>
                                             <TableCell>{course.level}</TableCell>
                                             <TableCell className="text-right">
-                                                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button variant="ghost" size="icon">
@@ -637,53 +656,15 @@ function AdminCoursesView() {
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>
                                                             <DropdownMenuItem><Eye className="mr-2"/>Ver Secciones</DropdownMenuItem>
-                                                            <DialogTrigger asChild onClick={() => updateForm.reset({ courseId: course.id, name: course.name })}>
-                                                                <DropdownMenuItem><Edit className="mr-2"/>Editar Curso</DropdownMenuItem>
-                                                            </DialogTrigger>
+                                                            <DropdownMenuItem onClick={() => handleOpenEditDialog(course)}>
+                                                                <Edit className="mr-2"/>Editar Curso
+                                                            </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
-                                                            <DialogTrigger asChild>
-                                                                <DropdownMenuItem><PlusCircle className="mr-2"/>Crear Sección</DropdownMenuItem>
-                                                            </DialogTrigger>
+                                                            <DropdownMenuItem><PlusCircle className="mr-2"/>Crear Sección</DropdownMenuItem>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem className="text-destructive"><Trash2 className="mr-2"/>Desactivar</DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
-                                                    <DialogContent className="sm:max-w-3xl">
-                                                        <Form {...updateForm}>
-                                                            <form onSubmit={updateForm.handleSubmit(onUpdateSubmit)}>
-                                                                <DialogHeader>
-                                                                    <DialogTitle>Editar Curso: {course.name}</DialogTitle>
-                                                                    <DialogDescription>Modifica la información principal del curso.</DialogDescription>
-                                                                </DialogHeader>
-                                                                <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                        <FormField control={updateForm.control} name="courseId" render={({ field }) => (
-                                                                            <FormItem>
-                                                                                <FormLabel>Código del Curso</FormLabel>
-                                                                                <FormControl><Input {...field} /></FormControl>
-                                                                                <FormMessage />
-                                                                            </FormItem>
-                                                                        )} />
-                                                                         <FormField control={updateForm.control} name="name" render={({ field }) => (
-                                                                            <FormItem>
-                                                                                <FormLabel>Nombre del Curso</FormLabel>
-                                                                                <FormControl><Input {...field} /></FormControl>
-                                                                                <FormMessage />
-                                                                            </FormItem>
-                                                                        )} />
-                                                                    </div>
-                                                                </div>
-                                                                <DialogFooter>
-                                                                    <Button variant="outline" type="button" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
-                                                                    <Button type="submit" disabled={updateForm.formState.isSubmitting}>
-                                                                        {updateForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                                        Guardar Cambios
-                                                                    </Button>
-                                                                </DialogFooter>
-                                                            </form>
-                                                        </Form>
-                                                    </DialogContent>
-                                                </Dialog>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -769,6 +750,162 @@ function AdminCoursesView() {
                     </CardContent>
                 </Card>
             </TabsContent>
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent className="sm:max-w-3xl">
+                    <Form {...updateForm}>
+                        <form onSubmit={updateForm.handleSubmit(onUpdateSubmit)}>
+                            <DialogHeader>
+                                <DialogTitle>Editar Curso: {selectedCourse?.name}</DialogTitle>
+                                <DialogDescription>Modifica la información principal del curso. { hasCourseStarted(selectedCourse) && <span className="text-destructive font-semibold">Este curso ya ha iniciado y no se puede editar.</span>}</DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField control={updateForm.control} name="courseId" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Código del Curso</FormLabel>
+                                            <FormControl><Input {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                     <FormField control={updateForm.control} name="name" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Nombre del Curso</FormLabel>
+                                            <FormControl><Input {...field} disabled={hasCourseStarted(selectedCourse)}/></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+                                <FormField control={updateForm.control} name="description" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Descripción Breve</FormLabel>
+                                        <FormControl><Textarea {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <FormField control={updateForm.control} name="credits" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Créditos</FormLabel>
+                                            <FormControl><Input type="number" {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={updateForm.control} name="department" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Departamento</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Ciencias de la Computación">Ciencias de la Computación</SelectItem>
+                                                    <SelectItem value="Matemáticas">Matemáticas</SelectItem>
+                                                    <SelectItem value="Humanidades">Humanidades</SelectItem>
+                                                    <SelectItem value="Economía y Finanzas">Economía y Finanzas</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={updateForm.control} name="level" render={({ field }) => (
+                                         <FormItem>
+                                            <FormLabel>Nivel</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Pregrado">Pregrado</SelectItem>
+                                                    <SelectItem value="Postgrado">Postgrado</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField control={updateForm.control} name="semesterStartDate" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Fecha de Inicio del Semestre</FormLabel>
+                                            <FormControl><Input type="date" {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={updateForm.control} name="semesterEndDate" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Fecha de Fin del Semestre</FormLabel>
+                                            <FormControl><Input type="date" {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+                                <FormField control={updateForm.control} name="instructorId" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Instructor</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Asigna un instructor..."/></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {professors ? professors.map(prof => (
+                                                    <SelectItem key={prof.id} value={prof.id}>{prof.firstName} {prof.lastName}</SelectItem>
+                                                )) : <SelectItem value="loading" disabled>Cargando...</SelectItem>}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <div className="space-y-4 rounded-md border p-4">
+                                    <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Día</Label>
+                                            <Select onValueChange={(value) => setSchedule(prev => [{...prev[0], day: value}])} value={schedule[0]?.day} disabled={hasCourseStarted(selectedCourse)}>
+                                                <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Lunes">Lunes</SelectItem>
+                                                    <SelectItem value="Martes">Martes</SelectItem>
+                                                    <SelectItem value="Miércoles">Miércoles</SelectItem>
+                                                    <SelectItem value="Jueves">Jueves</SelectItem>
+                                                    <SelectItem value="Viernes">Viernes</SelectItem>
+                                                    <SelectItem value="Sábado">Sábado</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Hora de Inicio</Label>
+                                            <Input type="time" value={schedule[0]?.startTime} onChange={(e) => setSchedule(prev => [{...prev[0], startTime: e.target.value}])} disabled={hasCourseStarted(selectedCourse)} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Hora de Fin</Label>
+                                            <Input type="time" value={schedule[0]?.endTime} onChange={(e) => setSchedule(prev => [{...prev[0], endTime: e.target.value}])} disabled={hasCourseStarted(selectedCourse)} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Aula</Label>
+                                            <Input placeholder="Ej: Aula 101" value={schedule[0]?.classroom} onChange={(e) => setSchedule(prev => [{...prev[0], classroom: e.target.value}])} disabled={hasCourseStarted(selectedCourse)} />
+                                        </div>
+                                    </div>
+                                    <FormField control={updateForm.control} name="mode" render={({ field }) => (
+                                         <FormItem>
+                                            <FormLabel>Modalidad</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="Presencial">Presencial</SelectItem>
+                                                    <SelectItem value="Online">Online</SelectItem>
+                                                    <SelectItem value="Híbrido">Híbrido</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline" type="button" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+                                <Button type="submit" disabled={updateForm.formState.isSubmitting || hasCourseStarted(selectedCourse)}>
+                                    {updateForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Guardar Cambios
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+             </Dialog>
         </Tabs>
     );
   }

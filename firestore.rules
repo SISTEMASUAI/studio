@@ -49,13 +49,12 @@ service cloud.firestore {
       }
     }
 
-    // University Programs: Readable by any signed-in user, writable by admins.
+    // University Programs & Faculties: Readable by any signed-in user, writable by admins.
     match /programs/{programId} {
       allow read: if isSignedIn();
       allow write: if isRole('admin');
     }
     
-    // Faculties: Readable by any signed-in user, writable by admins.
     match /faculties/{facultyId} {
       allow read: if isSignedIn();
       allow write: if isRole('admin');
@@ -82,11 +81,12 @@ service cloud.firestore {
       }
     }
 
-    // Enrollments: Students can read their own, professors and admins can read all.
+    // Enrollments: Students can read their own. Admins/Professors can read all.
+    // Students can create their own enrollment. Only Admins can update/delete.
     match /enrollments/{enrollmentId} {
       allow read: if isOneOfRoles(['admin', 'professor']) || (isSignedIn() && resource.data.studentId == request.auth.uid);
-      // Writing enrollments should likely be an admin-only or server-side task
-      allow write: if isRole('admin');
+      allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
+      allow update, delete: if isRole('admin');
     }
     
     // Submissions for assignments
@@ -143,5 +143,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

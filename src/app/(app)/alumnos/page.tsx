@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, useCollection, useMemoFirebase, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useUser, useCollection, useMemoFirebase, useFirestore, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import {
   Card,
   CardContent,
@@ -157,7 +157,7 @@ export default function AlumnosPage() {
             dni: student.dni || '',
             email: student.email || '',
             programId: student.programId || '',
-            facultyId: selectedStudentFacultyId,
+            facultyId: selectedStudentFacultyId || '',
         });
         setIsEditStudentOpen(true);
     };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, useCollection, useMemoFirebase, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useUser, useCollection, useMemoFirebase, useFirestore, addDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import {
   Card,
   CardContent,
@@ -40,6 +40,7 @@ import {
   User,
   UserCog,
   MoreHorizontal,
+  Edit,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -70,11 +71,13 @@ interface Faculty extends DocumentData {
 
 interface StudentProfile extends DocumentData {
   id: string;
+  uid: string;
   dni: string;
   firstName: string;
   lastName: string;
+  email: string;
   programId: string;
-  // Placeholder fields until they are properly defined in the data model
+  facultyId?: string; // This might be needed if we store it directly
   semester?: number;
   gpa?: number;
   status?: string;
@@ -90,11 +93,15 @@ const StudentSchema = z.object({
   programId: z.string().min(1, "Debe seleccionar un programa."),
 });
 
+const UpdateStudentSchema = StudentSchema.omit({ password: true });
+
 
 export default function AlumnosPage() {
     const { toast } = useToast();
     const auth = useAuth();
     const [isCreateStudentOpen, setIsCreateStudentOpen] = useState(false);
+    const [isEditStudentOpen, setIsEditStudentOpen] = useState(false);
+    const [selectedStudent, setSelectedStudent] = useState<StudentProfile | null>(null);
 
     const firestore = useFirestore();
 
@@ -120,14 +127,29 @@ export default function AlumnosPage() {
         firstName: '', lastName: '', dni: '', email: '', password: '', facultyId: '', programId: ''
       }
     })
+    
+    const updateStudentForm = useForm<z.infer<typeof UpdateStudentSchema>>({
+        resolver: zodResolver(UpdateStudentSchema),
+    });
 
     const selectedFacultyIdStudent = studentForm.watch('facultyId');
+    const selectedFacultyIdUpdateStudent = updateStudentForm.watch('facultyId');
+
+
+    const handleOpenEditDialog = (student: StudentProfile) => {
+        const studentFaculty = programs?.find(p => p.id === student.programId)?.facultyId || '';
+        setSelectedStudent(student);
+        updateStudentForm.reset({
+            ...student,
+            facultyId: studentFaculty,
+        });
+        setIsEditStudentOpen(true);
+    };
 
     async function onCreateStudentSubmit(values: z.infer<typeof StudentSchema>) {
         if (!firestore || !auth) return;
 
         try {
-          // Firebase Auth doesn't have a separate instance for signup, so we use the main one.
           const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
           const user = userCredential.user;
 
@@ -166,6 +188,27 @@ export default function AlumnosPage() {
                     description: error.message || "No se pudo crear el estudiante. Verifique si el email ya existe.",
                 });
             }
+        }
+    }
+    
+    async function onUpdateStudentSubmit(values: z.infer<typeof UpdateStudentSchema>) {
+        if (!firestore || !selectedStudent) return;
+        try {
+            const studentDocRef = doc(firestore, 'users', selectedStudent.uid);
+            await updateDocumentNonBlocking(studentDocRef, values);
+            toast({
+                title: "Estudiante Actualizado",
+                description: `Los datos de ${values.firstName} ${values.lastName} han sido actualizados.`,
+            });
+            setIsEditStudentOpen(false);
+            setSelectedStudent(null);
+        } catch(error: any) {
+            console.error("Error updating student: ", error);
+            toast({
+                variant: "destructive",
+                title: "Error al actualizar",
+                description: "No se pudieron guardar los cambios.",
+            });
         }
     }
 
@@ -319,8 +362,11 @@ export default function AlumnosPage() {
                                           <Button variant="ghost" size="icon"><MoreHorizontal /></Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent>
-                                          <DropdownMenuItem>Ver Expediente</DropdownMenuItem>
-                                          <DropdownMenuItem>Editar Alumno</DropdownMenuItem>
+                                          <DropdownMenuItem disabled>Ver Expediente</DropdownMenuItem>
+                                          <DropdownMenuItem onSelect={() => handleOpenEditDialog(student)}>
+                                            <Edit className="mr-2 h-4 w-4" />
+                                            Editar Alumno
+                                          </DropdownMenuItem>
                                       </DropdownMenuContent>
                                   </DropdownMenu>
                                 </TableCell>
@@ -335,15 +381,67 @@ export default function AlumnosPage() {
                     )}
                   </TableBody>
               </Table>
-               <Alert className="mt-6">
-                  <UserCog className="h-4 w-4" />
-                  <AlertTitle>En Desarrollo</AlertTitle>
-                  <AlertDescription>
-                      La vista detallada de cada estudiante, junto con las acciones de gestión (inscripción forzosa, retiro, modificación de GPA), se implementará próximamente.
-                  </AlertDescription>
-               </Alert>
           </CardContent>
       </Card>
+      
+      <Dialog open={isEditStudentOpen} onOpenChange={setIsEditStudentOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <Form {...updateStudentForm}>
+            <form onSubmit={updateStudentForm.handleSubmit(onUpdateStudentSubmit)}>
+              <DialogHeader>
+                <DialogTitle>Editar Estudiante</DialogTitle>
+                <DialogDescription>Actualiza la información del estudiante. El email no se puede cambiar.</DialogDescription>
+              </DialogHeader>
+              <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={updateStudentForm.control} name="firstName" render={({ field }) => (
+                    <FormItem><FormLabel>Nombres</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={updateStudentForm.control} name="lastName" render={({ field }) => (
+                    <FormItem><FormLabel>Apellidos</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
+                <FormField control={updateStudentForm.control} name="dni" render={({ field }) => (
+                  <FormItem><FormLabel>DNI</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={updateStudentForm.control} name="email" render={({ field }) => (
+                  <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} disabled /></FormControl><FormMessage /></FormItem>
+                )} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField control={updateStudentForm.control} name="facultyId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Facultad</FormLabel>
+                      <Select onValueChange={(value) => { field.onChange(value); updateStudentForm.setValue('programId', ''); }} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..." /></SelectTrigger></FormControl>
+                        <SelectContent>{faculties?.map(fac => <SelectItem key={fac.id} value={fac.id}>{fac.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={updateStudentForm.control} name="programId" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Programa</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={!selectedFacultyIdUpdateStudent}>
+                        <FormControl><SelectTrigger><SelectValue placeholder={!selectedFacultyIdUpdateStudent ? "Primero selecciona" : "Asigna..."} /></SelectTrigger></FormControl>
+                        <SelectContent>{programs?.filter(p => p.facultyId === selectedFacultyIdUpdateStudent).map(prog => <SelectItem key={prog.id} value={prog.id}>{prog.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setIsEditStudentOpen(false)}>Cancelar</Button>
+                <Button type="submit" disabled={updateStudentForm.formState.isSubmitting}>
+                  {updateStudentForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Guardar Cambios
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

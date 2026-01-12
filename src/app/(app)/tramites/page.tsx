@@ -40,6 +40,7 @@ import {
   GraduationCap,
   Upload,
   AlertTriangle,
+  XCircle,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,12 @@ const userRequests = [
     type: 'Constancia de Matrícula',
     status: 'En Proceso',
     date: '2024-08-01',
+  },
+  {
+    id: 'TR-125',
+    type: 'Carta de Presentación',
+    status: 'Enviado',
+    date: '2024-08-05',
   },
 ];
 
@@ -104,6 +111,8 @@ function getStatusVariant(status: string) {
         return 'bg-blue-100 text-blue-800';
       case 'Rechazado':
         return 'bg-red-100 text-red-800';
+       case 'Enviado':
+         return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -224,10 +233,35 @@ function UserProceduresView() {
                 <TableCell>
                   <Badge className={getStatusVariant(req.status)}>{req.status}</Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right space-x-2">
                     <Button variant="outline" size="sm" disabled={req.status !== 'Completado'}>
-                        <FileDown className="mr-2"/> Descargar
+                        <FileDown className="mr-2 h-4 w-4"/> Descargar
                     </Button>
+                     <Dialog>
+                        <DialogTrigger asChild>
+                             <Button variant="destructive" size="sm" disabled={req.status !== 'En Proceso' && req.status !== 'Enviado'}>
+                                <XCircle className="mr-2 h-4 w-4"/> Cancelar
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Confirmar Cancelación</DialogTitle>
+                                <DialogDescription>
+                                    Estás a punto de cancelar la solicitud para "{req.type}". Esta acción no se puede deshacer.
+                                </DialogDescription>
+                            </DialogHeader>
+                             <div className="py-4 space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="cancel-reason">Motivo (Opcional)</Label>
+                                    <Textarea id="cancel-reason" placeholder="Si lo deseas, explica por qué estás cancelando."/>
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button variant="outline">Cerrar</Button>
+                                <Button variant="destructive" disabled>Confirmar Cancelación</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </TableCell>
               </TableRow>
             ))}
@@ -323,7 +357,8 @@ function AdminProceduresView() {
             <AlertTitle>En Desarrollo</AlertTitle>
             <AlertDescription>
                 La lógica para aprobar, rechazar y ver los detalles de cada solicitud (incluyendo la validación de prerrequisitos o deudas) se implementará próximamente.
-            </AlertDescription>
+            </Aler
+tDescription>
         </Alert>
       </CardContent>
     </Card>

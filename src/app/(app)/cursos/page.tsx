@@ -82,7 +82,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 // Define the type for the enrollment data we expect from Firestore
 interface Enrollment {
@@ -350,11 +350,17 @@ function AdminCoursesView() {
     });
 
     const selectedFacultyIdUpdateCourse = updateCourseForm.watch('facultyId');
+    
+    const selectedCourseFacultyId = useMemo(() => {
+        if (!selectedCourse || !programs) return '';
+        return programs.find(p => p.id === selectedCourse.programId)?.facultyId || '';
+    }, [selectedCourse, programs]);
 
     const handleOpenEditDialog = (course: Course) => {
         setSelectedCourse(course);
         updateCourseForm.reset({
             ...course,
+            facultyId: selectedCourseFacultyId,
             schedule: undefined, // schedule is handled separately
         });
         setSchedule(course.schedule || [{ day: '', startTime: '', endTime: '', classroom: '' }]);
@@ -702,7 +708,7 @@ function AdminCoursesView() {
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem><PlusCircle className="mr-2"/>Crear Sección</DropdownMenuItem>
                                                             <DropdownMenuSeparator />
-                                                            <DropdownMenuItem className="text-destructive"><Trash2 className="mr-2"/>Desactivar</DropdownMenuItem>
+                                                            <DropdownMenuItem className="text-destructive" disabled><Trash2 className="mr-2"/>Desactivar</DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                             </TableCell>
@@ -785,7 +791,7 @@ function AdminCoursesView() {
                                      <FormField control={updateCourseForm.control} name="facultyId" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Facultad</FormLabel>
-                                            <Select onValueChange={(value) => { field.onChange(value); updateCourseForm.setValue('programId', ''); }} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                            <Select onValueChange={(value) => { field.onChange(value); updateCourseForm.setValue('programId', ''); }} value={field.value} disabled={hasCourseStarted(selectedCourse)}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una facultad..."/></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     {faculties ? faculties.map(fac => (

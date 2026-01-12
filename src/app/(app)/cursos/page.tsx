@@ -263,13 +263,6 @@ function ProfessorCoursesView() {
     );
   }
 
-const allStudentsData = [
-    { id: 'STU-001', name: 'García, Ana', program: 'Ingeniería de Software', semester: 5, gpa: 3.8, status: 'Regular' },
-    { id: 'STU-002', name: 'Pérez, Juan', program: 'Administración de Empresas', semester: 3, gpa: 3.2, status: 'Regular' },
-    { id: 'STU-003', name: 'Martínez, Luis', program: 'Derecho', semester: 8, gpa: 2.9, status: 'Probatorio' },
-    { id: 'STU-004', name: 'Rodríguez, María', program: 'Ingeniería de Software', semester: 5, gpa: 4.0, status: 'Honor' },
-]
-
 const CreateCourseSchema = z.object({
   courseId: z.string().min(3, "El código debe tener al menos 3 caracteres."),
   name: z.string().min(5, "El nombre debe tener al menos 5 caracteres."),
@@ -279,6 +272,8 @@ const CreateCourseSchema = z.object({
   level: z.string().min(1, "Debe seleccionar un nivel."),
   instructorId: z.string().min(1, "Debe seleccionar un instructor."),
   mode: z.string().min(1, "Debe seleccionar una modalidad."),
+  semesterStartDate: z.string().min(1, "Debe seleccionar una fecha de inicio."),
+  semesterEndDate: z.string().min(1, "Debe seleccionar una fecha de fin."),
 });
 
 
@@ -311,6 +306,8 @@ function AdminCoursesView() {
             level: 'Pregrado',
             instructorId: '',
             mode: 'Presencial',
+            semesterStartDate: '',
+            semesterEndDate: '',
         },
     });
 
@@ -463,6 +460,22 @@ function AdminCoursesView() {
                                                                     <SelectItem value="Postgrado">Postgrado</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                </div>
+                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <FormField control={form.control} name="semesterStartDate" render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Fecha de Inicio del Semestre</FormLabel>
+                                                            <FormControl><Input type="date" {...field} /></FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={form.control} name="semesterEndDate" render={({ field }) => (
+                                                        <FormItem>
+                                                            <FormLabel>Fecha de Fin del Semestre</FormLabel>
+                                                            <FormControl><Input type="date" {...field} /></FormControl>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
@@ -702,19 +715,25 @@ function AdminCoursesView() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {allStudentsData.map(student => (
+                                {courses && courses.length > 0 ? (
+                                    courses.map(student => (
                                     <TableRow key={student.id}>
                                         <TableCell className="font-mono">{student.id}</TableCell>
                                         <TableCell className="font-medium">{student.name}</TableCell>
                                         <TableCell>{student.program}</TableCell>
                                         <TableCell className="text-center">{student.semester}</TableCell>
-                                        <TableCell className="text-center">{student.gpa.toFixed(2)}</TableCell>
+                                        <TableCell className="text-center">{student.gpa}</TableCell>
                                         <TableCell><Badge variant={student.status === 'Regular' ? 'secondary' : student.status === 'Honor' ? 'default' : 'destructive'}>{student.status}</Badge></TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="outline" size="sm">Ver Detalles</Button>
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center">No se encontraron estudiantes.</TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                          <Alert className="mt-6">
@@ -722,7 +741,8 @@ function AdminCoursesView() {
                             <AlertTitle>En Desarrollo</AlertTitle>
                             <AlertDescription>
                                 La vista detallada de cada estudiante, junto con las acciones de gestión (inscripción forzosa, retiro, modificación de GPA), se implementará próximamente.
-                            </AlertDescription>
+                            </Aler
+tDescription>
                         </Alert>
                     </CardContent>
                 </Card>

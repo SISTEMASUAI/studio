@@ -143,6 +143,16 @@
           "items": { "type": "string" },
           "description": "List of course IDs that are prerequisites for this course."
         },
+        "semesterStartDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The start date of the semester for this course."
+        },
+        "semesterEndDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The end date of the semester for this course."
+        },
         "schedule": {
           "type": "array",
           "description": "Array of class sessions for the course.",

@@ -58,6 +58,7 @@ const navItems = [
   { href: '/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo', roles: ['student', 'professor', 'admin'] },
   { href: '/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin'] },
   { href: '/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin'] },
+  { href: '/programas', icon: GraduationCap, label: 'Programas', roles: ['admin'] },
   { href: '/configuracion', icon: Settings, label: 'Configuración', roles: ['admin'] },
 ];
 

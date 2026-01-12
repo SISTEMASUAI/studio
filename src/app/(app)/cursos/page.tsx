@@ -105,6 +105,7 @@ interface Course extends DocumentData {
     department: string;
     level: string;
     instructorId: string;
+    programId?: string;
     semesterStartDate?: string;
     semesterEndDate?: string;
     schedule?: { day: string; startTime: string; endTime: string; classroom: string }[];
@@ -199,7 +200,7 @@ function ProfessorCoursesView() {
         return query(collection(firestore, 'courses'), where('instructorId', '==', user.uid));
     }, [firestore, user]);
 
-    const { data: courses, isLoading, error } = useCollection<DocumentData>(coursesQuery);
+    const { data: courses, isLoading, error } = useCollection<Course>(coursesQuery);
 
     const enrollmentsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -236,7 +237,7 @@ function ProfessorCoursesView() {
                     />
                      <CardHeader>
                          <CardTitle>{course.name}</CardTitle>
-                         <CardDescription>Semestre {enrollments?.find(e => e.courseId === course.id)?.semester} - {enrollments?.find(e => e.courseId === course.id)?.year}</CardDescription>
+                         <CardDescription>Semestre {course.semesterStartDate ? new Date(course.semesterStartDate).getFullYear() : ''}</CardDescription>
                      </CardHeader>
                      <CardContent className="flex-grow">
                         <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -275,6 +276,7 @@ const CourseSchema = z.object({
   department: z.string().min(1, "Debe seleccionar un departamento."),
   level: z.string().min(1, "Debe seleccionar un nivel."),
   instructorId: z.string().min(1, "Debe seleccionar un instructor."),
+  programId: z.string().min(1, "Debe seleccionar un programa."),
   mode: z.string().min(1, "Debe seleccionar una modalidad."),
   semesterStartDate: z.string().min(1, "Debe seleccionar una fecha de inicio."),
   semesterEndDate: z.string().min(1, "Debe seleccionar una fecha de fin."),
@@ -293,8 +295,12 @@ function AdminCoursesView() {
     const professorsQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'users'), where('role', '==', 'professor')) : null,
     [firestore]);
-
     const { data: professors } = useCollection(professorsQuery);
+
+    const programsQuery = useMemoFirebase(() =>
+        firestore ? collection(firestore, 'programs') : null,
+    [firestore]);
+    const { data: programs } = useCollection(programsQuery);
 
     const coursesQuery = useMemoFirebase(() => 
         firestore ? collection(firestore, 'courses') : null,
@@ -312,6 +318,7 @@ function AdminCoursesView() {
             department: '',
             level: 'Pregrado',
             instructorId: '',
+            programId: '',
             mode: 'Presencial',
             semesterStartDate: '',
             semesterEndDate: '',
@@ -532,6 +539,20 @@ function AdminCoursesView() {
                                                         </FormItem>
                                                     )} />
                                                 </div>
+                                                <FormField control={form.control} name="programId" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Programa Académico</FormLabel>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <FormControl><SelectTrigger><SelectValue placeholder="Asigna un programa..."/></SelectTrigger></FormControl>
+                                                            <SelectContent>
+                                                                {programs ? programs.map(prog => (
+                                                                    <SelectItem key={prog.id} value={prog.id}>{prog.name}</SelectItem>
+                                                                )) : <SelectItem value="loading" disabled>Cargando...</SelectItem>}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
                                                 <FormField control={form.control} name="instructorId" render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Instructor</FormLabel>
@@ -835,6 +856,20 @@ function AdminCoursesView() {
                                         </FormItem>
                                     )} />
                                 </div>
+                                <FormField control={updateForm.control} name="programId" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Programa Académico</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Asigna un programa..."/></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {programs ? programs.map(prog => (
+                                                    <SelectItem key={prog.id} value={prog.id}>{prog.name}</SelectItem>
+                                                )) : <SelectItem value="loading" disabled>Cargando...</SelectItem>}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
                                 <FormField control={updateForm.control} name="instructorId" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Instructor</FormLabel>
@@ -954,4 +989,3 @@ export default function CoursesPage() {
     </div>
   );
 }
-

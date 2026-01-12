@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser } from '@/firebase';
@@ -135,6 +134,13 @@ function StudentEnrollmentView() {
   const isEnrollmentPeriod = true; // Placeholder
   const isEarlyWithdrawal = true; // Placeholder for withdrawal period logic
 
+  const getProgressColor = (enrolled: number, capacity: number) => {
+    const percentage = (enrolled / capacity) * 100;
+    if (percentage < 70) return 'bg-green-500';
+    if (percentage < 90) return 'bg-yellow-500';
+    return 'bg-red-500';
+  }
+
   if (!isEnrollmentPeriod) {
     return (
         <Card>
@@ -169,44 +175,53 @@ function StudentEnrollmentView() {
             {/* TODO: Add filters here */}
             </CardHeader>
             <CardContent className="space-y-4">
-                {availableCourses.map((course) => (
-                    <Card key={course.code} className={`border-2 ${course.conflict ? 'border-destructive/50' : 'border-transparent'}`}>
-                       <CardHeader className="pb-2">
-                           {course.conflict && (
+                {availableCourses.map((course) => {
+                    const isFull = course.enrolled >= course.capacity;
+                    return (
+                        <Card key={course.code} className={`border-2 ${course.conflict ? 'border-destructive/50' : 'border-transparent'}`}>
+                        <CardHeader className="pb-2">
+                            {course.conflict && (
                                 <Alert variant="destructive" className="mb-2">
                                     <AlertTriangle className="h-4 w-4" />
                                     <AlertTitle>¡Conflicto de Horario!</AlertTitle>
                                 </Alert>
-                           )}
-                           <div className="flex justify-between items-start">
+                            )}
+                            <div className="flex justify-between items-start">
                                 <div>
                                     <CardTitle className="text-lg">{course.name}</CardTitle>
                                     <CardDescription>{course.code} - {course.credits} créditos</CardDescription>
                                 </div>
                                 <PrerequisiteBadge status={course.prerequisiteStatus} />
-                           </div>
-                       </CardHeader>
-                       <CardContent className="space-y-3">
-                            <div className="flex flex-col sm:flex-row justify-between text-sm text-muted-foreground">
-                                <div className="flex items-center gap-2"><UserCog /> {course.professor}</div>
-                                <div className="flex items-center gap-2"><Calendar /> {course.schedule}</div>
                             </div>
-                            <div>
-                                <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
-                                    <span>Cupos</span>
-                                    <span>{course.enrolled}/{course.capacity}</span>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                                <div className="flex flex-col sm:flex-row justify-between text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-2"><UserCog /> {course.professor}</div>
+                                    <div className="flex items-center gap-2"><Calendar /> {course.schedule}</div>
                                 </div>
-                                <Progress value={(course.enrolled / course.capacity) * 100} />
-                            </div>
-                       </CardContent>
-                        <CardFooter>
-                            <Button size="sm" className="w-full" disabled={!isEnrollmentPeriod || course.enrolled >= course.capacity || course.prerequisiteStatus === 'unmet' || course.conflict}>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Inscribir
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                ))}
+                                <div>
+                                    <div className="flex justify-between items-center text-xs text-muted-foreground mb-1">
+                                        <span>Cupos</span>
+                                        <span>{course.enrolled}/{course.capacity}</span>
+                                    </div>
+                                    <Progress value={(course.enrolled / course.capacity) * 100} indicatorClassName={getProgressColor(course.enrolled, course.capacity)} />
+                                </div>
+                        </CardContent>
+                            <CardFooter>
+                                {isFull ? (
+                                    <Button variant="secondary" size="sm" className="w-full" disabled={!isEnrollmentPeriod || course.prerequisiteStatus === 'unmet'}>
+                                        Unirse a lista de espera
+                                    </Button>
+                                ) : (
+                                    <Button size="sm" className="w-full" disabled={!isEnrollmentPeriod || course.prerequisiteStatus === 'unmet' || course.conflict}>
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Inscribir
+                                    </Button>
+                                )}
+                            </CardFooter>
+                        </Card>
+                    )
+                })}
             </CardContent>
         </Card>
       </div>
@@ -404,5 +419,3 @@ export default function EnrollmentPage() {
     </div>
   );
 }
-
-    

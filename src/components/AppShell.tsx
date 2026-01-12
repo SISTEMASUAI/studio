@@ -17,6 +17,7 @@ import {
   User,
   BookCopy,
   UserCheck,
+  Settings,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -57,6 +58,7 @@ const navItems = [
   { href: '/dashboard/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo', roles: ['student', 'professor', 'admin'] },
   { href: '/dashboard/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin'] },
   { href: '/dashboard/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin'] },
+  { href: '/dashboard/configuracion', icon: Settings, label: 'Configuración', roles: ['admin'] },
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

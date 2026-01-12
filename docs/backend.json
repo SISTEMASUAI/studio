@@ -301,6 +301,23 @@
         "notes": { "type": "string", "description": "Optional notes, e.g., for a justification." }
       },
       "required": ["attendanceId", "studentId", "courseId", "date", "status"]
+    },
+    "Enrollment": {
+      "title": "Enrollment",
+      "description": "Represents a student's enrollment in a specific course section for a semester.",
+      "type": "object",
+      "properties": {
+        "enrollmentId": { "type": "string", "description": "Unique identifier for the enrollment record." },
+        "studentId": { "type": "string", "description": "The UID of the student." },
+        "courseId": { "type": "string", "description": "The ID of the course." },
+        "courseCode": { "type": "string", "description": "The code of the course (e.g., CS101)." },
+        "courseName": { "type": "string", "description": "The name of the course." },
+        "professorId": { "type": "string", "description": "The UID of the professor teaching the course." },
+        "professorName": { "type": "string", "description": "The full name of the professor." },
+        "semester": { "type": "string", "description": "The semester of enrollment (e.g., '2024-2')." },
+        "year": { "type": "number", "description": "The year of enrollment." }
+      },
+      "required": ["enrollmentId", "studentId", "courseId", "courseName", "professorId", "semester", "year"]
     }
   },
   "auth": {
@@ -339,6 +356,12 @@
           "$ref": "#/entities/VirtualClassroomCourse"
         },
         "description": "Stores course information. Readable by any authenticated user, but writable only by the instructor."
+      },
+      "/enrollments/{enrollmentId}": {
+        "schema": {
+            "$ref": "#/entities/Enrollment"
+        },
+        "description": "Stores student enrollment records. Students can only read their own enrollments. Admins can read all."
       },
       "/courses/{courseId}/assignments/{assignmentId}": {
         "schema": {
@@ -383,5 +406,3 @@
     }
   }
 }
-
-    

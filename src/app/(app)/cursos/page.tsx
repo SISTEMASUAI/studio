@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useUser } from '@/firebase';
+import { useUser, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -19,54 +18,71 @@ import {
   ArrowRight,
   Edit,
   Users,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { collection, query, where, DocumentData } from 'firebase/firestore';
 
-const courses = [
-  {
-    id: 'course-1',
-    name: 'Introducción al Desarrollo Web',
-    professor: 'Dr. Alan Turing',
-    progress: 75,
-  },
-  {
-    id: 'course-2',
-    name: 'Estrategias de Marketing Avanzado',
-    professor: 'Dra. Ada Lovelace',
-    progress: 40,
-  },
-  {
-    id: 'course-3',
-    name: 'Fundamentos de Diseño Gráfico',
-    professor: 'Dr. Tim Berners-Lee',
-    progress: 90,
-  },
-];
-
-const allCourses = [
-  ...courses,
-  {
-    id: 'course-4',
-    name: 'Ciencia de Datos con Python',
-    professor: 'Dr. Guido van Rossum',
-    students: 45,
-  },
-];
+// Define the type for the enrollment data we expect from Firestore
+interface Enrollment {
+  id: string;
+  courseId: string;
+  courseName: string;
+  courseCode: string;
+  professorName: string;
+  semester: string;
+  year: number;
+}
 
 function StudentCoursesView() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  // Memoize the query to prevent re-creating it on every render
+  const enrollmentsQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'enrollments'), where('studentId', '==', user.uid));
+  }, [firestore, user]);
+
+  const { data: enrollments, isLoading, error } = useCollection<Enrollment>(enrollmentsQuery);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+        <Alert variant="destructive">
+            <AlertTitle>Error al cargar los cursos</AlertTitle>
+            <AlertDescription>
+                No se pudo obtener la lista de cursos. Por favor, inténtalo de nuevo más tarde.
+            </AlertDescription>
+        </Alert>
+    );
+  }
+  
+  if (!enrollments || enrollments.length === 0) {
+    return <p>No estás inscrito en ningún curso este semestre.</p>;
+  }
+
+
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {courses.map((course) => {
-        const image = PlaceHolderImages.find(p => p.id === course.id);
+      {enrollments.map((enrollment) => {
+        const image = PlaceHolderImages.find(p => p.id === enrollment.courseId);
         return (
-            <Card key={course.id} className="flex flex-col">
+            <Card key={enrollment.id} className="flex flex-col">
               {image && (
                 <Image
                   src={image.imageUrl}
-                  alt={course.name}
+                  alt={enrollment.courseName}
                   width={400}
                   height={200}
                   className="w-full h-40 object-cover rounded-t-lg"
@@ -74,11 +90,11 @@ function StudentCoursesView() {
                 />
               )}
               <CardHeader>
-                <CardTitle>{course.name}</CardTitle>
-                <CardDescription>{course.professor}</CardDescription>
+                <CardTitle>{enrollment.courseName}</CardTitle>
+                <CardDescription>{enrollment.professorName}</CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
-                {/* Future content like progress bar can go here */}
+                <Badge variant="secondary">{enrollment.courseCode}</Badge>
               </CardContent>
               <CardFooter>
                 <Button className="w-full">
@@ -101,23 +117,13 @@ function ProfessorCoursesView() {
                 <PlusCircle className="mr-2" /> Crear Nuevo Curso
             </Button>
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {courses.slice(0, 2).map((course) => (
-                 <Card key={course.id} className="flex flex-col">
-                     <CardHeader>
-                         <CardTitle>{course.name}</CardTitle>
-                         <CardDescription>Semestre 2024-2</CardDescription>
-                     </CardHeader>
-                     <CardContent className="flex-grow">
-                        <div className="flex items-center gap-2 text-muted-foreground text-sm"><Users /> 35 Estudiantes</div>
-                     </CardContent>
-                     <CardFooter className="flex gap-2">
-                        <Button className="w-full" variant="outline"><Edit className="mr-2"/> Editar</Button>
-                        <Button className="w-full">Gestionar</Button>
-                     </CardFooter>
-                 </Card>
-            ))}
-        </div>
+        <Alert>
+          <Loader2 className="h-4 w-4" />
+          <AlertTitle>En Desarrollo</AlertTitle>
+          <AlertDescription>
+            La lógica para mostrar los cursos impartidos por el profesor se implementará próximamente.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -162,7 +168,9 @@ export default function CoursesPage() {
         return (
           <Card>
             <CardContent className="pt-6">
-              <p>Cargando información del usuario...</p>
+              <div className="flex justify-center items-center h-32">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
             </CardContent>
           </Card>
         );

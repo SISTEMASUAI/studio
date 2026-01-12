@@ -69,6 +69,13 @@ service cloud.firestore {
         allow update, delete: if isInstructor(courseId) || isRole('admin');
       }
     }
+
+    // Enrollments: Students can read their own, admins can read all.
+    match /enrollments/{enrollmentId} {
+      allow read: if isRole('admin') || (isSignedIn() && resource.data.studentId == request.auth.uid);
+      // Writing enrollments should likely be an admin-only or server-side task
+      allow write: if isRole('admin');
+    }
     
     // Submissions for assignments
     match /assignments/{assignmentId}/submissions/{submissionId} {

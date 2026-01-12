@@ -340,9 +340,12 @@ function AdminProfessorGradesView() {
         <CardHeader>
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
-                    <CardTitle className="flex items-center gap-2"><BookOpen/> Libro de Calificaciones</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                        {isAdmin ? <UserCog /> : <BookOpen />} 
+                        {isAdmin ? 'Gestión de Calificaciones' : 'Libro de Calificaciones'}
+                    </CardTitle>
                     <CardDescription>
-                    {isAdmin ? 'Gestiona las calificaciones de cualquier curso.' : 'Gestiona las calificaciones de tus cursos.'}
+                    {isAdmin ? 'Busque, visualice y modifique los expedientes académicos.' : 'Gestiona las calificaciones de tus cursos.'}
                     </CardDescription>
                 </div>
                 <Select>
@@ -352,6 +355,7 @@ function AdminProfessorGradesView() {
                     <SelectContent>
                         <SelectItem value="course-1">Estructuras de Datos</SelectItem>
                         <SelectItem value="course-2">Cálculo II</SelectItem>
+                         {isAdmin && <SelectItem value="course-3">Todos los cursos</SelectItem>}
                     </SelectContent>
                 </Select>
             </div>
@@ -362,11 +366,12 @@ function AdminProfessorGradesView() {
                 <TabsTrigger value="gradebook">Libro de Calificaciones</TabsTrigger>
                 <TabsTrigger value="stats">Estadísticas</TabsTrigger>
                 <TabsTrigger value="reports">Reportes</TabsTrigger>
+                {isAdmin && <TabsTrigger value="admin-tools">Herramientas Admin</TabsTrigger>}
             </TabsList>
             <TabsContent value="gradebook" className="mt-6">
                 <div className="flex justify-end gap-2 mb-4">
-                    <Button variant="outline"><PlusCircle/> Agregar Evaluación</Button>
-                    <Button><Upload/> Publicar Notas</Button>
+                    <Button variant="outline" disabled><PlusCircle/> Agregar Evaluación</Button>
+                    <Button disabled><Upload/> Publicar Notas</Button>
                 </div>
                 <div className="overflow-x-auto">
                     <Table>
@@ -392,6 +397,7 @@ function AdminProfessorGradesView() {
                                                     defaultValue={grade ?? ''} 
                                                     className={`w-20 text-center mx-auto ${grade === null ? 'bg-destructive/10 border-destructive/50' : ''}`}
                                                     placeholder="--"
+                                                    disabled={!isAdmin}
                                                 />
                                             </TableCell>
                                         )
@@ -406,19 +412,22 @@ function AdminProfessorGradesView() {
                   <UserCog className="h-4 w-4" />
                   <AlertTitle>En Desarrollo</AlertTitle>
                   <AlertDescription>
-                    La lógica para guardar las notas, agregar evaluaciones y calcular la nota final ponderada se implementará próximamente.
+                    La lógica para guardar las notas, agregar evaluaciones y calcular la nota final ponderada se implementará próximamente. {isAdmin && 'Las modificaciones de notas por administradores requerirán justificación y serán auditadas.'}
                   </AlertDescription>
                 </Alert>
             </TabsContent>
             <TabsContent value="stats" className="mt-6">
                 <Card>
-                    <CardHeader><CardTitle>Estadísticas del Curso</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Estadísticas</CardTitle></CardHeader>
                     <CardContent>
                         <Alert>
                             <BarChart className="h-4 w-4" />
                             <AlertTitle>En Desarrollo</AlertTitle>
                             <AlertDescription>
-                                Aquí se mostrarán gráficos interactivos con el promedio, desviación estándar y distribución de notas por evaluación.
+                                {isAdmin 
+                                    ? 'Aquí se mostrará el dashboard con KPIs institucionales: tasa de retención, tasa de graduación, promedios por programa, etc.'
+                                    : 'Aquí se mostrarán gráficos interactivos con el promedio, desviación estándar y distribución de notas por evaluación.'
+                                }
                             </AlertDescription>
                         </Alert>
                     </CardContent>
@@ -432,12 +441,34 @@ function AdminProfessorGradesView() {
                             <File className="h-4 w-4" />
                             <AlertTitle>En Desarrollo</AlertTitle>
                             <AlertDescription>
-                                Aquí encontrarás el formulario para generar reportes en PDF y Excel con filtros y opciones de contenido.
+                                {isAdmin
+                                    ? 'Aquí encontrarás opciones para generar reportes masivos por cohorte, programa o para procesos de acreditación.'
+                                    : 'Aquí encontrarás el formulario para generar reportes en PDF y Excel con filtros y opciones de contenido para tu curso.'
+                                }
                             </AlertDescription>
                         </Alert>
                      </CardContent>
                 </Card>
             </TabsContent>
+            {isAdmin && (
+                <TabsContent value="admin-tools" className="mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Herramientas de Administración</CardTitle>
+                            <CardDescription>Acciones de alto nivel sobre expedientes académicos.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Alert>
+                                <Settings2 className="h-4 w-4" />
+                                <AlertTitle>En Desarrollo</AlertTitle>
+                                <AlertDescription>
+                                    Aquí se ubicarán las herramientas para modificar expedientes (convalidaciones, cambios de estado, etc.) y para generar estadísticas institucionales avanzadas.
+                                </AlertDescription>
+                            </Alert>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            )}
           </Tabs>
         </CardContent>
       </Card>

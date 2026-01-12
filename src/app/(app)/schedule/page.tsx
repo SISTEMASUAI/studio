@@ -41,27 +41,32 @@ export default function SchedulePage() {
   const canManageEvents = profile?.role === 'admin' || profile?.role === 'professor';
 
   return (
-    <div className="grid gap-8 lg:grid-cols-3">
-      <div className="lg:col-span-2 space-y-8">
-        <section>
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-3xl font-bold font-headline">Horarios y Calendario</h1>
-              <p className="text-muted-foreground">Consulta tus clases, exámenes y eventos académicos.</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline">
-                <Download className="mr-2" />
-                Exportar
-              </Button>
-              {canManageEvents && (
-                <Button>
-                  <PlusCircle className="mr-2" />
-                  Crear Evento
-                </Button>
-              )}
-            </div>
+    <div className="space-y-8">
+       <section>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
+              <Calendar className="text-primary" />
+              Horarios y Calendario
+            </h1>
+            <p className="text-muted-foreground">Consulta tus clases, exámenes y eventos académicos.</p>
           </div>
+          <div className="flex gap-2">
+            <Button variant="outline" disabled>
+              <Download className="mr-2" />
+              Exportar
+            </Button>
+            {canManageEvents && (
+              <Button disabled>
+                <PlusCircle className="mr-2" />
+                Crear Evento
+              </Button>
+            )}
+          </div>
+        </div>
+      </section>
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
           <Card>
             <CardContent className="p-0">
               <Calendar
@@ -72,35 +77,35 @@ export default function SchedulePage() {
               />
             </CardContent>
           </Card>
-        </section>
-      </div>
+        </div>
 
-      <aside className="space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-headline">Próximos Eventos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-4">
-              {upcomingEvents.map((event, i) => {
-                const eventConfig = eventTypes[event.type] || eventTypes.event;
-                return (
-                  <li key={i} className="flex items-center gap-4">
-                    <div className="flex-shrink-0 text-center">
-                        <p className="font-bold font-headline text-lg">{new Date(event.date).toLocaleDateString('es-ES', { day: '2-digit' })}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(event.date).toLocaleDateString('es-ES', { month: 'short' })}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold">{event.title}</p>
-                      <Badge className={eventConfig.className}>{eventConfig.label}</Badge>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          </CardContent>
-        </Card>
-      </aside>
+        <aside className="space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-headline">Próximos Eventos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-4">
+                {upcomingEvents.map((event, i) => {
+                  const eventConfig = eventTypes[event.type] || eventTypes.event;
+                  return (
+                    <li key={i} className="flex items-center gap-4">
+                      <div className="flex-shrink-0 text-center">
+                          <p className="font-bold font-headline text-lg">{new Date(event.date).toLocaleDateString('es-ES', { day: '2-digit' })}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(event.date).toLocaleDateString('es-ES', { month: 'short' })}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold">{event.title}</p>
+                        <Badge className={eventConfig.className}>{eventConfig.label}</Badge>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
     </div>
   );
 }

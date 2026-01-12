@@ -357,8 +357,7 @@ function AdminProceduresView() {
             <AlertTitle>En Desarrollo</AlertTitle>
             <AlertDescription>
                 La lógica para aprobar, rechazar y ver los detalles de cada solicitud (incluyendo la validación de prerrequisitos o deudas) se implementará próximamente.
-            </Aler
-tDescription>
+            </AlertDescription>
         </Alert>
       </CardContent>
     </Card>

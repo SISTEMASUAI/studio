@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useMemoFirebase, useFirestore, useUser } from '@/firebase';
@@ -24,10 +23,11 @@ import {
   } from "@/components/ui/tabs"
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks } from 'lucide-react';
+import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 // Define the type for the course data we expect from Firestore
 interface CourseDetails {
@@ -48,6 +48,7 @@ interface InstructorProfile {
     firstName: string;
     lastName: string;
     profilePicture: string;
+    email: string;
 }
 
 function CourseHeader({ course, instructor }: { course: CourseDetails, instructor: InstructorProfile | null }) {
@@ -72,16 +73,23 @@ function CourseHeader({ course, instructor }: { course: CourseDetails, instructo
                     <h1 className="text-3xl font-bold font-headline text-white">{course.name}</h1>
                 </div>
             </div>
-             <CardContent className="pt-4 flex items-center justify-between">
+             <CardContent className="pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 {instructor ? (
                     <div className="flex items-center gap-3">
-                        <Avatar>
+                        <Avatar className="h-16 w-16">
                             <AvatarImage src={instructor.profilePicture} />
                             <AvatarFallback>{instructor.firstName?.[0]}{instructor.lastName?.[0]}</AvatarFallback>
                         </Avatar>
                         <div>
-                            <p className="font-semibold">{instructor.firstName} {instructor.lastName}</p>
+                            <p className="font-semibold text-lg">{instructor.firstName} {instructor.lastName}</p>
                             <p className="text-sm text-muted-foreground">Instructor</p>
+                             <div className="flex items-center gap-2 mt-1">
+                                <Button size="sm" variant="outline" asChild>
+                                    <a href={`mailto:${instructor.email}`}>
+                                        <Mail className="mr-2 h-4 w-4" /> Contactar
+                                    </a>
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 ) : <Loader2 className="w-5 h-5 animate-spin" />}
@@ -163,9 +171,13 @@ export default function CourseDetailPage() {
                     <CardContent className="space-y-6">
                         <div>
                             <h3 className="font-semibold mb-2">Objetivos de Aprendizaje</h3>
-                            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                                {course.objectives?.map((obj, i) => <li key={i}>{obj}</li>)}
-                            </ul>
+                            {course.objectives && course.objectives.length > 0 ? (
+                                <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                                    {course.objectives.map((obj, i) => <li key={i}>{obj}</li>)}
+                                </ul>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No se han especificado objetivos.</p>
+                            )}
                         </div>
                          <div>
                             <h3 className="font-semibold mb-2">Syllabus del Curso</h3>

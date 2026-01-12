@@ -129,9 +129,33 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "List of course IDs that are prerequisites for this course."
+        },
+        "schedule": {
+          "type": "array",
+          "description": "Array of class sessions for the course.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "day": { "type": "string", "enum": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]},
+              "startTime": { "type": "string", "format": "time", "description": "e.g., 14:00" },
+              "endTime": { "type": "string", "format": "time", "description": "e.g., 16:00" },
+              "classroom": { "type": "string", "description": "e.g., 'Aula 101' or 'Online'" }
+            },
+            "required": ["day", "startTime", "endTime", "classroom"]
+          }
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["Presencial", "Online", "Híbrido"],
+          "description": "The delivery mode of the course."
+        },
+        "virtualRoomUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Link to the virtual classroom if mode is Online or Hybrid."
         }
       },
-      "required": ["courseId", "name", "description", "instructorId"]
+      "required": ["courseId", "name", "description", "instructorId", "schedule", "mode"]
     },
     "CourseAssignment": {
       "title": "CourseAssignment",
@@ -433,3 +457,5 @@
     }
   }
 }
+
+    

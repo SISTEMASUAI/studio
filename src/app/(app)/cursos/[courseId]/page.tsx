@@ -28,6 +28,14 @@ import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import CourseSchedule from '@/components/cursos/CourseSchedule';
+
+interface ScheduleItem {
+    day: string;
+    startTime: string;
+    endTime: string;
+    classroom: string;
+}
 
 // Define the type for the course data we expect from Firestore
 interface CourseDetails {
@@ -41,6 +49,9 @@ interface CourseDetails {
   level?: string;
   department?: string;
   prerequisites?: string[];
+  schedule?: ScheduleItem[];
+  mode?: 'Presencial' | 'Online' | 'Híbrido';
+  virtualRoomUrl?: string;
 }
 
 // Define the type for the instructor's profile data
@@ -147,13 +158,15 @@ export default function CourseDetailPage() {
 
   return (
     <div className="space-y-8">
-        <CourseHeader course={course} instructor={instructor} />
+      <CourseHeader course={course} instructor={instructor} />
 
-        <Tabs defaultValue="description" className="w-full">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <Tabs defaultValue="description" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="description"><Info className="mr-2"/>Descripción</TabsTrigger>
-                <TabsTrigger value="content"><BookMarked className="mr-2"/>Contenido</TabsTrigger>
-                <TabsTrigger value="prerequisites"><ListChecks className="mr-2"/>Prerrequisitos</TabsTrigger>
+              <TabsTrigger value="description"><Info className="mr-2"/>Descripción</TabsTrigger>
+              <TabsTrigger value="content"><BookMarked className="mr-2"/>Contenido</TabsTrigger>
+              <TabsTrigger value="prerequisites"><ListChecks className="mr-2"/>Prerrequisitos</TabsTrigger>
             </TabsList>
             <TabsContent value="description" className="mt-6">
                 <Card>
@@ -219,7 +232,18 @@ export default function CourseDetailPage() {
                     </CardContent>
                 </Card>
             </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
+        <aside className="space-y-8">
+            <CourseSchedule 
+                schedule={course.schedule}
+                mode={course.mode}
+                virtualRoomUrl={course.virtualRoomUrl}
+            />
+        </aside>
+      </div>
     </div>
   );
 }
+
+    

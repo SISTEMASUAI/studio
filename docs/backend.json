@@ -45,6 +45,19 @@
             "type": "string",
             "format": "uri",
             "description": "URL to the user's CV/Resume file."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short professional biography, mainly for professors."
+        },
+        "specialization": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "An array of specializations or areas of expertise for professors."
+        },
+        "officeHours": {
+            "type": "string",
+            "description": "A string describing office hours for professors (e.g., 'Mon/Wed 10-12')."
         }
       },
       "required": ["uid", "email", "role", "firstName", "lastName"]
@@ -457,5 +470,3 @@
     }
   }
 }
-
-    

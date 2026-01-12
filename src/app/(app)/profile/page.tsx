@@ -36,12 +36,15 @@ import {
   QrCode,
   ShieldCheck,
   Smartphone,
+  Book,
+  Search,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const activeSessions = [
@@ -50,96 +53,39 @@ const activeSessions = [
     { id: 'sess-3', device: 'Firefox on macOS', location: 'Bogotá, CO (200.118.XX.XX)', lastActive: 'Ayer', isCurrent: false, icon: Monitor },
 ];
 
-
-function UserProfileView() {
+function ProfileHeader() {
   const { profile } = useUser();
-
-  if (!profile) {
-    return <Loader2 className="animate-spin" />;
-  }
+  if (!profile) return null;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-3">
-      {/* Profile Header */}
-      <div className="lg:col-span-3">
-        <Card>
-          <CardContent className="pt-6 flex flex-col items-center text-center gap-4 sm:flex-row sm:text-left">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={profile.profilePicture} alt={profile.firstName} />
-              <AvatarFallback>
-                {profile.firstName?.[0]}
-                {profile.lastName?.[0]}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-grow">
-              <h2 className="text-2xl font-bold font-headline">
-                {profile.firstName} {profile.lastName}
-              </h2>
-              <p className="text-muted-foreground">{profile.email}</p>
-              <Badge variant="outline" className="mt-2 capitalize">
-                {profile.role}
-              </Badge>
-            </div>
-            <Button variant="outline" disabled>
-              <Edit className="mr-2" /> Cambiar Foto
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+    <Card>
+      <CardContent className="pt-6 flex flex-col items-center text-center gap-4 sm:flex-row sm:text-left">
+        <Avatar className="h-24 w-24">
+          <AvatarImage src={profile.profilePicture} alt={profile.firstName} />
+          <AvatarFallback>
+            {profile.firstName?.[0]}
+            {profile.lastName?.[0]}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-grow">
+          <h2 className="text-2xl font-bold font-headline">
+            {profile.firstName} {profile.lastName}
+          </h2>
+          <p className="text-muted-foreground">{profile.email}</p>
+          <Badge variant="outline" className="mt-2 capitalize">
+            {profile.role}
+          </Badge>
+        </div>
+        <Button variant="outline" disabled>
+          <Edit className="mr-2" /> Cambiar Foto
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
-      {/* Personal & Security Info */}
-      <div className="lg:col-span-2 space-y-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserIcon /> Datos Personales
-            </CardTitle>
-            <CardDescription>
-              Actualiza tu información de contacto.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                    <Label htmlFor="email" className="flex items-center gap-1"><Mail /> Email</Label>
-                    <Input id="email" defaultValue={profile.email} disabled />
-                </div>
-                <div className="space-y-1">
-                    <Label htmlFor="phone" className="flex items-center gap-1"><Phone /> Teléfono</Label>
-                    <Input id="phone" defaultValue={profile.phone || ''} />
-                </div>
-            </div>
-             <div className="space-y-1">
-                <Label htmlFor="address" className="flex items-center gap-1"><Home/> Dirección</Label>
-                <Input id="address" defaultValue={profile.address || ''} />
-            </div>
-            <Button disabled>Guardar Cambios</Button>
-          </CardContent>
-        </Card>
-
-        {profile.role === 'student' && (
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><FileText /> Mi Currículum</CardTitle>
-                     <CardDescription>
-                        Sube tu CV para postular a ofertas laborales desde la plataforma.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Alert>
-                        <UserCog className="h-4 w-4" />
-                        <AlertTitle>En Desarrollo</AlertTitle>
-                        <AlertDescription>
-                           La funcionalidad para subir y gestionar tu CV estará disponible aquí.
-                        </AlertDescription>
-                    </Alert>
-                </CardContent>
-             </Card>
-        )}
-      </div>
-
-      {/* Security Settings */}
-      <aside className="space-y-8">
+function SecuritySettings() {
+    return (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -273,6 +219,122 @@ function UserProfileView() {
             </Dialog>
           </CardContent>
         </Card>
+    );
+}
+
+function StudentProfileView() {
+  const { profile } = useUser();
+  if (!profile) return null;
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-3">
+      <div className="lg:col-span-3">
+        <ProfileHeader />
+      </div>
+      <div className="lg:col-span-2 space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserIcon /> Datos Personales
+            </CardTitle>
+            <CardDescription>Actualiza tu información de contacto.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="email"><Mail className="inline mr-1" /> Email</Label>
+                <Input id="email" defaultValue={profile.email} disabled />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="phone"><Phone className="inline mr-1" /> Teléfono</Label>
+                <Input id="phone" defaultValue={profile.phone || ''} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="address"><Home className="inline mr-1" /> Dirección</Label>
+              <Input id="address" defaultValue={profile.address || ''} />
+            </div>
+            <Button disabled>Guardar Cambios</Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><FileText /> Mi Currículum</CardTitle>
+            <CardDescription>Sube tu CV para postular a ofertas laborales desde la plataforma.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Alert>
+              <UserCog className="h-4 w-4" />
+              <AlertTitle>En Desarrollo</AlertTitle>
+              <AlertDescription>La funcionalidad para subir y gestionar tu CV estará disponible aquí.</AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+      <aside className="space-y-8">
+        <SecuritySettings />
+      </aside>
+    </div>
+  );
+}
+
+function ProfessorProfileView() {
+  const { profile } = useUser();
+  if (!profile) return null;
+
+  return (
+    <div className="grid gap-8 lg:grid-cols-3">
+      <div className="lg:col-span-3">
+        <ProfileHeader />
+      </div>
+      <div className="lg:col-span-2 space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><UserIcon /> Datos Personales</CardTitle>
+            <CardDescription>Actualiza tu información de contacto.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                    <Label htmlFor="email"><Mail className="inline mr-1" /> Email Institucional</Label>
+                    <Input id="email" defaultValue={profile.email} disabled />
+                </div>
+                <div className="space-y-1">
+                    <Label htmlFor="phone"><Phone className="inline mr-1" /> Teléfono</Label>
+                    <Input id="phone" defaultValue={profile.phone || ''} />
+                </div>
+            </div>
+             <div className="space-y-1">
+                <Label htmlFor="address"><Home className="inline mr-1" /> Dirección</Label>
+                <Input id="address" defaultValue={profile.address || ''} />
+            </div>
+            <Button disabled>Guardar Cambios</Button>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Book /> Información Académica y Profesional</CardTitle>
+            <CardDescription>Actualiza tu información pública como docente.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1">
+                <Label htmlFor="bio">Biografía Corta</Label>
+                <Textarea id="bio" placeholder="Una breve descripción de tu trayectoria y áreas de interés..." defaultValue={profile.bio || ''} />
+            </div>
+            <div className="space-y-1">
+                <Label htmlFor="specialization">Especializaciones (separadas por comas)</Label>
+                <Input id="specialization" placeholder="Inteligencia Artificial, Interacción Humano-Computador, ..." defaultValue={profile.specialization?.join(', ') || ''} />
+            </div>
+             <div className="space-y-1">
+                <Label htmlFor="officeHours">Horas de Oficina</Label>
+                <Textarea id="officeHours" placeholder="Ej: Lun/Mié 10:00-12:00, previa cita por email." defaultValue={profile.officeHours || ''}/>
+            </div>
+            <Button disabled>Actualizar Información Académica</Button>
+          </CardContent>
+        </Card>
+      </div>
+      <aside className="space-y-8">
+        <SecuritySettings />
       </aside>
     </div>
   );
@@ -280,13 +342,28 @@ function UserProfileView() {
 
 function AdminProfileView() {
     return (
-        <Alert>
-            <UserCog className="h-4 w-4" />
-            <AlertTitle>Vista de Administrador</AlertTitle>
-            <AlertDescription>
-                Próximamente: Panel para buscar y ver el perfil de cualquier usuario.
-            </AlertDescription>
-        </Alert>
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><UserCog /> Administración de Perfiles</CardTitle>
+                <CardDescription>Busca y gestiona la información de cualquier usuario en el sistema.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <div className="flex gap-2 mb-6">
+                    <div className="relative flex-grow">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input placeholder="Buscar por nombre, email o matrícula..." className="pl-9" />
+                    </div>
+                    <Button><Search/> Buscar</Button>
+                </div>
+                 <Alert>
+                    <UserCog className="h-4 w-4" />
+                    <AlertTitle>En Desarrollo</AlertTitle>
+                    <AlertDescription>
+                        Las funcionalidades para ver y editar los perfiles de los usuarios, aplicar cambios con justificación y auditar modificaciones estarán disponibles próximamente en esta sección.
+                    </AlertDescription>
+                </Alert>
+            </CardContent>
+        </Card>
     )
 }
 
@@ -302,9 +379,16 @@ export default function ProfilePage() {
       );
     }
     
-    // Admins can see their own profile, but will have a different view for managing others
-    // For now, we show the user's own profile for all roles.
-    return <UserProfileView />;
+    switch(profile.role) {
+        case 'student':
+            return <StudentProfileView />;
+        case 'professor':
+            return <ProfessorProfileView />;
+        case 'admin':
+            return <AdminProfileView />;
+        default:
+             return <StudentProfileView />;
+    }
   };
 
   return (

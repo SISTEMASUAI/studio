@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, useCollection, useMemoFirebase, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useCollection, useMemoFirebase, useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -69,7 +69,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
-import { collection, query, where, DocumentData } from 'firebase/firestore';
+import { collection, query, where, DocumentData, doc } from 'firebase/firestore';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -276,10 +276,15 @@ const CreateCourseSchema = z.object({
   semesterEndDate: z.string().min(1, "Debe seleccionar una fecha de fin."),
 });
 
+const UpdateCourseSchema = z.object({
+    courseId: z.string().min(3, "El código debe tener al menos 3 caracteres."),
+    name: z.string().min(5, "El nombre debe tener al menos 5 caracteres."),
+});
 
 function AdminCoursesView() {
     const { toast } = useToast();
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [schedule, setSchedule] = useState([{ day: '', startTime: '', endTime: '', classroom: '' }]);
     const firestore = useFirestore();
 
@@ -295,7 +300,7 @@ function AdminCoursesView() {
     const { data: courses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
 
 
-    const form = useForm<z.infer<typeof CreateCourseSchema>>({
+    const createForm = useForm<z.infer<typeof CreateCourseSchema>>({
         resolver: zodResolver(CreateCourseSchema),
         defaultValues: {
             courseId: '',
@@ -311,7 +316,11 @@ function AdminCoursesView() {
         },
     });
 
-    async function onSubmit(values: z.infer<typeof CreateCourseSchema>) {
+    const updateForm = useForm<z.infer<typeof UpdateCourseSchema>>({
+        resolver: zodResolver(UpdateCourseSchema),
+    });
+
+    async function onCreateSubmit(values: z.infer<typeof CreateCourseSchema>) {
         if (!firestore) return;
         
         try {
@@ -331,15 +340,38 @@ function AdminCoursesView() {
                 title: "Curso Creado",
                 description: `El curso "${values.name}" ha sido creado exitosamente.`,
             });
-            form.reset();
+            createForm.reset();
             setSchedule([{ day: '', startTime: '', endTime: '', classroom: '' }]);
-            setIsDialogOpen(false);
+            setIsCreateDialogOpen(false);
         } catch (error) {
             console.error("Error creating course: ", error);
             toast({
                 variant: "destructive",
                 title: "Error al crear el curso",
                 description: "Hubo un problema al guardar el curso. Por favor, inténtalo de nuevo.",
+            });
+        }
+    }
+
+    async function onUpdateSubmit(values: z.infer<typeof UpdateCourseSchema>) {
+        const courseId = updateForm.getValues('courseId');
+        if (!firestore || !courseId) return;
+
+        try {
+            const courseDocRef = doc(firestore, 'courses', courseId);
+            await updateDocumentNonBlocking(courseDocRef, values);
+
+            toast({
+                title: "Curso Actualizado",
+                description: `El curso "${values.name}" ha sido actualizado.`,
+            });
+            setIsEditDialogOpen(false);
+        } catch (error) {
+             console.error("Error updating course: ", error);
+            toast({
+                variant: "destructive",
+                title: "Error al actualizar",
+                description: "Hubo un problema al guardar los cambios.",
             });
         }
     }
@@ -385,29 +417,29 @@ function AdminCoursesView() {
                                     <SelectItem value="postgrad">Postgrado</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button className="w-full sm:w-auto">
                                         <PlusCircle className="mr-2" /> Crear Curso
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent className="sm:max-w-3xl">
-                                    <Form {...form}>
-                                        <form onSubmit={form.handleSubmit(onSubmit)}>
+                                    <Form {...createForm}>
+                                        <form onSubmit={createForm.handleSubmit(onCreateSubmit)}>
                                             <DialogHeader>
                                                 <DialogTitle>Crear Nuevo Curso</DialogTitle>
                                                 <DialogDescription>Completa el formulario para registrar un nuevo curso en el sistema.</DialogDescription>
                                             </DialogHeader>
                                             <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <FormField control={form.control} name="courseId" render={({ field }) => (
+                                                    <FormField control={createForm.control} name="courseId" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Código del Curso</FormLabel>
                                                             <FormControl><Input placeholder="Ej: CS-101" {...field} /></FormControl>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
-                                                    <FormField control={form.control} name="name" render={({ field }) => (
+                                                    <FormField control={createForm.control} name="name" render={({ field }) => (
                                                          <FormItem>
                                                             <FormLabel>Nombre del Curso</FormLabel>
                                                             <FormControl><Input placeholder="Introducción a la Programación" {...field} /></FormControl>
@@ -415,7 +447,7 @@ function AdminCoursesView() {
                                                         </FormItem>
                                                     )} />
                                                 </div>
-                                                <FormField control={form.control} name="description" render={({ field }) => (
+                                                <FormField control={createForm.control} name="description" render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Descripción Breve</FormLabel>
                                                         <FormControl><Textarea placeholder="Describe el curso en una o dos frases." {...field} /></FormControl>
@@ -424,14 +456,14 @@ function AdminCoursesView() {
                                                 )} />
                                                 
                                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                    <FormField control={form.control} name="credits" render={({ field }) => (
+                                                    <FormField control={createForm.control} name="credits" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Créditos</FormLabel>
                                                             <FormControl><Input type="number" placeholder="4" {...field} /></FormControl>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
-                                                    <FormField control={form.control} name="department" render={({ field }) => (
+                                                    <FormField control={createForm.control} name="department" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Departamento</FormLabel>
                                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -448,7 +480,7 @@ function AdminCoursesView() {
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
-                                                    <FormField control={form.control} name="level" render={({ field }) => (
+                                                    <FormField control={createForm.control} name="level" render={({ field }) => (
                                                          <FormItem>
                                                             <FormLabel>Nivel</FormLabel>
                                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -465,14 +497,14 @@ function AdminCoursesView() {
                                                     )} />
                                                 </div>
                                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <FormField control={form.control} name="semesterStartDate" render={({ field }) => (
+                                                    <FormField control={createForm.control} name="semesterStartDate" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Fecha de Inicio del Semestre</FormLabel>
                                                             <FormControl><Input type="date" {...field} /></FormControl>
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
-                                                    <FormField control={form.control} name="semesterEndDate" render={({ field }) => (
+                                                    <FormField control={createForm.control} name="semesterEndDate" render={({ field }) => (
                                                         <FormItem>
                                                             <FormLabel>Fecha de Fin del Semestre</FormLabel>
                                                             <FormControl><Input type="date" {...field} /></FormControl>
@@ -480,7 +512,7 @@ function AdminCoursesView() {
                                                         </FormItem>
                                                     )} />
                                                 </div>
-                                                <FormField control={form.control} name="instructorId" render={({ field }) => (
+                                                <FormField control={createForm.control} name="instructorId" render={({ field }) => (
                                                     <FormItem>
                                                         <FormLabel>Instructor</FormLabel>
                                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -530,7 +562,7 @@ function AdminCoursesView() {
                                                             <Input placeholder="Ej: Aula 101" onChange={(e) => setSchedule(prev => [{...prev[0], classroom: e.target.value}])} />
                                                         </div>
                                                      </div>
-                                                      <FormField control={form.control} name="mode" render={({ field }) => (
+                                                      <FormField control={createForm.control} name="mode" render={({ field }) => (
                                                          <FormItem>
                                                             <FormLabel>Modalidad</FormLabel>
                                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -556,9 +588,9 @@ function AdminCoursesView() {
                                                 </div>
                                             </div>
                                             <DialogFooter>
-                                                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancelar</Button>
-                                                <Button type="submit" disabled={form.formState.isSubmitting}>
-                                                    {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                <Button variant="outline" type="button" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
+                                                <Button type="submit" disabled={createForm.formState.isSubmitting}>
+                                                    {createForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                     Guardar Curso
                                                 </Button>
                                             </DialogFooter>
@@ -596,7 +628,7 @@ function AdminCoursesView() {
                                             <TableCell>{course.credits}</TableCell>
                                             <TableCell>{course.level}</TableCell>
                                             <TableCell className="text-right">
-                                                <Dialog>
+                                                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button variant="ghost" size="icon">
@@ -605,7 +637,7 @@ function AdminCoursesView() {
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>
                                                             <DropdownMenuItem><Eye className="mr-2"/>Ver Secciones</DropdownMenuItem>
-                                                            <DialogTrigger asChild>
+                                                            <DialogTrigger asChild onClick={() => updateForm.reset({ courseId: course.id, name: course.name })}>
                                                                 <DropdownMenuItem><Edit className="mr-2"/>Editar Curso</DropdownMenuItem>
                                                             </DialogTrigger>
                                                             <DropdownMenuSeparator />
@@ -617,34 +649,39 @@ function AdminCoursesView() {
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                     <DialogContent className="sm:max-w-3xl">
-                                                        <DialogHeader>
-                                                            <DialogTitle>Editar Curso: {course.name}</DialogTitle>
-                                                            <DialogDescription>Modifica la información principal del curso.</DialogDescription>
-                                                        </DialogHeader>
-                                                        <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                                                            {/* Form content for editing a course */}
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                <div className="space-y-2">
-                                                                    <Label>Código del Curso</Label>
-                                                                    <Input defaultValue={course.courseId} />
+                                                        <Form {...updateForm}>
+                                                            <form onSubmit={updateForm.handleSubmit(onUpdateSubmit)}>
+                                                                <DialogHeader>
+                                                                    <DialogTitle>Editar Curso: {course.name}</DialogTitle>
+                                                                    <DialogDescription>Modifica la información principal del curso.</DialogDescription>
+                                                                </DialogHeader>
+                                                                <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                        <FormField control={updateForm.control} name="courseId" render={({ field }) => (
+                                                                            <FormItem>
+                                                                                <FormLabel>Código del Curso</FormLabel>
+                                                                                <FormControl><Input {...field} /></FormControl>
+                                                                                <FormMessage />
+                                                                            </FormItem>
+                                                                        )} />
+                                                                         <FormField control={updateForm.control} name="name" render={({ field }) => (
+                                                                            <FormItem>
+                                                                                <FormLabel>Nombre del Curso</FormLabel>
+                                                                                <FormControl><Input {...field} /></FormControl>
+                                                                                <FormMessage />
+                                                                            </FormItem>
+                                                                        )} />
+                                                                    </div>
                                                                 </div>
-                                                                <div className="space-y-2">
-                                                                    <Label>Nombre del Curso</Label>
-                                                                    <Input defaultValue={course.name} />
-                                                                </div>
-                                                            </div>
-                                                            <Alert>
-                                                                <UserCog className="h-4 w-4" />
-                                                                <AlertTitle>En Desarrollo</AlertTitle>
-                                                                <AlertDescription>
-                                                                    La lógica para guardar los cambios en la base de datos se implementará próximamente.
-                                                                </AlertDescription>
-                                                            </Alert>
-                                                        </div>
-                                                        <DialogFooter>
-                                                            <Button variant="outline">Cancelar</Button>
-                                                            <Button disabled><Edit className="mr-2"/> Guardar Cambios</Button>
-                                                        </DialogFooter>
+                                                                <DialogFooter>
+                                                                    <Button variant="outline" type="button" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+                                                                    <Button type="submit" disabled={updateForm.formState.isSubmitting}>
+                                                                        {updateForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                                        Guardar Cambios
+                                                                    </Button>
+                                                                </DialogFooter>
+                                                            </form>
+                                                        </Form>
                                                     </DialogContent>
                                                 </Dialog>
                                             </TableCell>
@@ -715,25 +752,11 @@ function AdminCoursesView() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {courses && courses.length > 0 ? (
-                                    courses.map(student => (
-                                    <TableRow key={student.id}>
-                                        <TableCell className="font-mono">{student.id}</TableCell>
-                                        <TableCell className="font-medium">{student.name}</TableCell>
-                                        <TableCell>{student.program}</TableCell>
-                                        <TableCell className="text-center">{student.semester}</TableCell>
-                                        <TableCell className="text-center">{student.gpa}</TableCell>
-                                        <TableCell><Badge variant={student.status === 'Regular' ? 'secondary' : student.status === 'Honor' ? 'default' : 'destructive'}>{student.status}</Badge></TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="outline" size="sm">Ver Detalles</Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={7} className="text-center">No se encontraron estudiantes.</TableCell>
-                                    </TableRow>
-                                )}
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center">
+                                        No se encontraron estudiantes. La carga de datos está en desarrollo.
+                                    </TableCell>
+                                </TableRow>
                             </TableBody>
                         </Table>
                          <Alert className="mt-6">

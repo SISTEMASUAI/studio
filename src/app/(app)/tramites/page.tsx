@@ -193,8 +193,7 @@ function UserProceduresView() {
                             <AlertTitle>Próximos Pasos</AlertTitle>
                             <AlertDescription>
                                 La lógica para enviar la solicitud, realizar validaciones de pago y generar el documento se implementará próximamente.
-                            </Aler
-tDescription>
+                            </AlertDescription>
                         </Alert>
                     </div>
                     <DialogFooter>

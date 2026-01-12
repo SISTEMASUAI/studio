@@ -25,11 +25,13 @@ import {
   Phone,
   Home,
   GraduationCap,
+  FileText,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 
 function UserProfileView() {
   const { profile } = useUser();
@@ -93,21 +95,24 @@ function UserProfileView() {
                 <Label htmlFor="address" className="flex items-center gap-1"><Home/> Dirección</Label>
                 <Input id="address" defaultValue={profile.address || ''} />
             </div>
-            <Button>Guardar Cambios</Button>
+            <Button disabled>Guardar Cambios</Button>
           </CardContent>
         </Card>
 
-        {profile.role === 'admin' && (
+        {profile.role === 'student' && (
              <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><GraduationCap/> Datos Académicos</CardTitle>
+                    <CardTitle className="flex items-center gap-2"><FileText /> Mi Currículum</CardTitle>
+                     <CardDescription>
+                        Sube tu CV para postular a ofertas laborales desde la plataforma.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
-                     <Alert>
+                    <Alert>
                         <UserCog className="h-4 w-4" />
                         <AlertTitle>En Desarrollo</AlertTitle>
                         <AlertDescription>
-                           La funcionalidad para modificar los datos académicos de los estudiantes estará disponible aquí para los administradores.
+                           La funcionalidad para subir y gestionar tu CV estará disponible aquí.
                         </AlertDescription>
                     </Alert>
                 </CardContent>
@@ -125,10 +130,10 @@ function UserProfileView() {
             <CardDescription>Gestiona tu contraseña y seguridad.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full justify-start"><KeyRound className="mr-2"/> Cambiar Contraseña</Button>
-            <Button variant="outline" className="w-full justify-start"><Fingerprint className="mr-2"/> Configurar 2FA</Button>
-            <Button variant="outline" className="w-full justify-start"><Monitor className="mr-2"/> Ver Sesiones Activas</Button>
-            <Button variant="destructive" className="w-full justify-start"><LogOut className="mr-2"/> Cerrar Sesiones Remotas</Button>
+            <Button variant="outline" className="w-full justify-start" disabled><KeyRound className="mr-2"/> Cambiar Contraseña</Button>
+            <Button variant="outline" className="w-full justify-start" disabled><Fingerprint className="mr-2"/> Configurar 2FA</Button>
+            <Button variant="outline" className="w-full justify-start" disabled><Monitor className="mr-2"/> Ver Sesiones Activas</Button>
+            <Button variant="destructive" className="w-full justify-start" disabled><LogOut className="mr-2"/> Cerrar Sesiones Remotas</Button>
           </CardContent>
         </Card>
       </aside>
@@ -179,3 +184,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

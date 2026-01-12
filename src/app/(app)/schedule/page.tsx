@@ -1,11 +1,12 @@
+
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, PlusCircle } from 'lucide-react';
+import { Download, PlusCircle, Settings, Edit } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -39,12 +40,38 @@ const eventTypes: { [key: string]: { label: string; className: string } } = {
   event: { label: 'Evento', className: 'bg-green-100 text-green-800' },
 };
 
+function AdminCalendarManagement() {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Settings /> Gestión del Calendario Académico</CardTitle>
+                <CardDescription>Define las fechas clave y los eventos para toda la institución.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="flex flex-wrap gap-2">
+                    <Button variant="outline"><Edit className="mr-2"/> Definir Períodos de Matrícula</Button>
+                    <Button variant="outline"><Edit className="mr-2"/> Programar Feriados</Button>
+                    <Button variant="outline"><Edit className="mr-2"/> Gestionar Fechas de Exámenes Finales</Button>
+                </div>
+                <Alert>
+                    <Settings className="h-4 w-4" />
+                    <AlertTitle>En Desarrollo</AlertTitle>
+                    <AlertDescription>
+                        Esta sección albergará las herramientas avanzadas para la gestión del calendario institucional, incluyendo la notificación masiva a los usuarios.
+                    </AlertDescription>
+                </Alert>
+            </CardContent>
+        </Card>
+    )
+}
+
 
 export default function SchedulePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const { profile } = useUser();
 
   const canManageEvents = profile?.role === 'admin' || profile?.role === 'professor';
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <div className="space-y-8">
@@ -165,6 +192,13 @@ export default function SchedulePage() {
           </Card>
         </aside>
       </div>
+      
+      {isAdmin && (
+        <section className="mt-8">
+            <AdminCalendarManagement />
+        </section>
+      )}
+
     </div>
   );
 }

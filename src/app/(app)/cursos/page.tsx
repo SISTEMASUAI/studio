@@ -165,12 +165,20 @@ function ProfessorCoursesView() {
 
     const coursesQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
+        return query(collection(firestore, 'courses'), where('instructorId', '==', user.uid));
+    }, [firestore, user]);
+
+    const { data: courses, isLoading, error } = useCollection<DocumentData>(coursesQuery);
+
+    const enrollmentsQuery = useMemoFirebase(() => {
+        if (!firestore || !user) return null;
         return query(collection(firestore, 'enrollments'), where('professorId', '==', user.uid));
     }, [firestore, user]);
 
-    const { data: courses, isLoading, error } = useCollection<Enrollment>(coursesQuery);
+    const { data: enrollments, isLoading: enrollmentsLoading } = useCollection<Enrollment>(enrollmentsQuery);
 
-    if (isLoading) {
+
+    if (isLoading || enrollmentsLoading) {
         return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
     }
 
@@ -178,34 +186,50 @@ function ProfessorCoursesView() {
         return <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>No se pudieron cargar los cursos.</AlertDescription></Alert>;
     }
     
-    const uniqueCourses = courses ? Array.from(new Map(courses.map(c => [c.courseId, c])).values()) : [];
-
-
     return (
       <div className="space-y-8">
         <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold">Mis Cursos Impartidos</h2>
-            <Button disabled>
-                <PlusCircle className="mr-2" /> Crear Nuevo Curso
-            </Button>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button><PlusCircle className="mr-2" /> Crear Nuevo Curso</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Crear Curso</DialogTitle>
+                        <DialogDescription>Esta función está en desarrollo.</DialogDescription>
+                    </DialogHeader>
+                    <Alert>
+                        <UserCog className="h-4 w-4" />
+                        <AlertTitle>En Desarrollo</AlertTitle>
+                        <AlertDescription>
+                            La lógica para guardar el nuevo curso en la base de datos se implementará próximamente.
+                        </AlertDescription>
+                    </Alert>
+                    <DialogFooter>
+                        <Button variant="outline">Cancelar</Button>
+                        <Button disabled>Guardar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
-        {uniqueCourses.length > 0 ? (
+        {courses && courses.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {uniqueCourses.map((course) => (
-                 <Card key={course.courseId} className="flex flex-col">
+            {courses.map((course) => (
+                 <Card key={course.id} className="flex flex-col">
                      <CardHeader>
-                         <CardTitle>{course.courseName}</CardTitle>
-                         <CardDescription>Semestre {course.semester} - {course.year}</CardDescription>
+                         <CardTitle>{course.name}</CardTitle>
+                         <CardDescription>Semestre {enrollments?.find(e => e.courseId === course.id)?.semester} - {enrollments?.find(e => e.courseId === course.id)?.year}</CardDescription>
                      </CardHeader>
                      <CardContent className="flex-grow">
                         <div className="flex items-center gap-2 text-muted-foreground text-sm">
                             <Users /> 
-                            {courses?.filter(c => c.courseId === course.courseId).length} Estudiantes
+                            {enrollments?.filter(e => e.courseId === course.id).length} Estudiantes
                         </div>
                      </CardContent>
                      <CardFooter className="flex gap-2">
                          <Button asChild className="w-full">
-                           <Link href={`/cursos/${course.courseId}`}>
+                           <Link href={`/cursos/${course.id}`}>
                              Gestionar
                            </Link>
                          </Button>
@@ -566,4 +590,3 @@ export default function CoursesPage() {
     </div>
   );
 }
-

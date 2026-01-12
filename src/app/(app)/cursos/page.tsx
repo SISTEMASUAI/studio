@@ -65,6 +65,7 @@ import {
   User,
   GraduationCap,
   Clock,
+  Building,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -102,7 +103,6 @@ interface Course extends DocumentData {
     name: string;
     description: string;
     credits: number;
-    department: string;
     level: string;
     instructorId: string;
     programId: string;
@@ -360,6 +360,21 @@ function AdminCoursesView() {
         setIsEditDialogOpen(true);
     };
 
+    const handleScheduleChange = (index: number, field: string, value: string) => {
+        const newSchedule = [...schedule];
+        newSchedule[index] = { ...newSchedule[index], [field]: value };
+        setSchedule(newSchedule);
+    };
+
+    const addScheduleRow = () => {
+        setSchedule([...schedule, { day: '', startTime: '', endTime: '', classroom: '' }]);
+    };
+
+    const removeScheduleRow = (index: number) => {
+        const newSchedule = schedule.filter((_, i) => i !== index);
+        setSchedule(newSchedule);
+    };
+
     async function onCreateSubmit(values: z.infer<typeof CourseSchema>) {
         if (!firestore) return;
         
@@ -374,7 +389,6 @@ function AdminCoursesView() {
                 methodology: "",
                 syllabusUrl: "",
                 virtualRoomUrl: "",
-                department: "" // Keep department for now, though unused in form
             });
             
             toast({
@@ -574,35 +588,42 @@ function AdminCoursesView() {
                                                 )} />
                                                 
                                                 <div className="space-y-4 rounded-md border p-4">
-                                                    <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
-                                                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                        <div className="space-y-2">
-                                                            <Label>Día</Label>
-                                                            <Select onValueChange={(value) => setSchedule(prev => [{...prev[0], day: value}])}>
-                                                                <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="Lunes">Lunes</SelectItem>
-                                                                    <SelectItem value="Martes">Martes</SelectItem>
-                                                                    <SelectItem value="Miércoles">Miércoles</SelectItem>
-                                                                    <SelectItem value="Jueves">Jueves</SelectItem>
-                                                                    <SelectItem value="Viernes">Viernes</SelectItem>
-                                                                    <SelectItem value="Sábado">Sábado</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
+                                                    <h4 className="font-medium flex items-center justify-between"><span className='flex items-center gap-2'><Clock /> Horario</span>
+                                                        <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2'/> Añadir</Button>
+                                                    </h4>
+                                                    {schedule.map((session, index) => (
+                                                        <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                                                            <div className="space-y-1">
+                                                                <Label>Día</Label>
+                                                                <Select onValueChange={(value) => handleScheduleChange(index, 'day', value)} value={session.day}>
+                                                                    <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="Lunes">Lunes</SelectItem>
+                                                                        <SelectItem value="Martes">Martes</SelectItem>
+                                                                        <SelectItem value="Miércoles">Miércoles</SelectItem>
+                                                                        <SelectItem value="Jueves">Jueves</SelectItem>
+                                                                        <SelectItem value="Viernes">Viernes</SelectItem>
+                                                                        <SelectItem value="Sábado">Sábado</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label>Hora Inicio</Label>
+                                                                <Input type="time" value={session.startTime} onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)} />
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <Label>Hora Fin</Label>
+                                                                <Input type="time" value={session.endTime} onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)} />
+                                                            </div>
+                                                            <div className="flex gap-1 items-center">
+                                                                <div className='space-y-1 w-full'>
+                                                                    <Label>Aula</Label>
+                                                                    <Input placeholder="Ej: A-101" value={session.classroom} onChange={(e) => handleScheduleChange(index, 'classroom', e.target.value)} />
+                                                                </div>
+                                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1}><Trash2 className="text-destructive"/></Button>
+                                                            </div>
                                                         </div>
-                                                        <div className="space-y-2">
-                                                            <Label>Hora de Inicio</Label>
-                                                            <Input type="time" onChange={(e) => setSchedule(prev => [{...prev[0], startTime: e.target.value}])} />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label>Hora de Fin</Label>
-                                                            <Input type="time" onChange={(e) => setSchedule(prev => [{...prev[0], endTime: e.target.value}])} />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <Label>Aula</Label>
-                                                            <Input placeholder="Ej: Aula 101" onChange={(e) => setSchedule(prev => [{...prev[0], classroom: e.target.value}])} />
-                                                        </div>
-                                                     </div>
+                                                    ))}
                                                       <FormField control={form.control} name="mode" render={({ field }) => (
                                                          <FormItem>
                                                             <FormLabel>Modalidad</FormLabel>
@@ -619,7 +640,6 @@ function AdminCoursesView() {
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
-                                                    <p className="text-xs text-muted-foreground">Actualmente solo se puede agregar un horario. La funcionalidad para múltiples horarios se implementará.</p>
                                                 </div>
 
                                                 <div className="space-y-2">
@@ -874,7 +894,7 @@ function AdminCoursesView() {
                                 <FormField control={updateForm.control} name="instructorId" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Instructor</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl><SelectTrigger><SelectValue placeholder="Asigna un instructor..."/></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 {professors ? professors.map(prof => (
@@ -886,35 +906,42 @@ function AdminCoursesView() {
                                     </FormItem>
                                 )} />
                                 <div className="space-y-4 rounded-md border p-4">
-                                    <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                        <div className="space-y-2">
-                                            <Label>Día</Label>
-                                            <Select onValueChange={(value) => setSchedule(prev => [{...prev[0], day: value}])} value={schedule[0]?.day} disabled={hasCourseStarted(selectedCourse)}>
-                                                <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="Lunes">Lunes</SelectItem>
-                                                    <SelectItem value="Martes">Martes</SelectItem>
-                                                    <SelectItem value="Miércoles">Miércoles</SelectItem>
-                                                    <SelectItem value="Jueves">Jueves</SelectItem>
-                                                    <SelectItem value="Viernes">Viernes</SelectItem>
-                                                    <SelectItem value="Sábado">Sábado</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                    <h4 className="font-medium flex items-center justify-between"><span className='flex items-center gap-2'><Clock /> Horario</span>
+                                        <Button type="button" variant="outline" size="sm" onClick={addScheduleRow} disabled={hasCourseStarted(selectedCourse)}><PlusCircle className='mr-2'/> Añadir</Button>
+                                    </h4>
+                                     {schedule.map((session, index) => (
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                                            <div className="space-y-1">
+                                                <Label>Día</Label>
+                                                <Select onValueChange={(value) => handleScheduleChange(index, 'day', value)} value={session.day} disabled={hasCourseStarted(selectedCourse)}>
+                                                    <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Lunes">Lunes</SelectItem>
+                                                        <SelectItem value="Martes">Martes</SelectItem>
+                                                        <SelectItem value="Miércoles">Miércoles</SelectItem>
+                                                        <SelectItem value="Jueves">Jueves</SelectItem>
+                                                        <SelectItem value="Viernes">Viernes</SelectItem>
+                                                        <SelectItem value="Sábado">Sábado</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label>Hora Inicio</Label>
+                                                <Input type="time" value={session.startTime} onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)} disabled={hasCourseStarted(selectedCourse)} />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <Label>Hora Fin</Label>
+                                                <Input type="time" value={session.endTime} onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)} disabled={hasCourseStarted(selectedCourse)} />
+                                            </div>
+                                            <div className="flex gap-1 items-center">
+                                                <div className='space-y-1 w-full'>
+                                                    <Label>Aula</Label>
+                                                    <Input placeholder="Ej: A-101" value={session.classroom} onChange={(e) => handleScheduleChange(index, 'classroom', e.target.value)} disabled={hasCourseStarted(selectedCourse)} />
+                                                </div>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1 || hasCourseStarted(selectedCourse)}><Trash2 className="text-destructive"/></Button>
+                                            </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label>Hora de Inicio</Label>
-                                            <Input type="time" value={schedule[0]?.startTime} onChange={(e) => setSchedule(prev => [{...prev[0], startTime: e.target.value}])} disabled={hasCourseStarted(selectedCourse)} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Hora de Fin</Label>
-                                            <Input type="time" value={schedule[0]?.endTime} onChange={(e) => setSchedule(prev => [{...prev[0], endTime: e.target.value}])} disabled={hasCourseStarted(selectedCourse)} />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label>Aula</Label>
-                                            <Input placeholder="Ej: Aula 101" value={schedule[0]?.classroom} onChange={(e) => setSchedule(prev => [{...prev[0], classroom: e.target.value}])} disabled={hasCourseStarted(selectedCourse)} />
-                                        </div>
-                                    </div>
+                                    ))}
                                     <FormField control={updateForm.control} name="mode" render={({ field }) => (
                                          <FormItem>
                                             <FormLabel>Modalidad</FormLabel>

@@ -32,7 +32,7 @@ import {
   } from "@/components/ui/tabs"
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail, Users, Library, UserCheck as UserCheckIcon, Search, AlertTriangle, FileUp, GraduationCap, ClipboardList, Folder, File, Download, Tv, Book, Settings, Trash2, Edit, Megaphone, UserCog } from 'lucide-react';
+import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail, Users, Library, UserCheck as UserCheckIcon, Search, AlertTriangle, FileUp, GraduationCap, ClipboardList, Folder, File, Download, Tv, Book, Settings, Trash2, Edit, Megaphone, UserCog, PlusCircle, Check, Eye } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Link from 'next/link';
@@ -46,6 +46,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import CourseGrades from '@/components/cursos/CourseGrades';
 import CourseAssignments from '@/components/cursos/CourseAssignments';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ScheduleItem {
     day: string;
@@ -117,6 +118,11 @@ const courseMaterials = [
         { type: 'video', name: 'Clase Grabada - 05/08.mp4', size: '150 MB' },
     ]},
 ];
+
+const professorAssignments = [
+    { id: 'A01', title: 'Tarea 1: Investigación de Mercado', dueDate: '2024-08-20', submissions: 28, total: 30, graded: 15 },
+    { id: 'A02', title: 'Examen Parcial', dueDate: '2024-09-05', submissions: 30, total: 30, graded: 0 },
+]
 
 function CourseHeader({ course, instructor }: { course: CourseDetails, instructor: InstructorProfile | null }) {
     const { profile } = useUser();
@@ -322,14 +328,98 @@ export default function CourseDetailPage() {
                      </TabsContent>
                      <TabsContent value="assignments" className="mt-6">
                          <Card>
-                            <CardHeader><CardTitle>Gestión de Tareas</CardTitle></CardHeader>
-                            <CardContent><Alert><UserCog className="w-4 h-4"/><AlertTitle>En Desarrollo</AlertTitle><AlertDescription>Aquí podrás crear, editar y calificar las tareas y evaluaciones del curso.</AlertDescription></Alert></CardContent>
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <div className="space-y-1">
+                                    <CardTitle>Gestión de Tareas</CardTitle>
+                                    <CardDescription>Crea, edita y revisa las tareas del curso.</CardDescription>
+                                </div>
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button><PlusCircle className="mr-2"/> Crear Tarea</Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-2xl">
+                                        <DialogHeader>
+                                            <DialogTitle>Crear Nueva Tarea</DialogTitle>
+                                            <DialogDescription>Completa el formulario para publicar una nueva tarea o evaluación.</DialogDescription>
+                                        </DialogHeader>
+                                        <div className="py-4 space-y-4">
+                                            <div className="space-y-2">
+                                                <Label>Título</Label>
+                                                <Input placeholder="Ej: Tarea 1: Investigación de Mercado" />
+                                            </div>
+                                             <div className="space-y-2">
+                                                <Label>Descripción</Label>
+                                                <Textarea placeholder="Describe los objetivos y requisitos de la tarea." />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label>Fecha de Entrega</Label>
+                                                    <Input type="date" />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Puntaje Máximo</Label>
+                                                    <Input type="number" placeholder="20" />
+                                                </div>
+                                            </div>
+                                             <div className="flex items-center space-x-2">
+                                                <Checkbox id="allow-late"/>
+                                                <Label htmlFor="allow-late">Permitir entregas tardías</Label>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Adjuntar Archivos</Label>
+                                                 <Button variant="outline" asChild className="w-full">
+                                                    <label htmlFor="file-upload-assignment" className="cursor-pointer flex items-center gap-2">
+                                                        <FileUp className="h-4 w-4"/>
+                                                        <span>Adjuntar plantilla o guía (PDF, DOCX)</span>
+                                                        <input id="file-upload-assignment" name="file-upload" type="file" className="sr-only" />
+                                                    </label>
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button variant="outline">Cancelar</Button>
+                                            <Button disabled><Check className="mr-2"/> Publicar Tarea</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </CardHeader>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Título</TableHead>
+                                            <TableHead>Fecha Límite</TableHead>
+                                            <TableHead>Entregas</TableHead>
+                                            <TableHead>Calificadas</TableHead>
+                                            <TableHead className="text-right">Acciones</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {professorAssignments.map(a => (
+                                            <TableRow key={a.id}>
+                                                <TableCell className="font-medium">{a.title}</TableCell>
+                                                <TableCell>{a.dueDate}</TableCell>
+                                                <TableCell>{a.submissions}/{a.total}</TableCell>
+                                                <TableCell>{a.graded}/{a.submissions}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button size="sm" variant="outline"><Eye className="mr-2"/>Ver Entregas</Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                                 <Alert className="mt-4">
+                                    <UserCog className="w-4 h-4"/>
+                                    <AlertTitle>En Desarrollo</AlertTitle>
+                                    <AlertDescription>La lógica para guardar, editar y calificar las tareas se implementará próximamente.</AlertDescription>
+                                </Alert>
+                            </CardContent>
                         </Card>
                      </TabsContent>
                      <TabsContent value="grades" className="mt-6">
                         <Card>
-                            <CardHeader><CardTitle>Gestión de Calificaciones</CardTitle></CardHeader>
-                            <CardContent><Alert><UserCog className="w-4 h-4"/><AlertTitle>En Desarrollo</AlertTitle><AlertDescription>Aquí podrás ingresar y publicar las calificaciones de los estudiantes.</AlertDescription></Alert></CardContent>
+                            <CardHeader><CardTitle>Libro de Calificaciones</CardTitle></CardHeader>
+                            <CardContent><Alert><UserCog className="w-4 h-4"/><AlertTitle>En Desarrollo</AlertTitle><AlertDescription>Aquí podrás ingresar y publicar las calificaciones finales de los estudiantes, así como ver el progreso general del curso.</AlertDescription></Alert></CardContent>
                         </Card>
                      </TabsContent>
                     </>

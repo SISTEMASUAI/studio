@@ -79,16 +79,32 @@
           "type": "string",
           "description": "The full name of the program (e.g., 'Ingeniería de Software')."
         },
-        "faculty": {
+        "facultyId": {
           "type": "string",
-          "description": "The faculty or school the program belongs to (e.g., 'Facultad de Ingeniería')."
+          "description": "The ID of the faculty this program belongs to."
         },
         "totalCredits": {
           "type": "number",
           "description": "Total number of credits required to complete the program."
         }
       },
-      "required": ["programId", "name", "faculty", "totalCredits"]
+      "required": ["programId", "name", "facultyId", "totalCredits"]
+    },
+    "Faculty": {
+      "title": "Faculty",
+      "type": "object",
+      "description": "Represents a faculty or school within the university.",
+      "properties": {
+        "facultyId": {
+          "type": "string",
+          "description": "Unique identifier for the faculty."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the faculty (e.g., 'Facultad de Ingeniería')."
+        }
+      },
+      "required": ["facultyId", "name"]
     },
     "IntranetPost": {
       "title": "IntranetPost",
@@ -457,6 +473,10 @@
         "schema": { "$ref": "#/entities/UniversityProgram" },
         "description": "Stores the academic programs (careers) offered by the university."
       },
+      "/faculties/{facultyId}": {
+        "schema": { "$ref": "#/entities/Faculty" },
+        "description": "Stores the faculties (schools) of the university."
+      },
       "/intranet_posts/{postId}": {
         "schema": {
           "$ref": "#/entities/IntranetPost"
@@ -518,6 +538,5 @@
     }
   }
 }
-
 
     

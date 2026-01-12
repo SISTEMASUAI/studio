@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useCollection, useMemoFirebase, useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
@@ -989,3 +990,5 @@ export default function CoursesPage() {
     </div>
   );
 }
+
+    

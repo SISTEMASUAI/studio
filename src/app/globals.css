@@ -81,4 +81,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  .rdp-day_selected {
+    @apply bg-primary text-primary-foreground;
+  }
+  .rdp-day_selected:hover {
+    @apply bg-primary/90;
+  }
 }

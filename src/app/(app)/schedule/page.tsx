@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -18,8 +18,10 @@ import {
   CalendarX,
   UserCog,
   AlertTriangle,
+  Loader2,
+  BookOpen,
 } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
   Dialog,
   DialogContent,
@@ -40,33 +42,86 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { collection, query, where, DocumentData } from 'firebase/firestore';
+import { addDays, format, parse, startOfDay, isBefore } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-const upcomingEvents = [
-  {
-    date: '2024-09-01',
-    title: 'Inicio del Semestre',
-    type: 'academic',
-  },
-  {
-    date: '2024-09-15',
-    title: 'Examen Parcial de Cálculo',
-    type: 'exam',
-  },
-  {
-    date: '2024-10-20',
-    title: 'Entrega Proyecto Final',
-    type: 'assignment',
-  },
-  {
-    date: '2024-10-31',
-    title: 'Festival de Bienvenida',
-    type: 'event',
-  },
-];
+interface ScheduleItem {
+  day: 'Lunes' | 'Martes' | 'Miércoles' | 'Jueves' | 'Viernes' | 'Sábado' | 'Domingo';
+  startTime: string;
+  endTime: string;
+  classroom: string;
+}
+
+interface Course extends DocumentData {
+  id: string;
+  name: string;
+  schedule?: ScheduleItem[];
+  semesterStartDate?: string;
+  semesterEndDate?: string;
+}
+
+interface UpcomingEvent {
+  date: Date;
+  title: string;
+  type: 'class' | 'exam' | 'assignment' | 'event';
+  courseName?: string;
+}
+
+const dayOfWeekMap: { [key: string]: number } = {
+  Domingo: 0,
+  Lunes: 1,
+  Martes: 2,
+  Miércoles: 3,
+  Jueves: 4,
+  Viernes: 5,
+  Sábado: 6,
+};
+
+
+const generateClassEvents = (courses: Course[]): UpcomingEvent[] => {
+    const events: UpcomingEvent[] = [];
+    if (!courses) return events;
+
+    courses.forEach(course => {
+        if (!course.schedule || !course.semesterStartDate || !course.semesterEndDate) {
+            return;
+        }
+
+        const startDate = parse(course.semesterStartDate, 'yyyy-MM-dd', new Date());
+        const endDate = parse(course.semesterEndDate, 'yyyy-MM-dd', new Date());
+
+        course.schedule.forEach(session => {
+            const targetDay = dayOfWeekMap[session.day];
+            if (targetDay === undefined) return;
+
+            let currentDate = startOfDay(startDate);
+
+            // Find the first occurrence of the target day
+            while (currentDate.getDay() !== targetDay) {
+                currentDate = addDays(currentDate, 1);
+            }
+            
+            // Add events for each week until the end date
+            while (isBefore(currentDate, endDate) || currentDate.getTime() === endDate.getTime()) {
+                events.push({
+                    date: new Date(currentDate),
+                    title: `${course.name} (${session.startTime} - ${session.endTime})`,
+                    type: 'class',
+                    courseName: course.name,
+                });
+                currentDate = addDays(currentDate, 7);
+            }
+        });
+    });
+
+    return events.sort((a, b) => a.date.getTime() - b.date.getTime());
+};
+
 
 const eventTypes: { [key: string]: { label: string; className: string } } = {
-  academic: {
-    label: 'Académico',
+  class: {
+    label: 'Clase',
     className: 'bg-blue-100 text-blue-800 border-blue-200',
   },
   exam: {
@@ -183,7 +238,39 @@ function AdminCalendarManagement() {
 
 export default function SchedulePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const { profile } = useUser();
+  const { profile, user } = useUser();
+  const firestore = useFirestore();
+
+  const coursesQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    // For now, we only implement the professor's view
+    if (profile?.role === 'professor') {
+        return query(collection(firestore, 'courses'), where('instructorId', '==', user.uid));
+    }
+    // TODO: Implement student view by querying 'enrollments' collection
+    return null;
+  }, [firestore, user, profile]);
+
+  const { data: courses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
+  
+  const allEvents = useMemoFirebase(() => {
+      if (!courses) return [];
+      return generateClassEvents(courses);
+  }, [courses]);
+
+  const upcomingEvents = allEvents.filter(event => isBefore(startOfDay(new Date()), event.date)).slice(0, 5);
+  const classDays = allEvents.map(event => event.date);
+
+  const modifiers = {
+    classDay: classDays,
+  };
+
+  const modifiersStyles = {
+    classDay: {
+        fontWeight: 'bold',
+        position: 'relative',
+    },
+  };
 
   const canManageEvents =
     profile?.role === 'admin' || profile?.role === 'professor';
@@ -215,11 +302,15 @@ export default function SchedulePage() {
         <div className="lg:col-span-2 space-y-8">
           <Card>
             <CardContent className="p-0">
+              <style>{`.day-is-class:after { content: "•"; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); color: hsl(var(--primary)); font-size: 1.2rem; line-height: 0; }`}</style>
               <Calendar
                 mode="single"
                 selected={date}
                 onSelect={setDate}
                 className="w-full"
+                modifiers={{ classDay: classDays }}
+                modifiersClassNames={{ classDay: 'day-is-class' }}
+                locale={es}
               />
             </CardContent>
           </Card>
@@ -232,37 +323,37 @@ export default function SchedulePage() {
               <CardTitle className="font-headline">Próximos Eventos</CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-4">
-                {upcomingEvents.map((event, i) => {
-                  const eventConfig = eventTypes[event.type] || eventTypes.event;
-                  const eventDate = new Date(event.date);
-                  // Adjust for timezone offset to prevent day-off errors
-                  const utcDate = new Date(eventDate.getUTCFullYear(), eventDate.getUTCMonth(), eventDate.getUTCDate());
-
-                  return (
-                    <li key={i} className="flex items-center gap-4">
-                      <div className="flex-shrink-0 text-center border-r pr-4">
-                        <p className="font-bold font-headline text-lg">
-                          {utcDate.toLocaleDateString('es-ES', {
-                            day: '2-digit',
-                          })}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {utcDate.toLocaleDateString('es-ES', {
-                            month: 'short',
-                          })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">{event.title}</p>
-                        <Badge variant="outline" className={eventConfig.className}>
-                          {eventConfig.label}
-                        </Badge>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+              {areCoursesLoading ? (
+                 <div className="flex justify-center items-center h-24">
+                    <Loader2 className="animate-spin" />
+                 </div>
+              ) : upcomingEvents.length > 0 ? (
+                <ul className="space-y-4">
+                  {upcomingEvents.map((event, i) => {
+                    const eventConfig = eventTypes[event.type] || eventTypes.event;
+                    return (
+                      <li key={i} className="flex items-center gap-4">
+                        <div className="flex-shrink-0 text-center border-r pr-4">
+                          <p className="font-bold font-headline text-lg">
+                            {format(event.date, 'dd')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(event.date, 'MMM', { locale: es })}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-semibold">{event.title}</p>
+                          <Badge variant="outline" className={eventConfig.className}>
+                            {eventConfig.label}
+                          </Badge>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                 <p className="text-sm text-muted-foreground">No tienes próximos eventos en tu agenda.</p>
+              )}
             </CardContent>
           </Card>
         </aside>

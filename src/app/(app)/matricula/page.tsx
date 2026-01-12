@@ -56,7 +56,7 @@ import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { collection, query, where, DocumentData, doc } from 'firebase/firestore';
+import { collection, query, where, DocumentData, doc, runTransaction, increment } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 
@@ -153,6 +153,7 @@ function StudentEnrollmentView() {
     setIsEnrolling(course.id);
 
     const professor = professors?.find(p => p.id === course.instructorId);
+    const courseDocRef = doc(firestore, "courses", course.id);
 
     const enrollmentData = {
         studentId: user.uid,
@@ -169,6 +170,11 @@ function StudentEnrollmentView() {
 
     try {
         await addDocumentNonBlocking(collection(firestore, 'enrollments'), enrollmentData);
+        
+        await runTransaction(firestore, async (transaction) => {
+            transaction.update(courseDocRef, { enrolled: increment(1) });
+        });
+
         toast({
             title: "Inscripción Exitosa",
             description: `Te has inscrito en ${course.name}.`,
@@ -184,12 +190,19 @@ function StudentEnrollmentView() {
     }
   };
 
-  const handleWithdraw = async (enrollmentId: string) => {
+  const handleWithdraw = async (enrollmentId: string, courseId: string) => {
     if (!firestore) return;
     setIsWithdrawing(enrollmentId);
     
+    const courseDocRef = doc(firestore, "courses", courseId);
+
     try {
         await deleteDocumentNonBlocking(doc(firestore, 'enrollments', enrollmentId));
+
+        await runTransaction(firestore, async (transaction) => {
+            transaction.update(courseDocRef, { enrolled: increment(-1) });
+        });
+        
         toast({
             title: "Retiro Exitoso",
             description: "Has sido retirado del curso.",
@@ -203,6 +216,13 @@ function StudentEnrollmentView() {
     } finally {
         setIsWithdrawing(null);
     }
+  }
+
+  const handleConfirmEnrollment = () => {
+    toast({
+        title: "Matrícula Confirmada",
+        description: "Tu matrícula ha sido registrada oficialmente.",
+    });
   }
 
 
@@ -412,7 +432,7 @@ function StudentEnrollmentView() {
                                     </div>
                                     <DialogFooter>
                                         <Button variant="outline">Cancelar</Button>
-                                        <Button variant="destructive" onClick={() => handleWithdraw(course.id)} disabled={isWithdrawing === course.id}><MinusCircle className="mr-2"/> Confirmar Baja</Button>
+                                        <Button variant="destructive" onClick={() => handleWithdraw(course.id, course.courseId)} disabled={isWithdrawing === course.id}><MinusCircle className="mr-2"/> Confirmar Baja</Button>
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
@@ -432,7 +452,7 @@ function StudentEnrollmentView() {
             )}
             </CardContent>
             <CardFooter className="flex-col gap-2">
-                <Button className="w-full" disabled={!enrolledCourses || enrolledCourses.length === 0}>Confirmar Matrícula</Button>
+                <Button className="w-full" disabled={!enrolledCourses || enrolledCourses.length === 0} onClick={handleConfirmEnrollment}>Confirmar Matrícula</Button>
                 <p className="text-xs text-muted-foreground text-center">La confirmación guarda tu matrícula oficialmente.</p>
             </CardFooter>
         </Card>

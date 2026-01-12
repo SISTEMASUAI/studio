@@ -7,6 +7,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -18,6 +19,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+  } from "@/components/ui/select";
 import {
     ClipboardList,
   FilePenLine,
@@ -35,6 +52,9 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const availableCourses = [
   {
@@ -113,6 +133,7 @@ const PrerequisiteBadge = ({ status }: { status: string }) => {
 
 function StudentEnrollmentView() {
   const isEnrollmentPeriod = true; // Placeholder
+  const isEarlyWithdrawal = true; // Placeholder for withdrawal period logic
 
   if (!isEnrollmentPeriod) {
     return (
@@ -217,10 +238,68 @@ function StudentEnrollmentView() {
                         </div>
                     </TableCell>
                     <TableCell className="text-right">
-                        <Button size="sm" variant="outline" disabled={!isEnrollmentPeriod}>
-                        <MinusCircle className="mr-2 h-4 w-4" />
-                        Retirar
-                        </Button>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button size="sm" variant="outline" disabled={!isEnrollmentPeriod}>
+                                    <MinusCircle className="mr-2 h-4 w-4" />
+                                    Retirar
+                                </Button>
+                            </DialogTrigger>
+                             <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2">
+                                        <AlertTriangle className="text-destructive" />
+                                        Confirmar Baja de Asignatura
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        Estás a punto de dar de baja "{course.name}".
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="py-4 space-y-4">
+                                     <Alert variant={isEarlyWithdrawal ? "default" : "destructive"}>
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>¡Atención!</AlertTitle>
+                                        <AlertDescription>
+                                            {isEarlyWithdrawal
+                                                ? "Estás en el período de retiro sin penalización. El curso se eliminará de tu registro sin afectar tu promedio."
+                                                : "Ha finalizado el período sin penalización. El curso aparecerá en tu historial como 'Retirado' y no habrá reembolso."
+                                            }
+                                        </AlertDescription>
+                                    </Alert>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="reason-drop">Motivo de la baja (requerido)</Label>
+                                        <Select>
+                                            <SelectTrigger id="reason-drop">
+                                                <SelectValue placeholder="Selecciona un motivo..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="academic">Carga académica</SelectItem>
+                                                <SelectItem value="personal">Personal</SelectItem>
+                                                <SelectItem value="work">Laboral</SelectItem>
+                                                <SelectItem value="other">Otro</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="comments-drop">Comentarios (opcional)</Label>
+                                        <Textarea id="comments-drop" placeholder="Añade un comentario si es necesario." />
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox id="terms-drop" />
+                                        <label
+                                            htmlFor="terms-drop"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                        >
+                                            Entiendo y acepto las consecuencias de esta acción.
+                                        </label>
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline">Cancelar</Button>
+                                    <Button variant="destructive" disabled><MinusCircle className="mr-2"/> Confirmar Baja</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </TableCell>
                     </TableRow>
                 ))}
@@ -325,3 +404,5 @@ export default function EnrollmentPage() {
     </div>
   );
 }
+
+    

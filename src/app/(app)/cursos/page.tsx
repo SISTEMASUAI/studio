@@ -94,6 +94,19 @@ interface Enrollment {
   year: number;
 }
 
+// Define the type for course data
+interface Course extends DocumentData {
+    id: string;
+    courseId: string;
+    name: string;
+    description: string;
+    credits: number;
+    department: string;
+    level: string;
+    instructorId: string;
+}
+
+
 function StudentCoursesView() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -271,14 +284,6 @@ function ProfessorCoursesView() {
     );
   }
 
-const allCoursesData = [
-    { id: 'CRS-001', code: 'CS101', name: 'Introducción a la Programación', department: 'Ciencias de la Computación', credits: 4, level: 'Pregrado', sections: 5 },
-    { id: 'CRS-002', code: 'MA203', name: 'Cálculo Avanzado', department: 'Matemáticas', credits: 4, level: 'Pregrado', sections: 3 },
-    { id: 'CRS-003', code: 'HI105', name: 'Historia del Siglo XX', department: 'Humanidades', credits: 3, level: 'Pregrado', sections: 8 },
-    { id: 'CRS-004', code: 'DS501', name: 'Machine Learning Aplicado', department: 'Ciencias de la Computación', credits: 4, level: 'Postgrado', sections: 2 },
-    { id: 'CRS-005', code: 'FIN310', name: 'Mercados Financieros', department: 'Economía y Finanzas', credits: 3, level: 'Pregrado', sections: 4 },
-];
-
 const allStudentsData = [
     { id: 'STU-001', name: 'García, Ana', program: 'Ingeniería de Software', semester: 5, gpa: 3.8, status: 'Regular' },
     { id: 'STU-002', name: 'Pérez, Juan', program: 'Administración de Empresas', semester: 3, gpa: 3.2, status: 'Regular' },
@@ -307,6 +312,12 @@ function AdminCoursesView() {
     [firestore]);
 
     const { data: professors } = useCollection(professorsQuery);
+
+    const coursesQuery = useMemoFirebase(() => 
+        firestore ? collection(firestore, 'courses') : null,
+    [firestore]);
+    const { data: courses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
+
 
     const form = useForm<z.infer<typeof CreateCourseSchema>>({
         resolver: zodResolver(CreateCourseSchema),
@@ -520,80 +531,90 @@ function AdminCoursesView() {
                                     <TableHead>Departamento</TableHead>
                                     <TableHead>Créditos</TableHead>
                                     <TableHead>Nivel</TableHead>
-                                    <TableHead className="text-center">Secciones</TableHead>
                                     <TableHead className="text-right">Acciones</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {allCoursesData.map(course => (
-                                    <TableRow key={course.code}>
-                                        <TableCell className="font-mono">{course.code}</TableCell>
-                                        <TableCell className="font-medium">{course.name}</TableCell>
-                                        <TableCell>{course.department}</TableCell>
-                                        <TableCell>{course.credits}</TableCell>
-                                        <TableCell>{course.level}</TableCell>
-                                        <TableCell className="text-center">{course.sections}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Dialog>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon">
-                                                            <MoreHorizontal />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent>
-                                                        <DropdownMenuItem><Eye className="mr-2"/>Ver Secciones</DropdownMenuItem>
-                                                        <DialogTrigger asChild>
-                                                            <DropdownMenuItem><Edit className="mr-2"/>Editar Curso</DropdownMenuItem>
-                                                        </DialogTrigger>
-                                                        <DropdownMenuSeparator />
-                                                        <DialogTrigger asChild>
-                                                            <DropdownMenuItem><PlusCircle className="mr-2"/>Crear Sección</DropdownMenuItem>
-                                                        </DialogTrigger>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem className="text-destructive"><Trash2 className="mr-2"/>Desactivar</DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                                <DialogContent className="sm:max-w-3xl">
-                                                    <DialogHeader>
-                                                        <DialogTitle>Editar Curso: {course.name}</DialogTitle>
-                                                        <DialogDescription>Modifica la información principal del curso.</DialogDescription>
-                                                    </DialogHeader>
-                                                    <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                                                        {/* Form content for editing a course */}
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            <div className="space-y-2">
-                                                                <Label>Código del Curso</Label>
-                                                                <Input defaultValue={course.code} />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>Nombre del Curso</Label>
-                                                                <Input defaultValue={course.name} />
-                                                            </div>
-                                                        </div>
-                                                        <Alert>
-                                                            <UserCog className="h-4 w-4" />
-                                                            <AlertTitle>En Desarrollo</AlertTitle>
-                                                            <AlertDescription>
-                                                                La lógica para guardar los cambios en la base de datos se implementará próximamente.
-                                                            </AlertDescription>
-                                                        </Alert>
-                                                    </div>
-                                                    <DialogFooter>
-                                                        <Button variant="outline">Cancelar</Button>
-                                                        <Button disabled><Edit className="mr-2"/> Guardar Cambios</Button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
+                               {areCoursesLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center">
+                                            <Loader2 className="mx-auto h-6 w-6 animate-spin" />
                                         </TableCell>
                                     </TableRow>
-                                ))}
+                                ) : courses && courses.length > 0 ? (
+                                    courses.map(course => (
+                                        <TableRow key={course.id}>
+                                            <TableCell className="font-mono">{course.courseId}</TableCell>
+                                            <TableCell className="font-medium">{course.name}</TableCell>
+                                            <TableCell>{course.department}</TableCell>
+                                            <TableCell>{course.credits}</TableCell>
+                                            <TableCell>{course.level}</TableCell>
+                                            <TableCell className="text-right">
+                                                <Dialog>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon">
+                                                                <MoreHorizontal />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent>
+                                                            <DropdownMenuItem><Eye className="mr-2"/>Ver Secciones</DropdownMenuItem>
+                                                            <DialogTrigger asChild>
+                                                                <DropdownMenuItem><Edit className="mr-2"/>Editar Curso</DropdownMenuItem>
+                                                            </DialogTrigger>
+                                                            <DropdownMenuSeparator />
+                                                            <DialogTrigger asChild>
+                                                                <DropdownMenuItem><PlusCircle className="mr-2"/>Crear Sección</DropdownMenuItem>
+                                                            </DialogTrigger>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem className="text-destructive"><Trash2 className="mr-2"/>Desactivar</DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                    <DialogContent className="sm:max-w-3xl">
+                                                        <DialogHeader>
+                                                            <DialogTitle>Editar Curso: {course.name}</DialogTitle>
+                                                            <DialogDescription>Modifica la información principal del curso.</DialogDescription>
+                                                        </DialogHeader>
+                                                        <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                                                            {/* Form content for editing a course */}
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="space-y-2">
+                                                                    <Label>Código del Curso</Label>
+                                                                    <Input defaultValue={course.courseId} />
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Label>Nombre del Curso</Label>
+                                                                    <Input defaultValue={course.name} />
+                                                                </div>
+                                                            </div>
+                                                            <Alert>
+                                                                <UserCog className="h-4 w-4" />
+                                                                <AlertTitle>En Desarrollo</AlertTitle>
+                                                                <AlertDescription>
+                                                                    La lógica para guardar los cambios en la base de datos se implementará próximamente.
+                                                                </AlertDescription>
+                                                            </Alert>
+                                                        </div>
+                                                        <DialogFooter>
+                                                            <Button variant="outline">Cancelar</Button>
+                                                            <Button disabled><Edit className="mr-2"/> Guardar Cambios</Button>
+                                                        </DialogFooter>
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center">No se encontraron cursos.</TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </CardContent>
                     <CardFooter className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">
-                            Mostrando {allCoursesData.length} de {allCoursesData.length} cursos.
+                            Mostrando {courses?.length || 0} de {courses?.length || 0} cursos.
                         </span>
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" disabled>Anterior</Button>

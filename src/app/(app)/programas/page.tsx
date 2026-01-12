@@ -57,6 +57,7 @@ interface Program extends DocumentData {
     name: string;
     facultyId: string;
     totalCredits: number;
+    totalCycles: number;
 }
 
 interface Faculty extends DocumentData {
@@ -70,6 +71,7 @@ const ProgramSchema = z.object({
     name: z.string().min(5, "El nombre debe tener al menos 5 caracteres."),
     facultyId: z.string().min(1, "Debe seleccionar una facultad."),
     totalCredits: z.coerce.number().min(1, "Debe tener al menos 1 crédito."),
+    totalCycles: z.coerce.number().min(1, "Debe tener al menos 1 ciclo."),
   });
 
 const FacultySchema = z.object({
@@ -107,7 +109,7 @@ export default function ProgramsPage() {
 
     const programForm = useForm<z.infer<typeof ProgramSchema>>({
         resolver: zodResolver(ProgramSchema),
-        defaultValues: { programId: '', name: '', facultyId: '', totalCredits: 0 },
+        defaultValues: { programId: '', name: '', facultyId: '', totalCredits: 0, totalCycles: 10 },
     });
 
     const updateProgramForm = useForm<z.infer<typeof ProgramSchema>>({
@@ -231,7 +233,7 @@ export default function ProgramsPage() {
                                                 <FormField control={programForm.control} name="programId" render={({ field }) => (
                                                     <FormItem><FormLabel>ID del Programa</FormLabel><FormControl><Input placeholder="ej: ing-soft" {...field} /></FormControl><FormMessage /></FormItem>
                                                 )} />
-                                                <FormField control={programForm.control} name="name" render={({ field }) => (
+                                                <FormField control={programForm.control} name="name" render={={({ field }) => (
                                                     <FormItem><FormLabel>Nombre del Programa</FormLabel><FormControl><Input placeholder="Ingeniería de Software" {...field} /></FormControl><FormMessage /></FormItem>
                                                 )} />
                                                 <FormField control={programForm.control} name="facultyId" render={({ field }) => (
@@ -244,9 +246,14 @@ export default function ProgramsPage() {
                                                         </Select>
                                                     <FormMessage /></FormItem>
                                                 )} />
-                                                <FormField control={programForm.control} name="totalCredits" render={({ field }) => (
-                                                    <FormItem><FormLabel>Créditos Totales</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                                                )} />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <FormField control={programForm.control} name="totalCredits" render={({ field }) => (
+                                                        <FormItem><FormLabel>Créditos Totales</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                                    )} />
+                                                    <FormField control={programForm.control} name="totalCycles" render={({ field }) => (
+                                                        <FormItem><FormLabel>Total de Ciclos</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                                    )} />
+                                                </div>
                                             </div>
                                             <DialogFooter>
                                                 <Button variant="outline" type="button" onClick={() => setIsCreateProgramDialogOpen(false)}>Cancelar</Button>
@@ -260,15 +267,16 @@ export default function ProgramsPage() {
                     </CardHeader>
                     <CardContent>
                         <Table>
-                            <TableHeader><TableRow><TableHead>ID del Programa</TableHead><TableHead>Nombre</TableHead><TableHead>Facultad</TableHead><TableHead className="text-center">Créditos</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>ID del Programa</TableHead><TableHead>Nombre</TableHead><TableHead>Facultad</TableHead><TableHead className="text-center">Créditos</TableHead><TableHead className="text-center">Ciclos</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
                             <TableBody>
-                                {areProgramsLoading ? <TableRow><TableCell colSpan={5} className="text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                {areProgramsLoading ? <TableRow><TableCell colSpan={6} className="text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                                 : programs && programs.length > 0 ? programs.map(program => (
                                     <TableRow key={program.id}>
                                         <TableCell className="font-mono">{program.programId}</TableCell>
                                         <TableCell className="font-medium">{program.name}</TableCell>
                                         <TableCell>{facultyNames[program.facultyId] || 'N/A'}</TableCell>
                                         <TableCell className="text-center">{program.totalCredits}</TableCell>
+                                        <TableCell className="text-center">{program.totalCycles}</TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal /></Button></DropdownMenuTrigger>
                                                 <DropdownMenuContent>
@@ -278,7 +286,7 @@ export default function ProgramsPage() {
                                             </DropdownMenu>
                                         </TableCell>
                                     </TableRow>
-                                )) : <TableRow><TableCell colSpan={5} className="text-center">No se encontraron programas.</TableCell></TableRow>}
+                                )) : <TableRow><TableCell colSpan={6} className="text-center">No se encontraron programas.</TableCell></TableRow>}
                             </TableBody>
                         </Table>
                     </CardContent>
@@ -364,9 +372,14 @@ export default function ProgramsPage() {
                                     </Select>
                                 <FormMessage /></FormItem>
                             )} />
-                            <FormField control={updateProgramForm.control} name="totalCredits" render={({ field }) => (
-                                <FormItem><FormLabel>Créditos Totales</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={updateProgramForm.control} name="totalCredits" render={({ field }) => (
+                                    <FormItem><FormLabel>Créditos Totales</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={updateProgramForm.control} name="totalCycles" render={({ field }) => (
+                                    <FormItem><FormLabel>Total de Ciclos</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                            </div>
                         </div>
                         <DialogFooter>
                             <Button variant="outline" type="button" onClick={() => setIsEditProgramDialogOpen(false)}>Cancelar</Button>
@@ -401,5 +414,7 @@ export default function ProgramsPage() {
     </div>
     );
 }
+
+    
 
     

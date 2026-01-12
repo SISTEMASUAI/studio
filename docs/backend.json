@@ -90,9 +90,13 @@
         "totalCredits": {
           "type": "number",
           "description": "Total number of credits required to complete the program."
+        },
+        "totalCycles": {
+          "type": "number",
+          "description": "Total number of cycles (semesters/terms) in the program."
         }
       },
-      "required": ["programId", "name", "facultyId", "totalCredits"]
+      "required": ["programId", "name", "facultyId", "totalCredits", "totalCycles"]
     },
     "Faculty": {
       "title": "Faculty",
@@ -550,3 +554,5 @@
     }
   }
 }
+
+    

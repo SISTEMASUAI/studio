@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -56,21 +56,36 @@ import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { collection, query, where, DocumentData } from 'firebase/firestore';
+import { collection, query, where, DocumentData, doc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 interface Course extends DocumentData {
     id: string;
-    code: string;
+    courseId: string;
     name: string;
+    description: string;
     credits: number;
+    level: string;
+    instructorId: string;
+    programId: string;
+    facultyId: string;
+    semesterStartDate?: string;
+    semesterEndDate?: string;
+    schedule?: { day: string; startTime: string; endTime: string; classroom: string }[];
+    mode?: string;
     enrolled?: number;
     capacity?: number;
-    professor?: string; // Should be professorId
-    schedule?: { day: string, startTime: string, endTime: string, classroom: string }[];
     prerequisiteStatus?: 'met' | 'partial' | 'unmet';
     conflict?: boolean;
     waitlistStatus?: 'none' | 'on_waitlist';
-    programId: string;
+}
+
+interface Professor extends DocumentData {
+    id: string;
+    firstName: string;
+    lastName: string;
+    profilePicture: string;
 }
 
 interface Enrollment extends DocumentData {
@@ -99,9 +114,12 @@ const PrerequisiteBadge = ({ status }: { status: string }) => {
 function StudentEnrollmentView() {
   const { user, profile } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isEnrolling, setIsEnrolling] = useState<string | null>(null);
+  const [isWithdrawing, setIsWithdrawing] = useState<string | null>(null);
 
-  const isEnrollmentPeriod = true; // Placeholder
-  const isEarlyWithdrawal = true; // Placeholder for withdrawal period logic
+  const isEnrollmentPeriod = true; 
+  const isEarlyWithdrawal = true; 
 
   const availableCoursesQuery = useMemoFirebase(() => {
       if (!firestore || !profile?.programId) return null;
@@ -117,6 +135,11 @@ function StudentEnrollmentView() {
 
   const { data: enrolledCourses, isLoading: areEnrolledLoading } = useCollection<Enrollment>(enrolledCoursesQuery);
 
+  const professorsQuery = useMemoFirebase(() => 
+    firestore ? query(collection(firestore, 'users'), where('role', '==', 'professor')) : null,
+  [firestore]);
+  const { data: professors } = useCollection<Professor>(professorsQuery);
+
 
   const getProgressColor = (enrolled: number, capacity: number) => {
     const percentage = (enrolled / capacity) * 100;
@@ -124,6 +147,64 @@ function StudentEnrollmentView() {
     if (percentage < 90) return 'bg-yellow-500';
     return 'bg-red-500';
   }
+  
+  const handleEnroll = async (course: Course) => {
+    if (!firestore || !user || !profile) return;
+    setIsEnrolling(course.id);
+
+    const professor = professors?.find(p => p.id === course.instructorId);
+
+    const enrollmentData = {
+        studentId: user.uid,
+        courseId: course.id,
+        courseCode: course.courseId,
+        courseName: course.name,
+        courseImage: `https://picsum.photos/seed/${course.id}/400/200`,
+        professorId: course.instructorId,
+        professorName: professor ? `${professor.firstName} ${professor.lastName}` : 'No asignado',
+        professorProfilePicture: professor ? professor.profilePicture : `https://i.pravatar.cc/150?u=${course.instructorId}`,
+        semester: '2024-2', // Placeholder
+        year: 2024, // Placeholder
+    };
+
+    try {
+        await addDocumentNonBlocking(collection(firestore, 'enrollments'), enrollmentData);
+        toast({
+            title: "Inscripción Exitosa",
+            description: `Te has inscrito en ${course.name}.`,
+        });
+    } catch (error) {
+        toast({
+            variant: 'destructive',
+            title: "Error de Inscripción",
+            description: "No se pudo completar la inscripción. Inténtalo de nuevo.",
+        });
+    } finally {
+        setIsEnrolling(null);
+    }
+  };
+
+  const handleWithdraw = async (enrollmentId: string) => {
+    if (!firestore) return;
+    setIsWithdrawing(enrollmentId);
+    
+    try {
+        await deleteDocumentNonBlocking(doc(firestore, 'enrollments', enrollmentId));
+        toast({
+            title: "Retiro Exitoso",
+            description: "Has sido retirado del curso.",
+        });
+    } catch (error) {
+         toast({
+            variant: 'destructive',
+            title: "Error al Retirar",
+            description: "No se pudo procesar el retiro del curso.",
+        });
+    } finally {
+        setIsWithdrawing(null);
+    }
+  }
+
 
   if (!isEnrollmentPeriod) {
     return (
@@ -146,6 +227,15 @@ function StudentEnrollmentView() {
 
   const renderActionButton = (course: Course) => {
     const isFull = (course.enrolled || 0) >= (course.capacity || 0);
+    const isAlreadyEnrolled = enrolledCourses?.some(e => e.courseId === course.id);
+
+    if (isAlreadyEnrolled) {
+        return <Button variant="secondary" size="sm" className="w-full" disabled>Ya estás inscrito</Button>;
+    }
+
+    if (isEnrolling === course.id) {
+        return <Button size="sm" className="w-full" disabled><Loader2 className="mr-2 h-4 w-4 animate-spin"/> Inscribiendo...</Button>
+    }
 
     if (course.waitlistStatus === 'on_waitlist') {
         return <Button variant="outline" size="sm" className="w-full" disabled><ListPlus className="mr-2 h-4 w-4" /> Estás en la lista de espera</Button>;
@@ -160,7 +250,7 @@ function StudentEnrollmentView() {
     }
     
     return (
-        <Button size="sm" className="w-full" disabled={!isEnrollmentPeriod || course.prerequisiteStatus === 'unmet' || course.conflict}>
+        <Button size="sm" className="w-full" onClick={() => handleEnroll(course)} disabled={!isEnrollmentPeriod || course.prerequisiteStatus === 'unmet' || course.conflict}>
             <PlusCircle className="mr-2 h-4 w-4" /> Inscribir
         </Button>
     );
@@ -183,7 +273,9 @@ function StudentEnrollmentView() {
                 {areCoursesLoading ? (
                     <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
                 ) : availableCourses && availableCourses.length > 0 ? (
-                    availableCourses.map((course) => (
+                    availableCourses.map((course) => {
+                        const professor = professors?.find(p => p.id === course.instructorId);
+                        return (
                         <Card key={course.id} className={`border-2 ${course.conflict ? 'border-destructive/50' : 'border-transparent'}`}>
                         <CardHeader className="pb-2">
                             {course.conflict && (
@@ -202,7 +294,7 @@ function StudentEnrollmentView() {
                         </CardHeader>
                         <CardContent className="space-y-3">
                                 <div className="flex flex-col sm:flex-row justify-between text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-2"><UserCog /> {course.professor || 'No asignado'}</div>
+                                    <div className="flex items-center gap-2"><UserCog /> {professor ? `${professor.firstName} ${professor.lastName}` : 'No asignado'}</div>
                                     <div className="flex items-center gap-2"><Calendar /> {course.schedule?.[0]?.day} {course.schedule?.[0]?.startTime}-{course.schedule?.[0]?.endTime}</div>
                                 </div>
                                 <div>
@@ -217,7 +309,8 @@ function StudentEnrollmentView() {
                                 {renderActionButton(course)}
                             </CardFooter>
                         </Card>
-                    ))
+                        )
+                    })
                 ) : (
                     <Alert>
                         <BookOpenCheck className="h-4 w-4" />
@@ -263,8 +356,8 @@ function StudentEnrollmentView() {
                         <TableCell className="text-right">
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button size="sm" variant="outline" disabled={!isEnrollmentPeriod}>
-                                        <MinusCircle className="mr-2 h-4 w-4" />
+                                    <Button size="sm" variant="outline" disabled={!isEnrollmentPeriod || isWithdrawing === course.id}>
+                                         {isWithdrawing === course.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <MinusCircle className="mr-2 h-4 w-4" />}
                                         Retirar
                                     </Button>
                                 </DialogTrigger>
@@ -319,7 +412,7 @@ function StudentEnrollmentView() {
                                     </div>
                                     <DialogFooter>
                                         <Button variant="outline">Cancelar</Button>
-                                        <Button variant="destructive" disabled><MinusCircle className="mr-2"/> Confirmar Baja</Button>
+                                        <Button variant="destructive" onClick={() => handleWithdraw(course.id)} disabled={isWithdrawing === course.id}><MinusCircle className="mr-2"/> Confirmar Baja</Button>
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>

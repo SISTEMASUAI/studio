@@ -49,7 +49,7 @@ import {
 import { useState, useMemo, useEffect } from 'react';
 import { collection, query, where, DocumentData, getDocs } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { addDays, format, isBefore, parse, startOfDay } from 'date-fns';
+import { addDays, format, isBefore, parse, startOfDay, differenceInCalendarDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface ScheduleItem {
@@ -181,6 +181,14 @@ function ProfessorAttendanceView() {
     }
   }, [enrollments, firestore]);
 
+  const isAttendanceActionable = (sessionDate: Date) => {
+    const today = startOfDay(new Date());
+    const daysDifference = differenceInCalendarDays(today, startOfDay(sessionDate));
+
+    // Actionable if it's today or up to 6 days in the past. Not actionable for future dates.
+    return daysDifference >= 0 && daysDifference <= 6;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -223,85 +231,95 @@ function ProfessorAttendanceView() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {classSessions.length > 0 ? classSessions.map(session => (
-                            <TableRow key={session.id}>
-                                <TableCell>
-                                    <div className="font-medium">{format(session.date, 'PPP', { locale: es })}</div>
-                                    <div className="text-sm text-muted-foreground">{format(session.date, 'EEEE', { locale: es })}</div>
-                                </TableCell>
-                                <TableCell>
-                                    <div>{session.title.split(' - ')[1]}</div>
-                                    <div className="text-sm text-muted-foreground">{session.timeRange}</div>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Dialog onOpenChange={(open) => !open && setSelectedSession(null)}>
-                                        <DialogTrigger asChild>
-                                            <Button variant="outline" onClick={() => setSelectedSession(session)}>Pasar Asistencia</Button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-2xl">
-                                            <DialogHeader>
-                                                <DialogTitle>Pasar Asistencia</DialogTitle>
-                                                <DialogDescription>
-                                                    Clase: {selectedSession?.title} <br />
-                                                    Fecha: {selectedSession ? format(selectedSession.date, 'PPPP', { locale: es }) : ''}
-                                                </DialogDescription>
-                                            </DialogHeader>
-                                            <div className="max-h-[60vh] overflow-y-auto">
-                                                <Table>
-                                                    <TableHeader>
-                                                        <TableRow>
-                                                            <TableHead>Estudiante</TableHead>
-                                                            <TableHead className="text-right">Acciones</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {areStudentsLoading ? (
-                                                             <TableRow>
-                                                                <TableCell colSpan={2} className="text-center">
-                                                                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ) : enrolledStudents.length > 0 ? enrolledStudents.map(student => (
-                                                            <TableRow key={student.id}>
-                                                                <TableCell className="flex items-center gap-3">
-                                                                    <Avatar>
-                                                                        <AvatarImage src={student.profilePicture} alt={student.firstName} />
-                                                                        <AvatarFallback>{student.firstName?.[0]}{student.lastName?.[0]}</AvatarFallback>
-                                                                    </Avatar>
-                                                                    <span>{student.lastName}, {student.firstName}</span>
-                                                                </TableCell>
-                                                                <TableCell className="text-right space-x-2">
-                                                                    <Button size="icon" variant="outline" className="text-green-600 hover:text-green-700 hover:bg-green-50"><Check /></Button>
-                                                                    <Button size="icon" variant="outline" className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"><Clock /></Button>
-                                                                    <Button size="icon" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50"><X /></Button>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        )) : (
+                        {classSessions.length > 0 ? classSessions.map(session => {
+                            const isActionable = isAttendanceActionable(session.date);
+                            const isToday = isSameDay(session.date, new Date());
+                            return (
+                                <TableRow key={session.id} className={isToday ? 'bg-accent/50' : ''}>
+                                    <TableCell>
+                                        <div className="font-medium">{format(session.date, 'PPP', { locale: es })}</div>
+                                        <div className="text-sm text-muted-foreground">{format(session.date, 'EEEE', { locale: es })}</div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div>{session.title.split(' - ')[1]}</div>
+                                        <div className="text-sm text-muted-foreground">{session.timeRange}</div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Dialog onOpenChange={(open) => !open && setSelectedSession(null)}>
+                                            <DialogTrigger asChild>
+                                                <Button 
+                                                    variant={isToday ? 'default' : 'outline'}
+                                                    onClick={() => setSelectedSession(session)} 
+                                                    disabled={!isActionable}
+                                                >
+                                                    Pasar Asistencia
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-2xl">
+                                                <DialogHeader>
+                                                    <DialogTitle>Pasar Asistencia</DialogTitle>
+                                                    <DialogDescription>
+                                                        Clase: {selectedSession?.title} <br />
+                                                        Fecha: {selectedSession ? format(selectedSession.date, 'PPPP', { locale: es }) : ''}
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <div className="max-h-[60vh] overflow-y-auto">
+                                                    <Table>
+                                                        <TableHeader>
                                                             <TableRow>
-                                                                <TableCell colSpan={2} className="text-center">
-                                                                    No hay estudiantes inscritos en este curso.
-                                                                </TableCell>
+                                                                <TableHead>Estudiante</TableHead>
+                                                                <TableHead className="text-right">Acciones</TableHead>
                                                             </TableRow>
-                                                        )}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
-                                            <DialogFooter>
-                                                <Alert>
-                                                    <AlertTriangle className="h-4 w-4" />
-                                                    <AlertTitle>En Desarrollo</AlertTitle>
-                                                    <AlertDescription>
-                                                        La lógica para guardar el estado de la asistencia de cada alumno se implementará próximamente.
-                                                    </AlertDescription>
-                                                </Alert>
-                                                <Button variant="outline">Cerrar</Button>
-                                                <Button disabled>Guardar Asistencia</Button>
-                                            </DialogFooter>
-                                        </DialogContent>
-                                    </Dialog>
-                                </TableCell>
-                            </TableRow>
-                        )) : (
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {areStudentsLoading ? (
+                                                                <TableRow>
+                                                                    <TableCell colSpan={2} className="text-center">
+                                                                        <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ) : enrolledStudents.length > 0 ? enrolledStudents.map(student => (
+                                                                <TableRow key={student.id}>
+                                                                    <TableCell className="flex items-center gap-3">
+                                                                        <Avatar>
+                                                                            <AvatarImage src={student.profilePicture} alt={student.firstName} />
+                                                                            <AvatarFallback>{student.firstName?.[0]}{student.lastName?.[0]}</AvatarFallback>
+                                                                        </Avatar>
+                                                                        <span>{student.lastName}, {student.firstName}</span>
+                                                                    </TableCell>
+                                                                    <TableCell className="text-right space-x-2">
+                                                                        <Button size="icon" variant="outline" className="text-green-600 hover:text-green-700 hover:bg-green-50"><Check /></Button>
+                                                                        <Button size="icon" variant="outline" className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"><Clock /></Button>
+                                                                        <Button size="icon" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50"><X /></Button>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            )) : (
+                                                                <TableRow>
+                                                                    <TableCell colSpan={2} className="text-center">
+                                                                        No hay estudiantes inscritos en este curso.
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            )}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                                <DialogFooter>
+                                                    <Alert>
+                                                        <AlertTriangle className="h-4 w-4" />
+                                                        <AlertTitle>En Desarrollo</AlertTitle>
+                                                        <AlertDescription>
+                                                            La lógica para guardar el estado de la asistencia de cada alumno se implementará próximamente.
+                                                        </AlertDescription>
+                                                    </Alert>
+                                                    <Button variant="outline">Cerrar</Button>
+                                                    <Button disabled>Guardar Asistencia</Button>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        }) : (
                              <TableRow>
                                 <TableCell colSpan={3} className="text-center h-24">
                                     No hay clases programadas para este curso. Verifique el horario en la configuración del curso.

@@ -70,7 +70,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
-import { collection, query, where, DocumentData, doc } from 'firebase/firestore';
+import { collection, query, where, DocumentData, doc, getDocs } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import Link from 'next/link';
@@ -115,6 +115,7 @@ interface Course extends DocumentData {
     schedule?: { day: string; startTime: string; endTime: string; classroom: string }[];
     mode?: string;
     capacity?: number;
+    enrolled?: number;
 }
 
 interface Program extends DocumentData {
@@ -395,6 +396,19 @@ function AdminCoursesView() {
         if (!firestore) return;
         
         try {
+            // Check for uniqueness
+            const q = query(collection(firestore, 'courses'), where('courseId', '==', values.courseId));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                toast({
+                    variant: "destructive",
+                    title: "Error al crear el curso",
+                    description: "Ya existe un curso con este código. Por favor, utiliza uno diferente.",
+                });
+                return;
+            }
+
             const courseCollection = collection(firestore, 'courses');
             
             await addDocumentNonBlocking(courseCollection, {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -326,23 +325,21 @@ export default function SchedulePage() {
 
   const DayWithDots = (props: DayProps) => {
     const { date, displayMonth } = props;
-    if (!date || !displayMonth) {
+    
+    // If the day is outside the current month, fall back to the default Day component
+    if (date.getMonth() !== displayMonth.getMonth()) {
       return <Day {...props} />;
     }
-  
-    if (date.getMonth() !== displayMonth.getMonth()) {
-        return <Day {...props} />;
-    }
-  
+
     const eventsOnDay = allEvents.filter(
       (event) => event.date.toDateString() === date.toDateString()
     );
-  
+
     return (
-      <td className="h-9 w-9 text-center text-sm p-0 relative">
-        <span className="relative flex h-full w-full items-center justify-center">
-          {format(date, 'd')}
-        </span>
+      <div className="relative flex justify-center items-center h-full w-full">
+        {/* Render the default Day component to get base styling and interaction */}
+        <Day {...props} />
+        {/* Add event dots on top */}
         {eventsOnDay.length > 0 && (
           <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">
             {eventsOnDay.slice(0, 4).map((event, i) => (
@@ -350,7 +347,7 @@ export default function SchedulePage() {
             ))}
           </div>
         )}
-      </td>
+      </div>
     );
   };
   

@@ -592,7 +592,9 @@ function AdminCoursesView() {
                                                     </DialogHeader>
                                                     <DialogFooter>
                                                         <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                                                        <Button variant="destructive" onClick={() => handleDeactivateCourse(course)}>Sí, desactivar</Button>
+                                                        <DialogClose asChild>
+                                                          <Button variant="destructive" onClick={() => handleDeactivateCourse(course)}>Sí, desactivar</Button>
+                                                        </DialogClose>
                                                     </DialogFooter>
                                                 </DialogContent>
                                             </Dialog>
@@ -612,7 +614,9 @@ function AdminCoursesView() {
                                                     </DialogHeader>
                                                     <DialogFooter>
                                                         <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-                                                        <Button onClick={() => handleActivateCourse(course)}>Sí, activar</Button>
+                                                        <DialogClose asChild>
+                                                          <Button onClick={() => handleActivateCourse(course)}>Sí, activar</Button>
+                                                        </DialogClose>
                                                     </DialogFooter>
                                                 </DialogContent>
                                             </Dialog>

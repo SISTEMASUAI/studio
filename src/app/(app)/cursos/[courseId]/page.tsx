@@ -79,6 +79,7 @@ interface AttendanceRecord {
     studentId: string;
     courseId: string;
     date: string;
+    sessionTitle: string;
     status: 'presente' | 'ausente' | 'tarde' | 'justificado';
     notes?: string;
 }

@@ -96,6 +96,7 @@ interface AttendanceRecord {
     studentId: string;
     courseId: string;
     date: string;
+    sessionTitle: string;
     status: AttendanceStatus;
 }
 
@@ -200,9 +201,10 @@ function ProfessorAttendanceView() {
     setSelectedSession(session);
     if (!firestore || !selectedCourseId) return;
 
+    const sessionTitle = session.title.split(' - ')[1];
     const newAttendanceState = new Map<string, AttendanceStatus>();
     for (const student of enrolledStudents) {
-        const attendanceDocId = `${selectedCourseId}-${student.uid}-${format(session.date, 'yyyy-MM-dd')}`;
+        const attendanceDocId = `${selectedCourseId}-${student.uid}-${format(session.date, 'yyyy-MM-dd')}-${sessionTitle}`;
         const docRef = doc(firestore, 'attendance', attendanceDocId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -220,12 +222,14 @@ function ProfessorAttendanceView() {
     if (!firestore || !selectedCourseId || !selectedSession) return;
     setIsSaving(true);
     try {
+        const sessionTitle = selectedSession.title.split(' - ')[1];
         for (const [studentId, status] of attendanceState.entries()) {
-            const attendanceDocId = `${selectedCourseId}-${studentId}-${format(selectedSession.date, 'yyyy-MM-dd')}`;
+            const attendanceDocId = `${selectedCourseId}-${studentId}-${format(selectedSession.date, 'yyyy-MM-dd')}-${sessionTitle}`;
             const record: Omit<AttendanceRecord, 'id'> = {
                 studentId,
                 courseId: selectedCourseId,
                 date: format(selectedSession.date, 'yyyy-MM-dd'),
+                sessionTitle,
                 status,
             };
             setDocumentNonBlocking(doc(firestore, 'attendance', attendanceDocId), record, { merge: true });

@@ -22,6 +22,16 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 
+interface AttendanceRecord {
+    id: string;
+    studentId: string;
+    courseId: string;
+    date: string;
+    status: 'presente' | 'ausente' | 'tarde' | 'justificado';
+    notes?: string;
+}
+
+
 const gradesData = {
     finalGrade: 88,
     letterGrade: 'A-',
@@ -35,11 +45,11 @@ const gradesData = {
 }
 
 
-export default function CourseGrades({ attendance }: { attendance: {date: string, status: string}[]}) {
+export default function CourseGrades({ attendance }: { attendance: AttendanceRecord[]}) {
     const attendancePolicy = 85;
-    const totalClasses = attendance.length;
-    const validAttendance = attendance.filter(a => a.status === 'presente' || a.status === 'tarde').length;
-    const attendancePercentage = Math.round((validAttendance / totalClasses) * 100);
+    const totalClasses = attendance.length > 0 ? attendance.length : 20; // Placeholder if no records yet
+    const validAttendance = attendance.filter(a => a.status === 'presente' || a.status === 'tarde' || a.status === 'justificado').length;
+    const attendancePercentage = totalClasses > 0 ? Math.round((validAttendance / totalClasses) * 100) : 100;
     const absences = attendance.filter(a => a.status === 'ausente');
 
     const getProgressColor = (percentage: number) => {
@@ -103,7 +113,7 @@ export default function CourseGrades({ attendance }: { attendance: {date: string
                         <Table>
                             <TableBody>
                                 {absences.length > 0 ? absences.map(record => (
-                                    <TableRow key={record.date}>
+                                    <TableRow key={record.id}>
                                         <TableCell className="p-2">
                                             <p className="text-sm">{record.date}</p>
                                             <Badge variant='destructive' className="capitalize text-xs h-5">{record.status}</Badge>
@@ -170,5 +180,3 @@ export default function CourseGrades({ attendance }: { attendance: {date: string
         </div>
     )
 }
-
-    

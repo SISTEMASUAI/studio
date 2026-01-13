@@ -1,7 +1,7 @@
 'use client';
 
-import { useDoc, useMemoFirebase, useFirestore, useUser } from '@/firebase';
-import { doc, DocumentData } from 'firebase/firestore';
+import { useDoc, useMemoFirebase, useFirestore, useUser, useCollection } from '@/firebase';
+import { doc, DocumentData, collection, query, where } from 'firebase/firestore';
 import { useParams } from 'next/navigation';
 import {
   Card,
@@ -74,6 +74,16 @@ interface InstructorProfile {
     email: string;
 }
 
+interface AttendanceRecord {
+    id: string;
+    studentId: string;
+    courseId: string;
+    date: string;
+    status: 'presente' | 'ausente' | 'tarde' | 'justificado';
+    notes?: string;
+}
+
+
 // Mock data for classmates
 const classmates = [
     { id: 'user-2', name: 'Alicia Keys', avatar: 'https://i.pravatar.cc/150?u=user-2' },
@@ -87,16 +97,6 @@ const bibliography = [
     { id: 'bib-1', text: 'Clean Code: A Handbook of Agile Software Craftsmanship by Robert C. Martin', available: true, digital: true },
     { id: 'bib-2', text: 'Structure and Interpretation of Computer Programs by Harold Abelson', available: true, digital: false },
     { id: 'bib-3', text: 'Introduction to Algorithms by Thomas H. Cormen', available: false, digital: false },
-];
-
-// Mock data for attendance
-const attendance = [
-    { date: '2024-08-05', status: 'presente' },
-    { date: '2024-08-07', status: 'presente' },
-    { date: '2024-08-12', status: 'ausente' },
-    { date: '2024-08-14', status: 'tarde' },
-    { date: '2024-08-19', status: 'presente' },
-    { date: '2024-08-21', status: 'ausente' },
 ];
 
 const courseMaterials = [
@@ -148,6 +148,14 @@ export default function CourseDetailPage() {
   
   const { data: instructor, isLoading: isInstructorLoading } = useDoc<InstructorProfile>(instructorDocRef);
 
+  const attendanceQuery = useMemoFirebase(() => {
+    if (!firestore || !profile || !courseId || profile.role !== 'student') return null;
+    return query(collection(firestore, 'attendance'), where('studentId', '==', profile.uid), where('courseId', '==', courseId));
+  }, [firestore, profile, courseId]);
+
+  const { data: attendance, isLoading: isAttendanceLoading } = useCollection<AttendanceRecord>(attendanceQuery);
+
+
   if (isCourseLoading) {
     return (
       <div className="flex justify-center items-center h-full pt-20">
@@ -193,8 +201,6 @@ export default function CourseDetailPage() {
   // Placeholder for approved prerequisites
   const approvedPrerequisites = ['CS101'];
 
-  const absences = attendance.filter(a => a.status === 'ausente');
-
   const studentTabs = (
     <>
       <TabsTrigger value="assignments"><ClipboardList /> Tareas</TabsTrigger>
@@ -231,7 +237,7 @@ export default function CourseDetailPage() {
                             <CourseAssignments />
                         </TabsContent>
                         <TabsContent value="grades" className="mt-6">
-                            <CourseGrades attendance={attendance} />
+                            {isAttendanceLoading ? <Loader2 className="animate-spin" /> : <CourseGrades attendance={attendance || []} />}
                         </TabsContent>
                     </>
                 )}
@@ -545,7 +551,7 @@ export default function CourseDetailPage() {
             />
             {isStudent && (
                 <>
-                    <CourseGrades attendance={attendance}/>
+                    {isAttendanceLoading ? <Card><CardContent className="pt-6 flex justify-center"><Loader2 className="animate-spin"/></CardContent></Card> : <CourseGrades attendance={attendance || []} />}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Settings/> Administración</CardTitle>

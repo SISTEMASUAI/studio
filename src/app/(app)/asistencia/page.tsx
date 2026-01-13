@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, setDocumentNonBlocking } from '@/firebase';
 import {
   Card,
   CardContent,
@@ -47,10 +47,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useState, useMemo, useEffect } from 'react';
-import { collection, query, where, DocumentData, getDocs } from 'firebase/firestore';
+import { collection, query, where, DocumentData, getDocs, doc, getDoc } from 'firebase/firestore';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { addDays, format, isBefore, parse, startOfDay, differenceInCalendarDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
+
+type AttendanceStatus = 'presente' | 'ausente' | 'tarde';
 
 interface ScheduleItem {
   title: string;
@@ -87,6 +90,15 @@ interface ClassSession {
   title: string;
   timeRange: string;
 }
+
+interface AttendanceRecord {
+    id: string;
+    studentId: string;
+    courseId: string;
+    date: string;
+    status: AttendanceStatus;
+}
+
 
 const dayOfWeekMap: { [key: string]: number } = {
   Domingo: 0, Lunes: 1, Martes: 2, Miércoles: 3, Jueves: 4, Viernes: 5, Sábado: 6,
@@ -128,9 +140,12 @@ const generateClassSessionsForCourse = (course: Course): ClassSession[] => {
 function ProfessorAttendanceView() {
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [classSessions, setClassSessions] = useState<ClassSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<ClassSession | null>(null);
+  const [attendanceState, setAttendanceState] = useState<Map<string, AttendanceStatus>>(new Map());
+  const [isSaving, setIsSaving] = useState(false);
 
   const coursesQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
@@ -181,11 +196,52 @@ function ProfessorAttendanceView() {
     }
   }, [enrollments, firestore]);
 
+  const openAttendanceDialog = async (session: ClassSession) => {
+    setSelectedSession(session);
+    if (!firestore || !selectedCourseId) return;
+
+    const newAttendanceState = new Map<string, AttendanceStatus>();
+    for (const student of enrolledStudents) {
+        const attendanceDocId = `${selectedCourseId}-${student.uid}-${format(session.date, 'yyyy-MM-dd')}`;
+        const docRef = doc(firestore, 'attendance', attendanceDocId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            newAttendanceState.set(student.uid, (docSnap.data() as AttendanceRecord).status);
+        }
+    }
+    setAttendanceState(newAttendanceState);
+};
+
+  const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
+    setAttendanceState(prev => new Map(prev).set(studentId, status));
+  };
+
+  const handleSaveAttendance = async () => {
+    if (!firestore || !selectedCourseId || !selectedSession) return;
+    setIsSaving(true);
+    try {
+        for (const [studentId, status] of attendanceState.entries()) {
+            const attendanceDocId = `${selectedCourseId}-${studentId}-${format(selectedSession.date, 'yyyy-MM-dd')}`;
+            const record: Omit<AttendanceRecord, 'id'> = {
+                studentId,
+                courseId: selectedCourseId,
+                date: format(selectedSession.date, 'yyyy-MM-dd'),
+                status,
+            };
+            setDocumentNonBlocking(doc(firestore, 'attendance', attendanceDocId), record, { merge: true });
+        }
+        toast({ title: 'Éxito', description: 'Asistencia guardada correctamente.' });
+    } catch (error) {
+        console.error('Error saving attendance:', error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar la asistencia.' });
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
   const isAttendanceActionable = (sessionDate: Date) => {
     const today = startOfDay(new Date());
     const daysDifference = differenceInCalendarDays(today, startOfDay(sessionDate));
-
-    // Actionable if it's today or up to 6 days in the past. Not actionable for future dates.
     return daysDifference >= 0 && daysDifference <= 6;
   };
 
@@ -249,7 +305,7 @@ function ProfessorAttendanceView() {
                                             <DialogTrigger asChild>
                                                 <Button 
                                                     variant={isToday ? 'default' : 'outline'}
-                                                    onClick={() => setSelectedSession(session)} 
+                                                    onClick={() => openAttendanceDialog(session)} 
                                                     disabled={!isActionable}
                                                 >
                                                     Pasar Asistencia
@@ -288,9 +344,9 @@ function ProfessorAttendanceView() {
                                                                         <span>{student.lastName}, {student.firstName}</span>
                                                                     </TableCell>
                                                                     <TableCell className="text-right space-x-2">
-                                                                        <Button size="icon" variant="outline" className="text-green-600 hover:text-green-700 hover:bg-green-50"><Check /></Button>
-                                                                        <Button size="icon" variant="outline" className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"><Clock /></Button>
-                                                                        <Button size="icon" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50"><X /></Button>
+                                                                        <Button size="icon" variant={attendanceState.get(student.uid) === 'presente' ? 'default' : 'outline'} onClick={() => handleStatusChange(student.uid, 'presente')} className="text-green-600 hover:text-green-700 hover:bg-green-50"><Check /></Button>
+                                                                        <Button size="icon" variant={attendanceState.get(student.uid) === 'tarde' ? 'default' : 'outline'} onClick={() => handleStatusChange(student.uid, 'tarde')} className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50"><Clock /></Button>
+                                                                        <Button size="icon" variant={attendanceState.get(student.uid) === 'ausente' ? 'destructive' : 'outline'} onClick={() => handleStatusChange(student.uid, 'ausente')} className="hover:bg-red-50"><X /></Button>
                                                                     </TableCell>
                                                                 </TableRow>
                                                             )) : (
@@ -304,15 +360,11 @@ function ProfessorAttendanceView() {
                                                     </Table>
                                                 </div>
                                                 <DialogFooter>
-                                                    <Alert>
-                                                        <AlertTriangle className="h-4 w-4" />
-                                                        <AlertTitle>En Desarrollo</AlertTitle>
-                                                        <AlertDescription>
-                                                            La lógica para guardar el estado de la asistencia de cada alumno se implementará próximamente.
-                                                        </AlertDescription>
-                                                    </Alert>
                                                     <Button variant="outline">Cerrar</Button>
-                                                    <Button disabled>Guardar Asistencia</Button>
+                                                    <Button onClick={handleSaveAttendance} disabled={isSaving}>
+                                                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                                        Guardar Asistencia
+                                                    </Button>
                                                 </DialogFooter>
                                             </DialogContent>
                                         </Dialog>

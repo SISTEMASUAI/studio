@@ -51,7 +51,7 @@ export default function CourseGrades({ attendance }: { attendance: AttendanceRec
     const totalClasses = attendance.length > 0 ? attendance.length : 20; // Placeholder if no records yet
     const validAttendance = attendance.filter(a => a.status === 'presente' || a.status === 'tarde' || a.status === 'justificado').length;
     const attendancePercentage = totalClasses > 0 ? Math.round((validAttendance / totalClasses) * 100) : 100;
-    const absences = attendance.filter(a => a.status === 'ausente');
+    const justifiableAbsences = attendance.filter(a => a.status === 'ausente' || a.status === 'tarde');
 
     const getProgressColor = (percentage: number) => {
         if (percentage >= 85) return 'bg-green-500';
@@ -116,20 +116,26 @@ export default function CourseGrades({ attendance }: { attendance: AttendanceRec
                                 <TableRow>
                                     <TableHead>Fecha</TableHead>
                                     <TableHead>Clase</TableHead>
+                                    <TableHead>Estado</TableHead>
                                     <TableHead className="text-right">Acción</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {absences.length > 0 ? absences.map(record => (
+                                {justifiableAbsences.length > 0 ? justifiableAbsences.map(record => (
                                     <TableRow key={record.id}>
                                         <TableCell className="p-2">
                                             <p className="text-sm">{record.date}</p>
                                         </TableCell>
-                                        <TableCell className="p-2 text-sm text-muted-foreground">{record.sessionId.split('-')[1]}</TableCell>
+                                        <TableCell className="p-2 text-sm text-muted-foreground">{record.sessionId.split('-').slice(2, -1).join(' ')}</TableCell>
+                                         <TableCell className="p-2 text-sm capitalize">
+                                            <Badge variant={record.status === 'ausente' ? 'destructive' : 'secondary'}>{record.status}</Badge>
+                                         </TableCell>
                                         <TableCell className="p-2 text-right">
                                             <Dialog>
                                                 <DialogTrigger asChild>
-                                                    <Button variant="outline" size="sm">Justificar</Button>
+                                                    <Button variant="outline" size="sm" disabled={record.status === 'justificado'}>
+                                                        {record.status === 'justificado' ? 'Justificado' : 'Justificar'}
+                                                    </Button>
                                                 </DialogTrigger>
                                                 <DialogContent className="sm:max-w-[425px]">
                                                     <DialogHeader>
@@ -177,7 +183,7 @@ export default function CourseGrades({ attendance }: { attendance: AttendanceRec
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={3} className="text-center text-muted-foreground text-sm p-2">No tienes inasistencias por justificar.</TableCell>
+                                        <TableCell colSpan={4} className="text-center text-muted-foreground text-sm p-2">No tienes inasistencias por justificar.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

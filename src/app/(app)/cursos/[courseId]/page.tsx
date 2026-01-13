@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useDoc, useMemoFirebase, useFirestore, useUser } from '@/firebase';
@@ -17,6 +16,16 @@ import {
   AlertTitle,
 } from '@/components/ui/alert';
 import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+  } from "@/components/ui/tabs"
+import { Loader2, Info, BookMarked, Users, Library, UserCheck as UserCheckIcon, Search, CheckCircle, XCircle, Book, Settings, Trash2, Megaphone, UserCog, PlusCircle, Check, Eye, BarChart2, FileText, ClipboardList, GraduationCap, Folder, File, Tv, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -25,36 +34,19 @@ import {
     DialogTitle,
     DialogTrigger,
   } from "@/components/ui/dialog"
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-  } from "@/components/ui/tabs"
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, BookOpen, CheckCircle, XCircle, FileText, Info, BookMarked, ListChecks, Mail, Users, Library, UserCheck as UserCheckIcon, Search, AlertTriangle, FileUp, GraduationCap, ClipboardList, Folder, File, Download, Tv, Book, Settings, Trash2, Edit, Megaphone, UserCog, PlusCircle, Check, Eye, BarChart2 } from 'lucide-react';
-import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import CourseSchedule from '@/components/cursos/CourseSchedule';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Progress } from '@/components/ui/progress';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+
+import CourseHeader from '@/components/cursos/CourseHeader';
+import CourseSchedule from '@/components/cursos/CourseSchedule';
 import CourseGrades from '@/components/cursos/CourseGrades';
 import CourseAssignments from '@/components/cursos/CourseAssignments';
-import { Checkbox } from '@/components/ui/checkbox';
 
-interface ScheduleItem {
-    day: string;
-    startTime: string;
-    endTime: string;
-    classroom: string;
-}
 
 // Define the type for the course data we expect from Firestore
 interface CourseDetails {
@@ -68,7 +60,7 @@ interface CourseDetails {
   level?: string;
   department?: string;
   prerequisites?: string[];
-  schedule?: ScheduleItem[];
+  schedule?: { day: string; startTime: string; endTime: string; classroom: string }[];
   mode?: 'Presencial' | 'Online' | 'Híbrido';
   virtualRoomUrl?: string;
 }
@@ -124,92 +116,6 @@ const professorAssignments = [
     { id: 'A01', title: 'Tarea 1: Investigación de Mercado', dueDate: '2024-08-20', submissions: 28, total: 30, graded: 15 },
     { id: 'A02', title: 'Examen Parcial', dueDate: '2024-09-05', submissions: 30, total: 30, graded: 0 },
 ]
-
-function CourseHeader({ course, instructor }: { course: CourseDetails, instructor: InstructorProfile | null }) {
-    const { profile } = useUser();
-    const isInstructor = profile?.uid === course.instructorId;
-
-    const image = PlaceHolderImages.find(p => p.id === course.id);
-    
-    return (
-        <Card className="overflow-hidden">
-            <div className="relative w-full h-48">
-                {image ? (
-                    <Image
-                    src={image.imageUrl}
-                    alt={course.name}
-                    fill
-                    className="object-cover"
-                    data-ai-hint={image.imageHint}
-                    />
-                ) : (
-                    <div className="w-full h-full bg-secondary"></div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-6">
-                    <h1 className="text-3xl font-bold font-headline text-white">{course.name}</h1>
-                </div>
-                 {isInstructor && (
-                    <div className="absolute top-4 right-4 flex gap-2">
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                 <Button variant="secondary" size="sm"><Edit className="mr-2"/> Editar</Button>
-                            </DialogTrigger>
-                             <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Editar Información del Curso</DialogTitle>
-                                    <DialogDescription>
-                                        Realiza cambios en la descripción, objetivos y otros detalles del curso.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4 py-4">
-                                     <div className="space-y-2">
-                                        <Label>Descripción</Label>
-                                        <Textarea defaultValue={course.description} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Metodología</Label>
-                                        <Textarea defaultValue={course.methodology} />
-                                    </div>
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="outline">Cancelar</Button>
-                                    <Button disabled>Guardar Cambios</Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                        <Button variant="secondary" size="sm" disabled><Megaphone className="mr-2"/> Publicar Anuncio</Button>
-                    </div>
-                )}
-            </div>
-             <CardContent className="pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                {instructor ? (
-                    <div className="flex items-center gap-3">
-                        <Avatar className="h-16 w-16">
-                            <AvatarImage src={instructor.profilePicture} />
-                            <AvatarFallback>{instructor.firstName?.[0]}{instructor.lastName?.[0]}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <p className="font-semibold text-lg">{instructor.firstName} {instructor.lastName}</p>
-                            <p className="text-sm text-muted-foreground">Instructor</p>
-                             <div className="flex items-center gap-2 mt-1">
-                                <Button size="sm" variant="outline" asChild>
-                                    <a href={`mailto:${instructor.email}`}>
-                                        <Mail className="mr-2 h-4 w-4" /> Contactar
-                                    </a>
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                ) : <Loader2 className="w-5 h-5 animate-spin" />}
-                <div className="flex items-center gap-2">
-                    {course.department && <Badge variant="secondary">{course.department}</Badge>}
-                    {course.level && <Badge variant="outline">{course.level}</Badge>}
-                </div>
-             </CardContent>
-        </Card>
-    )
-}
 
 function FileIcon({ type }: { type: string }) {
     if (type.includes('pdf')) return <FileText className="text-red-500" />;
@@ -267,17 +173,7 @@ export default function CourseDetailPage() {
   // Placeholder for approved prerequisites
   const approvedPrerequisites = ['CS101'];
 
-  const attendancePolicy = 85;
-  const totalClasses = attendance.length;
-  const validAttendance = attendance.filter(a => a.status === 'presente' || a.status === 'tarde').length;
-  const attendancePercentage = Math.round((validAttendance / totalClasses) * 100);
   const absences = attendance.filter(a => a.status === 'ausente');
-
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 85) return 'bg-green-500';
-    if (percentage >= 70) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
 
   const studentTabs = (
     <>
@@ -371,7 +267,7 @@ export default function CourseDetailPage() {
                                                 <Label>Adjuntar Archivos</Label>
                                                  <Button variant="outline" asChild className="w-full">
                                                     <label htmlFor="file-upload-assignment" className="cursor-pointer flex items-center gap-2">
-                                                        <FileUp className="h-4 w-4"/>
+                                                        <UserCog className="h-4 w-4"/>
                                                         <span>Adjuntar plantilla o guía (PDF, DOCX)</span>
                                                         <input id="file-upload-assignment" name="file-upload" type="file" className="sr-only" />
                                                     </label>
@@ -565,7 +461,7 @@ export default function CourseDetailPage() {
                                                         <span className="text-xs text-muted-foreground">({item.size})</span>
                                                     </div>
                                                     <Button variant="ghost" size="icon" disabled>
-                                                        <Download className="h-4 w-4"/>
+                                                        <UserCog className="h-4 w-4"/>
                                                     </Button>
                                                 </li>
                                             ))}
@@ -629,94 +525,7 @@ export default function CourseDetailPage() {
             />
             {isStudent && (
                 <>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><UserCheckIcon/> Mi Asistencia</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div>
-                                <p className="text-sm font-medium mb-2">Resumen de Asistencia</p>
-                                <div className="space-y-2">
-                                    <Progress value={attendancePercentage} className="h-2 [&>div]:bg-green-500" indicatorClassName={getProgressColor(attendancePercentage)} />
-                                    <div className="flex justify-between text-xs text-muted-foreground">
-                                        <span>{validAttendance} de {totalClasses} clases asistidas</span>
-                                        <span>{attendancePercentage}%</span>
-                                    </div>
-                                    {attendancePercentage < attendancePolicy && (
-                                        <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3"/> Mínimo requerido: {attendancePolicy}%</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div>
-                                <h3 className="font-semibold mb-2 text-sm">Justificar Inasistencias</h3>
-                                <Table>
-                                    <TableBody>
-                                        {absences.length > 0 ? absences.map(record => (
-                                            <TableRow key={record.date}>
-                                                <TableCell className="p-2">
-                                                    <p className="text-sm">{record.date}</p>
-                                                    <Badge variant='destructive' className="capitalize text-xs h-5">{record.status}</Badge>
-                                                </TableCell>
-                                                <TableCell className="p-2 text-right">
-                                                    <Dialog>
-                                                        <DialogTrigger asChild>
-                                                            <Button variant="outline" size="sm">Justificar</Button>
-                                                        </DialogTrigger>
-                                                        <DialogContent className="sm:max-w-[425px]">
-                                                            <DialogHeader>
-                                                                <DialogTitle>Justificar Inasistencia</DialogTitle>
-                                                                <DialogDescription>
-                                                                    Fecha: {record.date}. Completa el formulario para enviar tu justificación.
-                                                                </DialogDescription>
-                                                            </DialogHeader>
-                                                            <div className="grid gap-4 py-4">
-                                                                <div className="grid grid-cols-4 items-center gap-4">
-                                                                    <Label htmlFor="reason" className="text-right">Motivo</Label>
-                                                                    <Select>
-                                                                        <SelectTrigger className="col-span-3">
-                                                                            <SelectValue placeholder="Selecciona un motivo" />
-                                                                        </SelectTrigger>
-                                                                        <SelectContent>
-                                                                            <SelectItem value="medical">Médico</SelectItem>
-                                                                            <SelectItem value="family">Familiar</SelectItem>
-                                                                            <SelectItem value="work">Laboral</SelectItem>
-                                                                            <SelectItem value="other">Otro</SelectItem>
-                                                                        </SelectContent>
-                                                                    </Select>
-                                                                </div>
-                                                                <div className="grid grid-cols-4 items-center gap-4">
-                                                                    <Label htmlFor="description" className="text-right">Descripción</Label>
-                                                                    <Textarea id="description" className="col-span-3" placeholder="Explica brevemente tu ausencia."/>
-                                                                </div>
-                                                                <div className="grid grid-cols-4 items-center gap-4">
-                                                                    <Label htmlFor="attachment" className="text-right">Sustento</Label>
-                                                                    <Button variant="outline" asChild className="col-span-3">
-                                                                        <label htmlFor="file-upload" className="cursor-pointer flex items-center gap-2">
-                                                                            <FileUp className="h-4 w-4"/>
-                                                                            <span>Adjuntar archivo (PDF, JPG)</span>
-                                                                            <input id="file-upload" name="file-upload" type="file" className="sr-only" />
-                                                                        </label>
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                            <DialogFooter>
-                                                                <Button type="submit" disabled>Enviar Justificación</Button>
-                                                            </DialogFooter>
-                                                        </DialogContent>
-                                                    </Dialog>
-                                                </TableCell>
-                                            </TableRow>
-                                        )) : (
-                                            <TableRow>
-                                                <TableCell colSpan={2} className="text-center text-muted-foreground text-sm p-2">No tienes inasistencias por justificar.</TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <CourseGrades attendance={attendance}/>
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Settings/> Administración</CardTitle>
@@ -789,3 +598,5 @@ export default function CourseDetailPage() {
     </div>
   );
 }
+
+    

@@ -14,9 +14,13 @@ import {
 } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, Download, AlertTriangle } from 'lucide-react';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { GraduationCap, UserCheckIcon as UserCheck, Download, AlertTriangle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
 
 const gradesData = {
     finalGrade: 88,
@@ -30,63 +34,141 @@ const gradesData = {
     ]
 }
 
-const chartData = gradesData.evaluations.filter(e => e.grade !== null).map(e => ({ name: e.name, nota: e.grade }));
 
-const chartConfig = {
-    nota: {
-        label: "Nota",
-        color: "hsl(var(--primary))",
-    },
-}
+export default function CourseGrades({ attendance }: { attendance: {date: string, status: string}[]}) {
+    const attendancePolicy = 85;
+    const totalClasses = attendance.length;
+    const validAttendance = attendance.filter(a => a.status === 'presente' || a.status === 'tarde').length;
+    const attendancePercentage = Math.round((validAttendance / totalClasses) * 100);
+    const absences = attendance.filter(a => a.status === 'ausente');
 
-export default function CourseGrades() {
+    const getProgressColor = (percentage: number) => {
+        if (percentage >= 85) return 'bg-green-500';
+        if (percentage >= 70) return 'bg-yellow-500';
+        return 'bg-red-500';
+      };
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex flex-col sm:flex-row justify-between items-start">
-                    <div>
-                        <CardTitle className="flex items-center gap-2"><GraduationCap /> Mis Calificaciones</CardTitle>
-                        <CardDescription>Resumen de tu rendimiento en el curso.</CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2 mt-4 sm:mt-0">
-                        <div className="text-right">
-                            <p className="text-sm text-muted-foreground">Nota Final</p>
-                            <p className="text-2xl font-bold">{gradesData.finalGrade}<span className="text-base font-normal text-muted-foreground">/100</span></p>
+        <div className="space-y-8">
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-col sm:flex-row justify-between items-start">
+                        <div>
+                            <CardTitle className="flex items-center gap-2"><GraduationCap /> Mis Calificaciones</CardTitle>
+                            <CardDescription>Resumen de tu rendimiento en el curso.</CardDescription>
                         </div>
-                        <Badge variant="default" className="text-lg h-10">{gradesData.letterGrade}</Badge>
-                         <Button variant="outline" size="icon" disabled>
-                            <Download className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-2 mt-4 sm:mt-0">
+                            <div className="text-right">
+                                <p className="text-sm text-muted-foreground">Nota Final</p>
+                                <p className="text-2xl font-bold">{gradesData.finalGrade}<span className="text-base font-normal text-muted-foreground">/100</span></p>
+                            </div>
+                            <Badge variant="default" className="text-lg h-10">{gradesData.letterGrade}</Badge>
+                            <Button variant="outline" size="icon" disabled>
+                                <Download className="h-4 w-4" />
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <div>
-                    <h3 className="font-semibold mb-2">Rendimiento por Evaluación</h3>
-                    <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-                        <BarChart accessibilityLayer data={chartData}>
-                             <XAxis
-                                dataKey="name"
-                                tickLine={false}
-                                tickMargin={10}
-                                axisLine={false}
-                                tickFormatter={(value) => value.slice(0, 8)}
-                            />
-                            <YAxis domain={[0, 100]}/>
-                            <ChartTooltip content={<ChartTooltipContent />} />
-                            <Bar dataKey="nota" fill="var(--color-nota)" radius={4} />
-                        </BarChart>
-                    </ChartContainer>
-                </div>
-                <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>
-                    <AlertDescription>
-                        Esta sección se conectará a tus calificaciones reales próximamente. El cálculo de la nota proyectada y la descarga de reportes aún no están implementados.
-                    </AlertDescription>
-                </Alert>
-            </CardContent>
-        </Card>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Alert>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>
+                        <AlertDescription>
+                            Esta sección se conectará a tus calificaciones reales próximamente. El cálculo de la nota proyectada y la descarga de reportes aún no están implementados.
+                        </AlertDescription>
+                    </Alert>
+                </CardContent>
+            </Card>
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><UserCheck/> Mi Asistencia</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div>
+                        <p className="text-sm font-medium mb-2">Resumen de Asistencia</p>
+                        <div className="space-y-2">
+                            <Progress value={attendancePercentage} className="h-2 [&>div]:bg-green-500" indicatorClassName={getProgressColor(attendancePercentage)} />
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>{validAttendance} de {totalClasses} clases asistidas</span>
+                                <span>{attendancePercentage}%</span>
+                            </div>
+                            {attendancePercentage < attendancePolicy && (
+                                <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3"/> Mínimo requerido: {attendancePolicy}%</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 className="font-semibold mb-2 text-sm">Justificar Inasistencias</h3>
+                        <Table>
+                            <TableBody>
+                                {absences.length > 0 ? absences.map(record => (
+                                    <TableRow key={record.date}>
+                                        <TableCell className="p-2">
+                                            <p className="text-sm">{record.date}</p>
+                                            <Badge variant='destructive' className="capitalize text-xs h-5">{record.status}</Badge>
+                                        </TableCell>
+                                        <TableCell className="p-2 text-right">
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="outline" size="sm">Justificar</Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="sm:max-w-[425px]">
+                                                    <DialogHeader>
+                                                        <DialogTitle>Justificar Inasistencia</DialogTitle>
+                                                        <DialogDescription>
+                                                            Fecha: {record.date}. Completa el formulario para enviar tu justificación.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <div className="grid gap-4 py-4">
+                                                        <div className="grid grid-cols-4 items-center gap-4">
+                                                            <Label htmlFor="reason" className="text-right">Motivo</Label>
+                                                            <Select>
+                                                                <SelectTrigger className="col-span-3">
+                                                                    <SelectValue placeholder="Selecciona un motivo" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="medical">Médico</SelectItem>
+                                                                    <SelectItem value="family">Familiar</SelectItem>
+                                                                    <SelectItem value="work">Laboral</SelectItem>
+                                                                    <SelectItem value="other">Otro</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="grid grid-cols-4 items-center gap-4">
+                                                            <Label htmlFor="description" className="text-right">Descripción</Label>
+                                                            <Textarea id="description" className="col-span-3" placeholder="Explica brevemente tu ausencia."/>
+                                                        </div>
+                                                        <div className="grid grid-cols-4 items-center gap-4">
+                                                            <Label htmlFor="attachment" className="text-right">Sustento</Label>
+                                                            <Button variant="outline" asChild className="col-span-3">
+                                                                <label htmlFor="file-upload" className="cursor-pointer flex items-center gap-2">
+                                                                    <GraduationCap className="h-4 w-4"/>
+                                                                    <span>Adjuntar archivo (PDF, JPG)</span>
+                                                                    <input id="file-upload" name="file-upload" type="file" className="sr-only" />
+                                                                </label>
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                    <DialogFooter>
+                                                        <Button type="submit" disabled>Enviar Justificación</Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                        </TableCell>
+                                    </TableRow>
+                                )) : (
+                                    <TableRow>
+                                        <TableCell colSpan={2} className="text-center text-muted-foreground text-sm p-2">No tienes inasistencias por justificar.</TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
     )
 }
+
+    

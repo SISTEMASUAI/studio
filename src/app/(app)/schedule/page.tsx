@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -323,8 +324,8 @@ export default function SchedulePage() {
   const upcomingEvents = allEvents.filter(event => isBefore(startOfDay(new Date()), event.date)).slice(0, 5);
 
   const DayWithDots = ({ date, displayMonth }: { date: Date; displayMonth: Date }) => {
-    if (date.getMonth() !== displayMonth.getMonth()) {
-      return null;
+    if (!date || !displayMonth || date.getMonth() !== displayMonth.getMonth()) {
+      return <div className="h-full w-full"></div>;
     }
     const eventsOnDay = allEvents.filter(
       (event) => event.date.toDateString() === date.toDateString()
@@ -381,7 +382,7 @@ export default function SchedulePage() {
                 className="w-full"
                 locale={es}
                 components={{
-                    Day: ({ date, displayMonth }) => <DayWithDots date={date} displayMonth={displayMonth} />
+                    Day: DayWithDots
                 }}
                 classNames={{
                     day_selected:

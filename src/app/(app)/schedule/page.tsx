@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -45,7 +46,7 @@ import {
 import { collection, query, where, DocumentData, getDocs } from 'firebase/firestore';
 import { addDays, format, parse, startOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Day, DayProps } from 'react-day-picker';
+import { Day, DayPickerProps, DayProps } from 'react-day-picker';
 
 interface ScheduleItem {
   title: string;
@@ -324,10 +325,8 @@ export default function SchedulePage() {
   const upcomingEvents = allEvents.filter(event => isBefore(startOfDay(new Date()), event.date)).slice(0, 5);
 
   const DayWithDots = (props: DayProps) => {
-    const { date, displayMonth } = props;
-    
-    // If the day is outside the current month, fall back to the default Day component
-    if (date.getMonth() !== displayMonth.getMonth()) {
+    const { date } = props;
+    if (!date) {
       return <Day {...props} />;
     }
 
@@ -337,9 +336,7 @@ export default function SchedulePage() {
 
     return (
       <div className="relative flex justify-center items-center h-full w-full">
-        {/* Render the default Day component to get base styling and interaction */}
         <Day {...props} />
-        {/* Add event dots on top */}
         {eventsOnDay.length > 0 && (
           <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">
             {eventsOnDay.slice(0, 4).map((event, i) => (

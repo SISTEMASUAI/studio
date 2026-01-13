@@ -21,7 +21,7 @@ import {
     TabsList,
     TabsTrigger,
   } from "@/components/ui/tabs"
-import { Loader2, Info, BookMarked, Users, Library, UserCheck as UserCheckIcon, Search, CheckCircle, XCircle, Book, Settings, Trash2, Megaphone, UserCog, PlusCircle, Check, Eye, BarChart2, FileText, ClipboardList, GraduationCap, Folder, File, Tv, AlertTriangle } from 'lucide-react';
+import { Loader2, Info, BookMarked, Users, Library, UserCheck as UserCheckIcon, Search, CheckCircle, XCircle, Book, Settings, Trash2, Megaphone, UserCog, PlusCircle, Check, Eye, BarChart2, FileText, ClipboardList, GraduationCap, Folder, File, Tv, AlertTriangle, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -598,5 +598,3 @@ export default function CourseDetailPage() {
     </div>
   );
 }
-
-    

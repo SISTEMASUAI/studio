@@ -21,7 +21,7 @@ import {
     TabsList,
     TabsTrigger,
   } from "@/components/ui/tabs"
-import { Loader2, Info, BookMarked, Users, Library, UserCheck as UserCheckIcon, Search, CheckCircle, XCircle, BookOpen, Settings, Trash2, Megaphone, UserCog, PlusCircle, Check, Eye, BarChart2, FileText, ClipboardList, GraduationCap, Folder, File, Tv, AlertTriangle, ShieldX } from 'lucide-react';
+import { Loader2, Info, BookMarked, Users, Library, UserCheck, Search, CheckCircle, XCircle, BookOpen, Settings, Trash2, Megaphone, UserCog, PlusCircle, Check, Eye, BarChart2, FileText, ClipboardList, GraduationCap, Folder, File, Tv, AlertTriangle, ShieldX } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -552,7 +552,6 @@ export default function CourseDetailPage() {
             />
             {isStudent && (
                 <>
-                    {isAttendanceLoading ? <Card><CardContent className="pt-6 flex justify-center"><Loader2 className="animate-spin"/></CardContent></Card> : <CourseGrades attendance={attendance || []} />}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2"><Settings/> Administración</CardTitle>

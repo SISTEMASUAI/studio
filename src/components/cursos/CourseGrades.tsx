@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { GraduationCap, UserCheckIcon as UserCheck, Download, AlertTriangle } from 'lucide-react';
+import { GraduationCap, UserCheck, Download, AlertTriangle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from '@/components/ui/table';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
@@ -26,8 +26,8 @@ interface AttendanceRecord {
     id: string;
     studentId: string;
     courseId: string;
-    sessionId: string;
     date: string;
+    sessionTitle: string;
     status: 'presente' | 'ausente' | 'tarde' | 'justificado';
     notes?: string;
 }
@@ -110,7 +110,7 @@ export default function CourseGrades({ attendance }: { attendance: AttendanceRec
                     </div>
 
                     <div>
-                        <h3 className="font-semibold mb-2 text-sm">Detalle de Inasistencias</h3>
+                        <h3 className="font-semibold mb-2 text-sm">Detalle de Inasistencias y Tardanzas</h3>
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -126,7 +126,7 @@ export default function CourseGrades({ attendance }: { attendance: AttendanceRec
                                         <TableCell className="p-2">
                                             <p className="text-sm">{record.date}</p>
                                         </TableCell>
-                                        <TableCell className="p-2 text-sm text-muted-foreground">{record.sessionId.split('-').slice(2, -1).join(' ')}</TableCell>
+                                        <TableCell className="p-2 text-sm text-muted-foreground">{record.sessionTitle}</TableCell>
                                          <TableCell className="p-2 text-sm capitalize">
                                             <Badge variant={record.status === 'ausente' ? 'destructive' : 'secondary'}>{record.status}</Badge>
                                          </TableCell>
@@ -183,7 +183,7 @@ export default function CourseGrades({ attendance }: { attendance: AttendanceRec
                                     </TableRow>
                                 )) : (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center text-muted-foreground text-sm p-2">No tienes inasistencias por justificar.</TableCell>
+                                        <TableCell colSpan={4} className="text-center text-muted-foreground text-sm p-2">No tienes inasistencias o tardanzas por justificar.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>

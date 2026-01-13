@@ -215,6 +215,7 @@
           "items": {
             "type": "object",
             "properties": {
+              "title": { "type": "string", "description": "Title for the session type, e.g., 'Teoría' or 'Laboratorio'." },
               "day": { "type": "string", "enum": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]},
               "startTime": { "type": "string", "format": "time", "description": "e.g., 14:00" },
               "endTime": { "type": "string", "format": "time", "description": "e.g., 16:00" },

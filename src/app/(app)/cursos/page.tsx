@@ -100,6 +100,14 @@ interface Enrollment {
   year: number;
 }
 
+interface ScheduleItem {
+  title: string;
+  day: string;
+  startTime: string;
+  endTime: string;
+  classroom: string;
+}
+
 // Define the type for course data
 interface Course extends DocumentData {
     id: string;
@@ -114,7 +122,7 @@ interface Course extends DocumentData {
     cycle?: number;
     semesterStartDate?: string;
     semesterEndDate?: string;
-    schedule?: { day: string; startTime: string; endTime: string; classroom: string }[];
+    schedule?: ScheduleItem[];
     mode?: string;
     capacity?: number;
     enrolled?: number;
@@ -314,7 +322,7 @@ function AdminCoursesView() {
     const { toast } = useToast();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [schedule, setSchedule] = useState([{ day: '', startTime: '', endTime: '', classroom: '' }]);
+    const [schedule, setSchedule] = useState<ScheduleItem[]>([{ title: '', day: '', startTime: '', endTime: '', classroom: '' }]);
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
     const firestore = useFirestore();
@@ -384,18 +392,18 @@ function AdminCoursesView() {
             ...course,
             facultyId: selectedCourseFacultyId,
         });
-        setSchedule(course.schedule || [{ day: '', startTime: '', endTime: '', classroom: '' }]);
+        setSchedule(course.schedule || [{ title: '', day: '', startTime: '', endTime: '', classroom: '' }]);
         setIsEditDialogOpen(true);
     };
 
-    const handleScheduleChange = (index: number, field: string, value: string) => {
+    const handleScheduleChange = (index: number, field: keyof ScheduleItem, value: string) => {
         const newSchedule = [...schedule];
         newSchedule[index] = { ...newSchedule[index], [field]: value };
         setSchedule(newSchedule);
     };
 
     const addScheduleRow = () => {
-        setSchedule([...schedule, { day: '', startTime: '', endTime: '', classroom: '' }]);
+        setSchedule([...schedule, { title: '', day: '', startTime: '', endTime: '', classroom: '' }]);
     };
 
     const removeScheduleRow = (index: number) => {
@@ -439,7 +447,7 @@ function AdminCoursesView() {
                 description: `El curso "${values.name}" ha sido creado exitosamente.`,
             });
             courseForm.reset();
-            setSchedule([{ day: '', startTime: '', endTime: '', classroom: '' }]);
+            setSchedule([{ title: '', day: '', startTime: '', endTime: '', classroom: '' }]);
             setIsCreateDialogOpen(false);
         } catch (error) {
             console.error("Error creating course: ", error);
@@ -819,13 +827,17 @@ function AdminCoursesView() {
                                                     </FormItem>
                                                 )} />
                                             
-                                            <div className="space-y-4 rounded-md border p-4">
+                                           <div className="space-y-4 rounded-md border p-4">
                                                 <div className="flex items-center justify-between">
                                                   <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
                                                   <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2 h-4 w-4'/> Añadir</Button>
                                                 </div>
                                                 {schedule.map((session, index) => (
-                                                    <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                                                    <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
+                                                        <div className="space-y-1 col-span-2 md:col-span-1">
+                                                            <Label>Título Sesión</Label>
+                                                            <Input placeholder="Ej: Teoría" value={session.title} onChange={(e) => handleScheduleChange(index, 'title', e.target.value)} />
+                                                        </div>
                                                         <div className="space-y-1">
                                                             <Label>Día</Label>
                                                             <Select onValueChange={(value) => handleScheduleChange(index, 'day', value)} value={session.day}>
@@ -1050,7 +1062,11 @@ function AdminCoursesView() {
                                         <Button type="button" variant="outline" size="sm" onClick={addScheduleRow} disabled={hasCourseStarted(selectedCourse)}><PlusCircle className='mr-2 h-4 w-4'/> Añadir</Button>
                                     </div>
                                      {schedule.map((session, index) => (
-                                        <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                                        <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
+                                            <div className="space-y-1 col-span-2 md:col-span-1">
+                                                <Label>Título Sesión</Label>
+                                                <Input placeholder="Ej: Teoría" value={session.title} onChange={(e) => handleScheduleChange(index, 'title', e.target.value)} disabled={hasCourseStarted(selectedCourse)} />
+                                            </div>
                                             <div className="space-y-1">
                                                 <Label>Día</Label>
                                                 <Select onValueChange={(value) => handleScheduleChange(index, 'day', value)} value={session.day} disabled={hasCourseStarted(selectedCourse)}>
@@ -1143,3 +1159,4 @@ export default function CoursesPage() {
     </div>
   );
 }
+

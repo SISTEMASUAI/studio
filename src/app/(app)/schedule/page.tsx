@@ -47,6 +47,7 @@ import { addDays, format, parse, startOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface ScheduleItem {
+  title: string;
   day: 'Lunes' | 'Martes' | 'Miércoles' | 'Jueves' | 'Viernes' | 'Sábado' | 'Domingo';
   startTime: string;
   endTime: string;
@@ -59,6 +60,7 @@ interface Course extends DocumentData {
   schedule?: ScheduleItem[];
   semesterStartDate?: string;
   semesterEndDate?: string;
+  status?: 'active' | 'inactive';
 }
 
 interface Enrollment {
@@ -71,6 +73,8 @@ interface UpcomingEvent {
   title: string;
   type: 'class' | 'exam' | 'assignment' | 'event';
   courseName?: string;
+  timeRange: string;
+  color: string;
 }
 
 const dayOfWeekMap: { [key: string]: number } = {
@@ -83,6 +87,19 @@ const dayOfWeekMap: { [key: string]: number } = {
   Sábado: 6,
 };
 
+const courseColors = [
+    'bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-purple-500', 
+    'bg-yellow-500', 'bg-indigo-500', 'bg-pink-500', 'bg-teal-500'
+];
+
+const getCourseColor = (courseId: string) => {
+    let hash = 0;
+    for (let i = 0; i < courseId.length; i++) {
+        hash = courseId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash % courseColors.length);
+    return courseColors[index];
+};
 
 const generateClassEvents = (courses: Course[]): UpcomingEvent[] => {
     const events: UpcomingEvent[] = [];
@@ -95,6 +112,7 @@ const generateClassEvents = (courses: Course[]): UpcomingEvent[] => {
 
         const startDate = parse(course.semesterStartDate, 'yyyy-MM-dd', new Date());
         const endDate = parse(course.semesterEndDate, 'yyyy-MM-dd', new Date());
+        const color = getCourseColor(course.id);
 
         course.schedule.forEach(session => {
             const targetDay = dayOfWeekMap[session.day];
@@ -102,18 +120,18 @@ const generateClassEvents = (courses: Course[]): UpcomingEvent[] => {
 
             let currentDate = startOfDay(startDate);
 
-            // Find the first occurrence of the target day
             while (currentDate.getDay() !== targetDay) {
                 currentDate = addDays(currentDate, 1);
             }
             
-            // Add events for each week until the end date
             while (isBefore(currentDate, endDate) || currentDate.getTime() === endDate.getTime()) {
                 events.push({
                     date: new Date(currentDate),
-                    title: `${course.name} (${session.startTime} - ${session.endTime})`,
+                    title: `${course.name} - ${session.title}`,
                     type: 'class',
                     courseName: course.name,
+                    timeRange: `${session.startTime} - ${session.endTime}`,
+                    color: color,
                 });
                 currentDate = addDays(currentDate, 7);
             }
@@ -250,7 +268,7 @@ export default function SchedulePage() {
         if (!firestore || !user || !profile) return null;
         
         if (profile.role === 'professor') {
-            return query(collection(firestore, 'courses'), where('instructorId', '==', user.uid));
+            return query(collection(firestore, 'courses'), where('instructorId', '==', user.uid), where('status', '==', 'active'));
         }
 
         if (profile.role === 'student') {
@@ -276,8 +294,13 @@ export default function SchedulePage() {
                     return;
                 }
                 const courseIds = enrollments.map(e => e.courseId);
+                if (courseIds.length === 0) {
+                    setStudentCourses([]);
+                    setIsStudentCoursesLoading(false);
+                    return;
+                }
                 const coursesRef = collection(firestore, 'courses');
-                const coursesForStudentQuery = query(coursesRef, where('__name__', 'in', courseIds));
+                const coursesForStudentQuery = query(coursesRef, where('__name__', 'in', courseIds), where('status', '==', 'active'));
                 const coursesSnapshot = await getDocs(coursesForStudentQuery);
                 const coursesData = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
                 setStudentCourses(coursesData);
@@ -298,19 +321,29 @@ export default function SchedulePage() {
   }, [courses]);
 
   const upcomingEvents = allEvents.filter(event => isBefore(startOfDay(new Date()), event.date)).slice(0, 5);
-  const classDays = allEvents.map(event => event.date);
 
-  const modifiers = {
-    classDay: classDays,
+  const DayWithDots = ({ date, displayMonth }: { date: Date; displayMonth: Date }) => {
+    if (date.getMonth() !== displayMonth.getMonth()) {
+      return null;
+    }
+    const eventsOnDay = allEvents.filter(
+      (event) => event.date.toDateString() === date.toDateString()
+    );
+  
+    return (
+      <div className="relative h-full w-full flex items-center justify-center">
+        <span>{format(date, 'd')}</span>
+        {eventsOnDay.length > 0 && (
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">
+            {eventsOnDay.slice(0, 4).map((event, i) => (
+              <div key={i} className={`h-1.5 w-1.5 rounded-full ${event.color}`} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
   };
-
-  const modifiersStyles = {
-    classDay: {
-      backgroundColor: 'hsl(var(--primary))',
-      color: 'hsl(var(--primary-foreground))',
-    },
-  };
-
+  
   const canManageEvents =
     profile?.role === 'admin' || profile?.role === 'professor';
   const isAdmin = profile?.role === 'admin';
@@ -346,9 +379,15 @@ export default function SchedulePage() {
                 selected={date}
                 onSelect={setDate}
                 className="w-full"
-                modifiers={modifiers}
-                modifiersStyles={modifiersStyles}
                 locale={es}
+                components={{
+                    Day: ({ date, displayMonth }) => <DayWithDots date={date} displayMonth={displayMonth} />
+                }}
+                classNames={{
+                    day_selected:
+                      "bg-accent text-accent-foreground rounded-md",
+                    day_today: "bg-accent text-accent-foreground rounded-md",
+                }}
               />
             </CardContent>
           </Card>
@@ -368,9 +407,8 @@ export default function SchedulePage() {
               ) : upcomingEvents.length > 0 ? (
                 <ul className="space-y-4">
                   {upcomingEvents.map((event, i) => {
-                    const eventConfig = eventTypes[event.type] || eventTypes.event;
                     return (
-                      <li key={i} className="flex items-center gap-4">
+                      <li key={i} className="flex items-start gap-4">
                         <div className="flex-shrink-0 text-center border-r pr-4">
                           <p className="font-bold font-headline text-lg">
                             {format(event.date, 'dd')}
@@ -381,8 +419,9 @@ export default function SchedulePage() {
                         </div>
                         <div>
                           <p className="font-semibold">{event.title}</p>
-                          <Badge variant="outline" className={eventConfig.className}>
-                            {eventConfig.label}
+                          <p className="text-sm text-muted-foreground">{event.timeRange}</p>
+                          <Badge variant="outline" className={`${eventTypes[event.type].className} mt-1`}>
+                            {eventTypes[event.type].label}
                           </Badge>
                         </div>
                       </li>

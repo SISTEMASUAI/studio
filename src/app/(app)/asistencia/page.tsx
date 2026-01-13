@@ -85,9 +85,10 @@ interface StudentProfile extends DocumentData {
 }
 
 interface ClassSession {
-  id: string;
+  sessionId: string;
   date: Date;
   title: string;
+  courseName: string;
   timeRange: string;
 }
 
@@ -95,8 +96,8 @@ interface AttendanceRecord {
     id: string;
     studentId: string;
     courseId: string;
+    sessionId: string;
     date: string;
-    sessionTitle: string;
     status: AttendanceStatus;
 }
 
@@ -124,10 +125,15 @@ const generateClassSessionsForCourse = (course: Course): ClassSession[] => {
         }
         
         while (isBefore(currentDate, endDate) || currentDate.getTime() === endDate.getTime()) {
+            const formattedDate = format(currentDate, 'yyyy-MM-dd');
+            // Create a stable and unique session ID
+            const sessionId = `${course.id}-${session.title.replace(/\s+/g, '_')}-${formattedDate}`;
+            
             sessions.push({
-                id: `${course.id}-${session.title}-${format(currentDate, 'yyyy-MM-dd')}`,
+                sessionId: sessionId,
                 date: new Date(currentDate),
-                title: `${course.name} - ${session.title}`,
+                title: session.title,
+                courseName: course.name,
                 timeRange: `${session.startTime} - ${session.endTime}`,
             });
             currentDate = addDays(currentDate, 7);
@@ -201,10 +207,10 @@ function ProfessorAttendanceView() {
     setSelectedSession(session);
     if (!firestore || !selectedCourseId) return;
 
-    const sessionTitle = session.title.split(' - ')[1];
     const newAttendanceState = new Map<string, AttendanceStatus>();
     for (const student of enrolledStudents) {
-        const attendanceDocId = `${selectedCourseId}-${student.uid}-${format(session.date, 'yyyy-MM-dd')}-${sessionTitle}`;
+        // Use the unique sessionId_studentId as the document ID
+        const attendanceDocId = `${session.sessionId}_${student.uid}`;
         const docRef = doc(firestore, 'attendance', attendanceDocId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -222,14 +228,14 @@ function ProfessorAttendanceView() {
     if (!firestore || !selectedCourseId || !selectedSession) return;
     setIsSaving(true);
     try {
-        const sessionTitle = selectedSession.title.split(' - ')[1];
         for (const [studentId, status] of attendanceState.entries()) {
-            const attendanceDocId = `${selectedCourseId}-${studentId}-${format(selectedSession.date, 'yyyy-MM-dd')}-${sessionTitle}`;
+            const attendanceDocId = `${selectedSession.sessionId}_${studentId}`;
             const record: Omit<AttendanceRecord, 'id'> = {
                 studentId,
                 courseId: selectedCourseId,
+                sessionId: selectedSession.sessionId,
+                sessionTitle: selectedSession.title,
                 date: format(selectedSession.date, 'yyyy-MM-dd'),
-                sessionTitle,
                 status,
             };
             setDocumentNonBlocking(doc(firestore, 'attendance', attendanceDocId), record, { merge: true });
@@ -295,13 +301,13 @@ function ProfessorAttendanceView() {
                             const isActionable = isAttendanceActionable(session.date);
                             const isToday = isSameDay(session.date, new Date());
                             return (
-                                <TableRow key={session.id} className={isToday ? 'bg-accent/50' : ''}>
+                                <TableRow key={session.sessionId} className={isToday ? 'bg-accent/50' : ''}>
                                     <TableCell>
                                         <div className="font-medium">{format(session.date, 'PPP', { locale: es })}</div>
                                         <div className="text-sm text-muted-foreground">{format(session.date, 'EEEE', { locale: es })}</div>
                                     </TableCell>
                                     <TableCell>
-                                        <div>{session.title.split(' - ')[1]}</div>
+                                        <div>{session.title}</div>
                                         <div className="text-sm text-muted-foreground">{session.timeRange}</div>
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -319,7 +325,7 @@ function ProfessorAttendanceView() {
                                                 <DialogHeader>
                                                     <DialogTitle>Pasar Asistencia</DialogTitle>
                                                     <DialogDescription>
-                                                        Clase: {selectedSession?.title} <br />
+                                                        {selectedSession?.courseName} - {selectedSession?.title} <br />
                                                         Fecha: {selectedSession ? format(selectedSession.date, 'PPPP', { locale: es }) : ''}
                                                     </DialogDescription>
                                                 </DialogHeader>

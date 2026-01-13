@@ -46,6 +46,7 @@ import CourseHeader from '@/components/cursos/CourseHeader';
 import CourseSchedule from '@/components/cursos/CourseSchedule';
 import CourseGrades from '@/components/cursos/CourseGrades';
 import CourseAssignments from '@/components/cursos/CourseAssignments';
+import CourseAttendance from '@/components/cursos/CourseAttendance';
 
 
 // Define the type for the course data we expect from Firestore
@@ -208,6 +209,7 @@ export default function CourseDetailPage() {
       <TabsTrigger value="grades"><GraduationCap/> Calificaciones</TabsTrigger>
       <TabsTrigger value="info"><Info /> Información</TabsTrigger>
       <TabsTrigger value="materials"><BookOpen /> Materiales</TabsTrigger>
+      <TabsTrigger value="attendance"><UserCheck /> Asistencia</TabsTrigger>
     </>
   );
 
@@ -228,7 +230,7 @@ export default function CourseDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
             <Tabs defaultValue={isStudent ? "assignments" : "students"} className="w-full">
-                <TabsList className={`grid w-full ${isStudent ? 'grid-cols-4' : 'grid-cols-5'}`}>
+                <TabsList className={`grid w-full ${isStudent ? 'grid-cols-5' : 'grid-cols-5'}`}>
                     {isStudent ? studentTabs : professorTabs}
                 </TabsList>
 
@@ -238,7 +240,10 @@ export default function CourseDetailPage() {
                             <CourseAssignments />
                         </TabsContent>
                         <TabsContent value="grades" className="mt-6">
-                            {isAttendanceLoading ? <Loader2 className="animate-spin" /> : <CourseGrades attendance={attendance || []} />}
+                            <CourseGrades />
+                        </TabsContent>
+                         <TabsContent value="attendance" className="mt-6">
+                            {isAttendanceLoading ? <Loader2 className="animate-spin" /> : <CourseAttendance attendance={attendance || []} />}
                         </TabsContent>
                     </>
                 )}

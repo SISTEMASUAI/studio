@@ -244,9 +244,14 @@
         "enrolled": {
             "type": "number",
             "description": "The current number of students enrolled in the course."
+        },
+        "status": {
+            "type": "string",
+            "enum": ["active", "inactive"],
+            "description": "The current status of the course."
         }
       },
-      "required": ["courseId", "name", "description", "instructorId", "schedule", "mode", "programId"]
+      "required": ["courseId", "name", "description", "instructorId", "schedule", "mode", "programId", "status"]
     },
     "CourseAssignment": {
       "title": "CourseAssignment",
@@ -558,5 +563,3 @@
     }
   }
 }
-
-    

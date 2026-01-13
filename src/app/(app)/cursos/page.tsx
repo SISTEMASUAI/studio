@@ -66,6 +66,7 @@ import {
   GraduationCap,
   Clock,
   Building,
+  AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -116,6 +117,7 @@ interface Course extends DocumentData {
     mode?: string;
     capacity?: number;
     enrolled?: number;
+    status?: 'active' | 'inactive';
 }
 
 interface Program extends DocumentData {
@@ -328,7 +330,7 @@ function AdminCoursesView() {
     const { data: faculties } = useCollection<Faculty>(facultiesQuery);
 
     const coursesQuery = useMemoFirebase(() => 
-        firestore ? collection(firestore, 'courses') : null,
+        firestore ? query(collection(firestore, 'courses'), where('status', '==', 'active')) : null,
     [firestore]);
     const { data: courses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
 
@@ -414,6 +416,7 @@ function AdminCoursesView() {
             await addDocumentNonBlocking(courseCollection, {
                 ...values,
                 enrolled: 0,
+                status: 'active',
                 schedule: schedule.filter(s => s.day && s.startTime && s.endTime),
                 prerequisites: [],
                 objectives: [],
@@ -461,6 +464,25 @@ function AdminCoursesView() {
                 variant: "destructive",
                 title: "Error al actualizar",
                 description: "Hubo un problema al guardar los cambios.",
+            });
+        }
+    }
+
+    const handleDeactivateCourse = async (course: Course) => {
+        if (!firestore) return;
+        try {
+            const courseDocRef = doc(firestore, 'courses', course.id);
+            await updateDocumentNonBlocking(courseDocRef, { status: 'inactive' });
+            toast({
+                title: "Curso Desactivado",
+                description: `El curso "${course.name}" ha sido desactivado.`,
+            });
+        } catch (error) {
+            console.error("Error deactivating course: ", error);
+            toast({
+                variant: "destructive",
+                title: "Error al desactivar",
+                description: "No se pudo desactivar el curso.",
             });
         }
     }
@@ -754,23 +776,45 @@ function AdminCoursesView() {
                                             <TableCell className="text-center">{course.credits}</TableCell>
                                             <TableCell>{course.level}</TableCell>
                                             <TableCell className="text-right">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon">
-                                                                <MoreHorizontal />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent>
-                                                            <DropdownMenuItem><Eye className="mr-2"/>Ver Secciones</DropdownMenuItem>
-                                                            <DropdownMenuItem onSelect={() => handleOpenEditDialog(course)}>
-                                                                <Edit className="mr-2"/>Editar Curso
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem><PlusCircle className="mr-2"/>Crear Sección</DropdownMenuItem>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem className="text-destructive" disabled><Trash2 className="mr-2"/>Desactivar</DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="icon">
+                                                            <MoreHorizontal />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent>
+                                                        <DropdownMenuItem><Eye className="mr-2"/>Ver Secciones</DropdownMenuItem>
+                                                        <DropdownMenuItem onSelect={() => handleOpenEditDialog(course)}>
+                                                            <Edit className="mr-2"/>Editar Curso
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem><PlusCircle className="mr-2"/>Crear Sección</DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                                                                    <Trash2 className="mr-2"/>Desactivar
+                                                                </DropdownMenuItem>
+                                                            </DialogTrigger>
+                                                            <DialogContent>
+                                                                <DialogHeader>
+                                                                    <DialogTitle className='flex items-center gap-2'><AlertTriangle/> Confirmar Desactivación</DialogTitle>
+                                                                    <DialogDescription>
+                                                                        ¿Estás seguro de que quieres desactivar el curso "{course.name}"? Esta acción no se puede deshacer.
+                                                                    </DialogDescription>
+                                                                </DialogHeader>
+                                                                <DialogFooter>
+                                                                    <DialogClose asChild>
+                                                                        <Button variant="outline">Cancelar</Button>
+                                                                    </DialogClose>
+                                                                    <Button variant="destructive" onClick={() => handleDeactivateCourse(course)}>
+                                                                        Sí, desactivar
+                                                                    </Button>
+                                                                </DialogFooter>
+                                                            </DialogContent>
+                                                        </Dialog>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </TableCell>
                                         </TableRow>
                                     ))

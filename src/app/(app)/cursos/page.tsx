@@ -381,7 +381,6 @@ function AdminCoursesView() {
         updateCourseForm.reset({
             ...course,
             facultyId: selectedCourseFacultyId,
-            schedule: undefined, // schedule is handled separately
         });
         setSchedule(course.schedule || [{ day: '', startTime: '', endTime: '', classroom: '' }]);
         setIsEditDialogOpen(true);
@@ -425,7 +424,7 @@ function AdminCoursesView() {
                 ...values,
                 enrolled: 0,
                 status: 'active',
-                schedule: schedule.filter(s => s.day && s.startTime && s.endTime),
+                schedule: [], // Schedule is now managed separately
                 prerequisites: [],
                 objectives: [],
                 methodology: "",
@@ -799,43 +798,7 @@ function AdminCoursesView() {
                                                 </FormItem>
                                             )} />
                                             
-                                            <div className="space-y-4 rounded-md border p-4">
-                                                <h4 className="font-medium flex items-center justify-between"><span className='flex items-center gap-2'><Clock /> Horario</span>
-                                                    <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2'/> Añadir</Button>
-                                                </h4>
-                                                {schedule.map((session, index) => (
-                                                    <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
-                                                        <div className="space-y-1">
-                                                            <Label>Día</Label>
-                                                            <Select onValueChange={(value) => handleScheduleChange(index, 'day', value)} value={session.day}>
-                                                                <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="Lunes">Lunes</SelectItem>
-                                                                    <SelectItem value="Martes">Martes</SelectItem>
-                                                                    <SelectItem value="Miércoles">Miércoles</SelectItem>
-                                                                    <SelectItem value="Jueves">Jueves</SelectItem>
-                                                                    <SelectItem value="Viernes">Viernes</SelectItem>
-                                                                    <SelectItem value="Sábado">Sábado</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <Label>Hora Inicio</Label>
-                                                            <Input type="time" value={session.startTime} onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)} />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <Label>Hora Fin</Label>
-                                                            <Input type="time" value={session.endTime} onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)} />
-                                                        </div>
-                                                        <div className="flex gap-1 items-center">
-                                                            <div className='space-y-1 w-full'>
-                                                                <Label>Aula</Label>
-                                                                <Input placeholder="Ej: A-101" value={session.classroom} onChange={(e) => handleScheduleChange(index, 'classroom', e.target.value)} />
-                                                            </div>
-                                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1}><Trash2 className="text-destructive"/></Button>
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                            
                                                   <FormField control={courseForm.control} name="mode" render={({ field }) => (
                                                      <FormItem>
                                                         <FormLabel>Modalidad</FormLabel>
@@ -852,7 +815,7 @@ function AdminCoursesView() {
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
-                                            </div>
+                                           
 
                                             <div className="space-y-2">
                                                 <Label>Prerrequisitos</Label>

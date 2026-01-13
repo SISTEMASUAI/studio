@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
@@ -46,7 +45,7 @@ import {
 import { collection, query, where, DocumentData, getDocs } from 'firebase/firestore';
 import { addDays, format, parse, startOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Day, DayPickerProps, DayProps } from 'react-day-picker';
+import { DayPicker, DayProps, Day, Matcher } from 'react-day-picker';
 
 interface ScheduleItem {
   title: string;
@@ -323,9 +322,10 @@ export default function SchedulePage() {
   }, [courses]);
 
   const upcomingEvents = allEvents.filter(event => isBefore(startOfDay(new Date()), event.date)).slice(0, 5);
-
+  
   const DayWithDots = (props: DayProps) => {
     const { date } = props;
+    
     if (!date) {
       return <Day {...props} />;
     }
@@ -333,7 +333,7 @@ export default function SchedulePage() {
     const eventsOnDay = allEvents.filter(
       (event) => event.date.toDateString() === date.toDateString()
     );
-
+    
     return (
       <div className="relative flex justify-center items-center h-full w-full">
         <Day {...props} />

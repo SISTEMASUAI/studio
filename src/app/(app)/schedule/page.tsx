@@ -43,9 +43,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { collection, query, where, DocumentData, getDocs } from 'firebase/firestore';
-import { addDays, format, parse, startOfDay, isBefore } from 'date-fns';
+import { addDays, format, parse, startOfDay, isBefore, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { DayPicker, DayProps, Day, Matcher } from 'react-day-picker';
+import { DayPicker, Day, DayProps } from 'react-day-picker';
 
 interface ScheduleItem {
   title: string;
@@ -324,23 +324,26 @@ export default function SchedulePage() {
   const upcomingEvents = allEvents.filter(event => isBefore(startOfDay(new Date()), event.date)).slice(0, 5);
   
   const DayWithDots = (props: DayProps) => {
-    const { date } = props;
-    
+    const { date, displayMonth } = props;
+
     if (!date) {
       return <Day {...props} />;
     }
 
-    const eventsOnDay = allEvents.filter(
-      (event) => event.date.toDateString() === date.toDateString()
+    const eventsOnDay = allEvents.filter((event) =>
+      isSameDay(event.date, date)
     );
     
     return (
-      <div className="relative flex justify-center items-center h-full w-full">
+      <div className="relative flex h-full w-full items-center justify-center">
         <Day {...props} />
         {eventsOnDay.length > 0 && (
-          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">
+          <div className="absolute bottom-1 flex space-x-1">
             {eventsOnDay.slice(0, 4).map((event, i) => (
-              <div key={i} className={`h-1.5 w-1.5 rounded-full ${event.color}`} />
+              <div
+                key={i}
+                className={`h-1.5 w-1.5 rounded-full ${event.color}`}
+              />
             ))}
           </div>
         )}

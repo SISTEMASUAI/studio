@@ -26,8 +26,8 @@ interface AttendanceRecord {
     id: string;
     studentId: string;
     courseId: string;
+    sessionId: string;
     date: string;
-    sessionTitle: string;
     status: 'presente' | 'ausente' | 'tarde' | 'justificado';
     notes?: string;
 }
@@ -125,7 +125,7 @@ export default function CourseGrades({ attendance }: { attendance: AttendanceRec
                                         <TableCell className="p-2">
                                             <p className="text-sm">{record.date}</p>
                                         </TableCell>
-                                        <TableCell className="p-2 text-sm text-muted-foreground">{record.sessionTitle}</TableCell>
+                                        <TableCell className="p-2 text-sm text-muted-foreground">{record.sessionId.split('-')[1]}</TableCell>
                                         <TableCell className="p-2 text-right">
                                             <Dialog>
                                                 <DialogTrigger asChild>

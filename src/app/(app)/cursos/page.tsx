@@ -67,13 +67,12 @@ import {
   Clock,
   Building,
   AlertTriangle,
+  RotateCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
 import { collection, query, where, DocumentData, doc, getDocs, updateDoc, increment } from 'firebase/firestore';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { useAuth } from '@/firebase';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -333,10 +332,15 @@ function AdminCoursesView() {
     [firestore]);
     const { data: faculties } = useCollection<Faculty>(facultiesQuery);
 
-    const coursesQuery = useMemoFirebase(() => 
+    const activeCoursesQuery = useMemoFirebase(() => 
         firestore ? query(collection(firestore, 'courses'), where('status', '==', 'active')) : null,
     [firestore]);
-    const { data: courses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
+    const { data: activeCourses, isLoading: areActiveCoursesLoading } = useCollection<Course>(activeCoursesQuery);
+
+    const inactiveCoursesQuery = useMemoFirebase(() => 
+        firestore ? query(collection(firestore, 'courses'), where('status', '==', 'inactive')) : null,
+    [firestore]);
+    const { data: inactiveCourses, isLoading: areInactiveCoursesLoading } = useCollection<Course>(inactiveCoursesQuery);
 
     const courseForm = useForm<z.infer<typeof CourseSchema>>({
         resolver: zodResolver(CourseSchema),
@@ -491,6 +495,25 @@ function AdminCoursesView() {
         }
     }
 
+    const handleActivateCourse = async (course: Course) => {
+        if (!firestore) return;
+        try {
+            const courseDocRef = doc(firestore, 'courses', course.id);
+            await updateDocumentNonBlocking(courseDocRef, { status: 'active' });
+            toast({
+                title: "Curso Activado",
+                description: `El curso "${course.name}" ha sido activado.`,
+            });
+        } catch (error) {
+            console.error("Error activating course: ", error);
+            toast({
+                variant: "destructive",
+                title: "Error al activar",
+                description: "No se pudo activar el curso.",
+            });
+        }
+    }
+
     const hasCourseStarted = (course: Course | null) => {
         if (!course || !course.semesterStartDate) return false;
         return new Date(course.semesterStartDate) < new Date();
@@ -509,338 +532,359 @@ function AdminCoursesView() {
         return program ? Array.from({ length: program.totalCycles }, (_, i) => i + 1) : [];
     }, [selectedProgramIdUpdateCourse, selectedCourse, programs]);
 
+    const renderCoursesTable = (courses: Course[] | null, isLoading: boolean, isActive: boolean) => (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Nombre del Curso</TableHead>
+                    <TableHead>Programa</TableHead>
+                    <TableHead>Ciclo</TableHead>
+                    <TableHead>Créditos</TableHead>
+                    <TableHead>Nivel</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {isLoading ? (
+                    <TableRow>
+                        <TableCell colSpan={7} className="text-center">
+                            <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                        </TableCell>
+                    </TableRow>
+                ) : courses && courses.length > 0 ? (
+                    courses.map(course => (
+                        <TableRow key={course.id}>
+                            <TableCell className="font-mono">{course.courseId}</TableCell>
+                            <TableCell className="font-medium">{course.name}</TableCell>
+                            <TableCell>{programs?.find(p => p.id === course.programId)?.name || 'N/A'}</TableCell>
+                            <TableCell className="text-center">{course.cycle}</TableCell>
+                            <TableCell className="text-center">{course.credits}</TableCell>
+                            <TableCell>{course.level}</TableCell>
+                            <TableCell className="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                            <MoreHorizontal />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuItem><Eye className="mr-2"/>Ver Secciones</DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => handleOpenEditDialog(course)}>
+                                            <Edit className="mr-2"/>Editar Curso
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem><PlusCircle className="mr-2"/>Crear Sección</DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        {isActive ? (
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                                                        <Trash2 className="mr-2"/>Desactivar
+                                                    </DropdownMenuItem>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle className='flex items-center gap-2'><AlertTriangle/> Confirmar Desactivación</DialogTitle>
+                                                        <DialogDescription>
+                                                            ¿Estás seguro de que quieres desactivar el curso "{course.name}"? Esta acción no se puede deshacer.
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <DialogFooter>
+                                                        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                                                        <Button variant="destructive" onClick={() => handleDeactivateCourse(course)}>Sí, desactivar</Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                        ) : (
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                                        <RotateCw className="mr-2"/>Activar
+                                                    </DropdownMenuItem>
+                                                </DialogTrigger>
+                                                 <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle className='flex items-center gap-2'><AlertTriangle/> Confirmar Activación</DialogTitle>
+                                                        <DialogDescription>
+                                                            ¿Estás seguro de que quieres activar el curso "{course.name}"?
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <DialogFooter>
+                                                        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+                                                        <Button onClick={() => handleActivateCourse(course)}>Sí, activar</Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                    ))
+                ) : (
+                    <TableRow>
+                        <TableCell colSpan={7} className="text-center">No se encontraron cursos.</TableCell>
+                    </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    );
+
+
     return (
-        <Tabs defaultValue="courses">
-            <TabsList>
-                <TabsTrigger value="courses"><Book /> Gestión de Cursos</TabsTrigger>
-            </TabsList>
-            <TabsContent value="courses" className="mt-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                        <UserCog /> Administración de Cursos
-                        </CardTitle>
-                        <CardDescription>
-                        Panel para administrar todos los cursos de la plataforma, asignaturas y profesores.
-                        </CardDescription>
-                        <div className="flex flex-col sm:flex-row gap-2 pt-4">
-                            <div className="relative flex-grow">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input placeholder="Buscar por código o nombre..." className="pl-9" />
-                            </div>
-                            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button className="w-full sm:w-auto">
-                                        <PlusCircle className="mr-2" /> Crear Curso
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-3xl">
-                                    <Form {...courseForm}>
-                                        <form onSubmit={courseForm.handleSubmit(onCreateCourseSubmit)}>
-                                            <DialogHeader>
-                                                <DialogTitle>Crear Nuevo Curso</DialogTitle>
-                                                <DialogDescription>Completa el formulario para registrar un nuevo curso en el sistema.</DialogDescription>
-                                            </DialogHeader>
-                                            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <FormField control={courseForm.control} name="courseId" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>Código del Curso</FormLabel>
-                                                            <FormControl><Input placeholder="Ej: CS-101" {...field} /></FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={courseForm.control} name="name" render={({ field }) => (
-                                                         <FormItem>
-                                                            <FormLabel>Nombre del Curso</FormLabel>
-                                                            <FormControl><Input placeholder="Introducción a la Programación" {...field} /></FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-                                                <FormField control={courseForm.control} name="description" render={({ field }) => (
+        <>
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                    <UserCog /> Administración de Cursos
+                    </CardTitle>
+                    <CardDescription>
+                    Panel para administrar todos los cursos de la plataforma, asignaturas y profesores.
+                    </CardDescription>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                        <div className="relative flex-grow">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input placeholder="Buscar por código o nombre..." className="pl-9" />
+                        </div>
+                        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button className="w-full sm:w-auto">
+                                    <PlusCircle className="mr-2" /> Crear Curso
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-3xl">
+                                <Form {...courseForm}>
+                                    <form onSubmit={courseForm.handleSubmit(onCreateCourseSubmit)}>
+                                        <DialogHeader>
+                                            <DialogTitle>Crear Nuevo Curso</DialogTitle>
+                                            <DialogDescription>Completa el formulario para registrar un nuevo curso en el sistema.</DialogDescription>
+                                        </DialogHeader>
+                                        <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormField control={courseForm.control} name="courseId" render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel>Descripción Breve</FormLabel>
-                                                        <FormControl><Textarea placeholder="Describe el curso en una o dos frases." {...field} /></FormControl>
+                                                        <FormLabel>Código del Curso</FormLabel>
+                                                        <FormControl><Input placeholder="Ej: CS-101" {...field} /></FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
-                                                
-                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                    <FormField control={courseForm.control} name="credits" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>Créditos</FormLabel>
-                                                            <FormControl><Input type="number" placeholder="4" {...field} /></FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={courseForm.control} name="capacity" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>Capacidad</FormLabel>
-                                                            <FormControl><Input type="number" placeholder="30" {...field} /></FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={courseForm.control} name="level" render={({ field }) => (
-                                                         <FormItem>
-                                                            <FormLabel>Nivel</FormLabel>
-                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                                <FormControl>
-                                                                    <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
-                                                                </FormControl>
-                                                                <SelectContent>
-                                                                    <SelectItem value="Pregrado">Pregrado</SelectItem>
-                                                                    <SelectItem value="Postgrado">Postgrado</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <FormField control={courseForm.control} name="facultyId" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>Facultad</FormLabel>
-                                                            <Select onValueChange={(value) => { field.onChange(value); courseForm.setValue('programId', ''); courseForm.setValue('cycle', 1); }} defaultValue={field.value}>
-                                                                <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una facultad..."/></SelectTrigger></FormControl>
-                                                                <SelectContent>
-                                                                    {faculties ? faculties.map(fac => (
-                                                                        <SelectItem key={fac.id} value={fac.id}>{fac.name}</SelectItem>
-                                                                    )) : <SelectItem value="loading" disabled>Cargando...</SelectItem>}
-                                                                </SelectContent>
-                                                            </Select>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={courseForm.control} name="programId" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>Programa Académico</FormLabel>
-                                                            <Select onValueChange={(value) => { field.onChange(value); courseForm.setValue('cycle', 1); }} value={field.value} disabled={!selectedFacultyIdCourse}>
-                                                                <FormControl><SelectTrigger><SelectValue placeholder={!selectedFacultyIdCourse ? "Selecciona una facultad primero" : "Asigna un programa..."}/></SelectTrigger></FormControl>
-                                                                <SelectContent>
-                                                                    {programs?.filter(p => p.facultyId === selectedFacultyIdCourse).map(prog => (
-                                                                        <SelectItem key={prog.id} value={prog.id}>{prog.name}</SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-                                                <FormField control={courseForm.control} name="cycle" render={({ field }) => (
+                                                <FormField control={courseForm.control} name="name" render={({ field }) => (
+                                                     <FormItem>
+                                                        <FormLabel>Nombre del Curso</FormLabel>
+                                                        <FormControl><Input placeholder="Introducción a la Programación" {...field} /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                            <FormField control={courseForm.control} name="description" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Descripción Breve</FormLabel>
+                                                    <FormControl><Textarea placeholder="Describe el curso en una o dos frases." {...field} /></FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <FormField control={courseForm.control} name="credits" render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel>Ciclo</FormLabel>
-                                                        <Select onValueChange={field.onChange} value={String(field.value)} disabled={!selectedProgramIdCourse}>
-                                                            <FormControl><SelectTrigger><SelectValue placeholder={!selectedProgramIdCourse ? "Selecciona un programa primero" : "Asigna un ciclo..."}/></SelectTrigger></FormControl>
+                                                        <FormLabel>Créditos</FormLabel>
+                                                        <FormControl><Input type="number" placeholder="4" {...field} /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={courseForm.control} name="capacity" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Capacidad</FormLabel>
+                                                        <FormControl><Input type="number" placeholder="30" {...field} /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={courseForm.control} name="level" render={({ field }) => (
+                                                     <FormItem>
+                                                        <FormLabel>Nivel</FormLabel>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <FormControl>
+                                                                <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                                            </FormControl>
                                                             <SelectContent>
-                                                                {cyclesForSelectedProgramCreate.map(cycleNum => (
-                                                                    <SelectItem key={cycleNum} value={String(cycleNum)}>Ciclo {cycleNum}</SelectItem>
-                                                                ))}
+                                                                <SelectItem value="Pregrado">Pregrado</SelectItem>
+                                                                <SelectItem value="Postgrado">Postgrado</SelectItem>
                                                             </SelectContent>
                                                         </Select>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
-                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                    <FormField control={courseForm.control} name="semesterStartDate" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>Fecha de Inicio del Semestre</FormLabel>
-                                                            <FormControl><Input type="date" {...field} /></FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={courseForm.control} name="semesterEndDate" render={({ field }) => (
-                                                        <FormItem>
-                                                            <FormLabel>Fecha de Fin del Semestre</FormLabel>
-                                                            <FormControl><Input type="date" {...field} /></FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-                                                <FormField control={courseForm.control} name="instructorId" render={({ field }) => (
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormField control={courseForm.control} name="facultyId" render={({ field }) => (
                                                     <FormItem>
-                                                        <FormLabel>Instructor</FormLabel>
-                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                            <FormControl>
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Asigna un instructor al curso..."/>
-                                                                </SelectTrigger>
-                                                            </FormControl>
+                                                        <FormLabel>Facultad</FormLabel>
+                                                        <Select onValueChange={(value) => { field.onChange(value); courseForm.setValue('programId', ''); courseForm.setValue('cycle', 1); }} defaultValue={field.value}>
+                                                            <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una facultad..."/></SelectTrigger></FormControl>
                                                             <SelectContent>
-                                                                {professors ? professors.map(prof => (
-                                                                    <SelectItem key={prof.id} value={prof.id}>{prof.firstName} {prof.lastName}</SelectItem>
+                                                                {faculties ? faculties.map(fac => (
+                                                                    <SelectItem key={fac.id} value={fac.id}>{fac.name}</SelectItem>
                                                                 )) : <SelectItem value="loading" disabled>Cargando...</SelectItem>}
                                                             </SelectContent>
                                                         </Select>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
-                                                
-                                                <div className="space-y-4 rounded-md border p-4">
-                                                    <h4 className="font-medium flex items-center justify-between"><span className='flex items-center gap-2'><Clock /> Horario</span>
-                                                        <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2'/> Añadir</Button>
-                                                    </h4>
-                                                    {schedule.map((session, index) => (
-                                                        <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
-                                                            <div className="space-y-1">
-                                                                <Label>Día</Label>
-                                                                <Select onValueChange={(value) => handleScheduleChange(index, 'day', value)} value={session.day}>
-                                                                    <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="Lunes">Lunes</SelectItem>
-                                                                        <SelectItem value="Martes">Martes</SelectItem>
-                                                                        <SelectItem value="Miércoles">Miércoles</SelectItem>
-                                                                        <SelectItem value="Jueves">Jueves</SelectItem>
-                                                                        <SelectItem value="Viernes">Viernes</SelectItem>
-                                                                        <SelectItem value="Sábado">Sábado</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <Label>Hora Inicio</Label>
-                                                                <Input type="time" value={session.startTime} onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)} />
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <Label>Hora Fin</Label>
-                                                                <Input type="time" value={session.endTime} onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)} />
-                                                            </div>
-                                                            <div className="flex gap-1 items-center">
-                                                                <div className='space-y-1 w-full'>
-                                                                    <Label>Aula</Label>
-                                                                    <Input placeholder="Ej: A-101" value={session.classroom} onChange={(e) => handleScheduleChange(index, 'classroom', e.target.value)} />
-                                                                </div>
-                                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1}><Trash2 className="text-destructive"/></Button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                      <FormField control={courseForm.control} name="mode" render={({ field }) => (
-                                                         <FormItem>
-                                                            <FormLabel>Modalidad</FormLabel>
-                                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                                <FormControl>
-                                                                    <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
-                                                                </FormControl>
+                                                <FormField control={courseForm.control} name="programId" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Programa Académico</FormLabel>
+                                                        <Select onValueChange={(value) => { field.onChange(value); courseForm.setValue('cycle', 1); }} value={field.value} disabled={!selectedFacultyIdCourse}>
+                                                            <FormControl><SelectTrigger><SelectValue placeholder={!selectedFacultyIdCourse ? "Selecciona una facultad primero" : "Asigna un programa..."}/></SelectTrigger></FormControl>
+                                                            <SelectContent>
+                                                                {programs?.filter(p => p.facultyId === selectedFacultyIdCourse).map(prog => (
+                                                                    <SelectItem key={prog.id} value={prog.id}>{prog.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                            <FormField control={courseForm.control} name="cycle" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Ciclo</FormLabel>
+                                                    <Select onValueChange={field.onChange} value={String(field.value)} disabled={!selectedProgramIdCourse}>
+                                                        <FormControl><SelectTrigger><SelectValue placeholder={!selectedProgramIdCourse ? "Selecciona un programa primero" : "Asigna un ciclo..."}/></SelectTrigger></FormControl>
+                                                        <SelectContent>
+                                                            {cyclesForSelectedProgramCreate.map(cycleNum => (
+                                                                <SelectItem key={cycleNum} value={String(cycleNum)}>Ciclo {cycleNum}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormField control={courseForm.control} name="semesterStartDate" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Fecha de Inicio del Semestre</FormLabel>
+                                                        <FormControl><Input type="date" {...field} /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                                <FormField control={courseForm.control} name="semesterEndDate" render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Fecha de Fin del Semestre</FormLabel>
+                                                        <FormControl><Input type="date" {...field} /></FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
+                                            </div>
+                                            <FormField control={courseForm.control} name="instructorId" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Instructor</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Asigna un instructor al curso..."/>
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {professors ? professors.map(prof => (
+                                                                <SelectItem key={prof.id} value={prof.id}>{prof.firstName} {prof.lastName}</SelectItem>
+                                                            )) : <SelectItem value="loading" disabled>Cargando...</SelectItem>}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            
+                                            <div className="space-y-4 rounded-md border p-4">
+                                                <h4 className="font-medium flex items-center justify-between"><span className='flex items-center gap-2'><Clock /> Horario</span>
+                                                    <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2'/> Añadir</Button>
+                                                </h4>
+                                                {schedule.map((session, index) => (
+                                                    <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                                                        <div className="space-y-1">
+                                                            <Label>Día</Label>
+                                                            <Select onValueChange={(value) => handleScheduleChange(index, 'day', value)} value={session.day}>
+                                                                <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
                                                                 <SelectContent>
-                                                                    <SelectItem value="Presencial">Presencial</SelectItem>
-                                                                    <SelectItem value="Online">Online</SelectItem>
-                                                                    <SelectItem value="Híbrido">Híbrido</SelectItem>
+                                                                    <SelectItem value="Lunes">Lunes</SelectItem>
+                                                                    <SelectItem value="Martes">Martes</SelectItem>
+                                                                    <SelectItem value="Miércoles">Miércoles</SelectItem>
+                                                                    <SelectItem value="Jueves">Jueves</SelectItem>
+                                                                    <SelectItem value="Viernes">Viernes</SelectItem>
+                                                                    <SelectItem value="Sábado">Sábado</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <Label>Prerrequisitos</Label>
-                                                    <Button variant="outline" disabled>Seleccionar cursos</Button>
-                                                    <p className="text-xs text-muted-foreground">Funcionalidad para seleccionar prerrequisitos en desarrollo.</p>
-                                                </div>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label>Hora Inicio</Label>
+                                                            <Input type="time" value={session.startTime} onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)} />
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label>Hora Fin</Label>
+                                                            <Input type="time" value={session.endTime} onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)} />
+                                                        </div>
+                                                        <div className="flex gap-1 items-center">
+                                                            <div className='space-y-1 w-full'>
+                                                                <Label>Aula</Label>
+                                                                <Input placeholder="Ej: A-101" value={session.classroom} onChange={(e) => handleScheduleChange(index, 'classroom', e.target.value)} />
+                                                            </div>
+                                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1}><Trash2 className="text-destructive"/></Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                  <FormField control={courseForm.control} name="mode" render={({ field }) => (
+                                                     <FormItem>
+                                                        <FormLabel>Modalidad</FormLabel>
+                                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                            <FormControl>
+                                                                <SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                <SelectItem value="Presencial">Presencial</SelectItem>
+                                                                <SelectItem value="Online">Online</SelectItem>
+                                                                <SelectItem value="Híbrido">Híbrido</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )} />
                                             </div>
-                                            <DialogFooter>
-                                                <Button variant="outline" type="button" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
-                                                <Button type="submit" disabled={courseForm.formState.isSubmitting}>
-                                                    {courseForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                    Guardar Curso
-                                                </Button>
-                                            </DialogFooter>
-                                        </form>
-                                    </Form>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Código</TableHead>
-                                    <TableHead>Nombre del Curso</TableHead>
-                                    <TableHead>Programa</TableHead>
-                                    <TableHead>Ciclo</TableHead>
-                                    <TableHead>Créditos</TableHead>
-                                    <TableHead>Nivel</TableHead>
-                                    <TableHead className="text-right">Acciones</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                               {areCoursesLoading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={7} className="text-center">
-                                            <Loader2 className="mx-auto h-6 w-6 animate-spin" />
-                                        </TableCell>
-                                    </TableRow>
-                                ) : courses && courses.length > 0 ? (
-                                    courses.map(course => (
-                                        <TableRow key={course.id}>
-                                            <TableCell className="font-mono">{course.courseId}</TableCell>
-                                            <TableCell className="font-medium">{course.name}</TableCell>
-                                            <TableCell>{programs?.find(p => p.id === course.programId)?.name || 'N/A'}</TableCell>
-                                            <TableCell className="text-center">{course.cycle}</TableCell>
-                                            <TableCell className="text-center">{course.credits}</TableCell>
-                                            <TableCell>{course.level}</TableCell>
-                                            <TableCell className="text-right">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon">
-                                                            <MoreHorizontal />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent>
-                                                        <DropdownMenuItem><Eye className="mr-2"/>Ver Secciones</DropdownMenuItem>
-                                                        <DropdownMenuItem onSelect={() => handleOpenEditDialog(course)}>
-                                                            <Edit className="mr-2"/>Editar Curso
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <DropdownMenuItem><PlusCircle className="mr-2"/>Crear Sección</DropdownMenuItem>
-                                                        <DropdownMenuSeparator />
-                                                        <Dialog>
-                                                            <DialogTrigger asChild>
-                                                                <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                                                                    <Trash2 className="mr-2"/>Desactivar
-                                                                </DropdownMenuItem>
-                                                            </DialogTrigger>
-                                                            <DialogContent>
-                                                                <DialogHeader>
-                                                                    <DialogTitle className='flex items-center gap-2'><AlertTriangle/> Confirmar Desactivación</DialogTitle>
-                                                                    <DialogDescription>
-                                                                        ¿Estás seguro de que quieres desactivar el curso "{course.name}"? Esta acción no se puede deshacer.
-                                                                    </DialogDescription>
-                                                                </DialogHeader>
-                                                                <DialogFooter>
-                                                                    <DialogClose asChild>
-                                                                        <Button variant="outline">Cancelar</Button>
-                                                                    </DialogClose>
-                                                                    <Button variant="destructive" onClick={() => handleDeactivateCourse(course)}>
-                                                                        Sí, desactivar
-                                                                    </Button>
-                                                                </DialogFooter>
-                                                            </DialogContent>
-                                                        </Dialog>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={7} className="text-center">No se encontraron cursos.</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                    <CardFooter className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">
-                            Mostrando {courses?.length || 0} de {courses?.length || 0} cursos.
-                        </span>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" disabled>Anterior</Button>
-                            <Button variant="outline" size="sm" disabled>Siguiente</Button>
-                        </div>
-                    </CardFooter>
-                </Card>
-            </TabsContent>
+
+                                            <div className="space-y-2">
+                                                <Label>Prerrequisitos</Label>
+                                                <Button variant="outline" disabled>Seleccionar cursos</Button>
+                                                <p className="text-xs text-muted-foreground">Funcionalidad para seleccionar prerrequisitos en desarrollo.</p>
+                                            </div>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button variant="outline" type="button" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
+                                            <Button type="submit" disabled={courseForm.formState.isSubmitting}>
+                                                {courseForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                Guardar Curso
+                                            </Button>
+                                        </DialogFooter>
+                                    </form>
+                                </Form>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Tabs defaultValue="active">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="active">Activos</TabsTrigger>
+                            <TabsTrigger value="inactive">Inactivos</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="active" className="mt-4">
+                            {renderCoursesTable(activeCourses, areActiveCoursesLoading, true)}
+                        </TabsContent>
+                        <TabsContent value="inactive" className="mt-4">
+                            {renderCoursesTable(inactiveCourses, areInactiveCoursesLoading, false)}
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
+            </Card>
+
             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                 <DialogContent className="sm:max-w-3xl">
                     <Form {...updateCourseForm}>
@@ -1040,9 +1084,9 @@ function AdminCoursesView() {
                     </Form>
                 </DialogContent>
              </Dialog>
-        </Tabs>
+        </>
     );
-  }
+}
 
 export default function CoursesPage() {
   const { profile } = useUser();

@@ -30,7 +30,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -325,15 +324,17 @@ export default function SchedulePage() {
 
   const DayWithDots = ({ date, displayMonth }: { date: Date; displayMonth: Date }) => {
     if (!date || !displayMonth || date.getMonth() !== displayMonth.getMonth()) {
-      return <div className="h-full w-full"></div>;
+      return <td></td>;
     }
     const eventsOnDay = allEvents.filter(
       (event) => event.date.toDateString() === date.toDateString()
     );
   
     return (
-      <div className="relative h-full w-full flex items-center justify-center">
-        <span>{format(date, 'd')}</span>
+      <td className="h-9 w-9 text-center text-sm p-0 relative">
+        <span className="relative flex h-full w-full items-center justify-center">
+            {format(date, 'd')}
+        </span>
         {eventsOnDay.length > 0 && (
           <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">
             {eventsOnDay.slice(0, 4).map((event, i) => (
@@ -341,7 +342,7 @@ export default function SchedulePage() {
             ))}
           </div>
         )}
-      </div>
+      </td>
     );
   };
   

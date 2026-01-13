@@ -42,7 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { collection, query, where, DocumentData } from 'firebase/firestore';
+import { collection, query, where, DocumentData, getDocs } from 'firebase/firestore';
 import { addDays, format, parse, startOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -59,6 +59,11 @@ interface Course extends DocumentData {
   schedule?: ScheduleItem[];
   semesterStartDate?: string;
   semesterEndDate?: string;
+}
+
+interface Enrollment {
+  id: string;
+  courseId: string;
 }
 
 interface UpcomingEvent {
@@ -241,17 +246,51 @@ export default function SchedulePage() {
   const { profile, user } = useUser();
   const firestore = useFirestore();
 
-  const coursesQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    // For now, we only implement the professor's view
-    if (profile?.role === 'professor') {
-        return query(collection(firestore, 'courses'), where('instructorId', '==', user.uid));
-    }
-    // TODO: Implement student view by querying 'enrollments' collection
-    return null;
-  }, [firestore, user, profile]);
+    const coursesQuery = useMemoFirebase(() => {
+        if (!firestore || !user || !profile) return null;
+        
+        if (profile.role === 'professor') {
+            return query(collection(firestore, 'courses'), where('instructorId', '==', user.uid));
+        }
 
-  const { data: courses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
+        if (profile.role === 'student') {
+            return query(collection(firestore, 'enrollments'), where('studentId', '==', user.uid));
+        }
+        
+        return null; 
+    }, [firestore, user, profile]);
+
+    const { data: initialData, isLoading: isInitialDataLoading } = useCollection<Course | Enrollment>(coursesQuery);
+
+    const [studentCourses, setStudentCourses] = useState<Course[]>([]);
+    const [isStudentCoursesLoading, setIsStudentCoursesLoading] = useState(false);
+
+    useEffect(() => {
+        if (profile?.role === 'student' && initialData && firestore) {
+            const fetchCourses = async () => {
+                setIsStudentCoursesLoading(true);
+                const enrollments = initialData as Enrollment[];
+                if (enrollments.length === 0) {
+                    setStudentCourses([]);
+                    setIsStudentCoursesLoading(false);
+                    return;
+                }
+                const courseIds = enrollments.map(e => e.courseId);
+                const coursesRef = collection(firestore, 'courses');
+                const coursesForStudentQuery = query(coursesRef, where('__name__', 'in', courseIds));
+                const coursesSnapshot = await getDocs(coursesForStudentQuery);
+                const coursesData = coursesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Course));
+                setStudentCourses(coursesData);
+                setIsStudentCoursesLoading(false);
+            };
+
+            fetchCourses();
+        }
+    }, [initialData, profile, firestore]);
+
+    const courses = profile?.role === 'student' ? studentCourses : (initialData as Course[]);
+    const areCoursesLoading = profile?.role === 'student' ? isStudentCoursesLoading : isInitialDataLoading;
+
   
   const allEvents = useMemo(() => {
       if (!courses) return [];

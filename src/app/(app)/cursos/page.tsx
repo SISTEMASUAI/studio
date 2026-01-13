@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useCollection, useMemoFirebase, useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
@@ -72,12 +73,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
-import { collection, query, where, DocumentData, doc, getDocs, updateDoc, increment } from 'firebase/firestore';
+import { collection, query, where, DocumentData, doc, getDocs } from 'firebase/firestore';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -664,6 +665,7 @@ function AdminCoursesView() {
                                             <DialogDescription>Completa el formulario para registrar un nuevo curso en el sistema.</DialogDescription>
                                         </DialogHeader>
                                         <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                                            {/* ... form fields ... */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <FormField control={courseForm.control} name="courseId" render={({ field }) => (
                                                     <FormItem>
@@ -817,9 +819,10 @@ function AdminCoursesView() {
                                                 )} />
                                             
                                             <div className="space-y-4 rounded-md border p-4">
-                                                <h4 className="font-medium flex items-center justify-between"><span className='flex items-center gap-2'><Clock /> Horario</span>
-                                                    <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2'/> Añadir</Button>
-                                                </h4>
+                                                <div className="flex items-center justify-between">
+                                                  <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
+                                                  <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2 h-4 w-4'/> Añadir</Button>
+                                                </div>
                                                 {schedule.map((session, index) => (
                                                     <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
                                                         <div className="space-y-1">
@@ -849,7 +852,7 @@ function AdminCoursesView() {
                                                                 <Label>Aula</Label>
                                                                 <Input placeholder="Ej: A-101" value={session.classroom} onChange={(e) => handleScheduleChange(index, 'classroom', e.target.value)} />
                                                             </div>
-                                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1}><Trash2 className="text-destructive"/></Button>
+                                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1}><Trash2 className="text-destructive h-4 w-4"/></Button>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -857,7 +860,7 @@ function AdminCoursesView() {
 
                                             <div className="space-y-2">
                                                 <Label>Prerrequisitos</Label>
-                                                <Button variant="outline" disabled>Seleccionar cursos</Button>
+                                                <Button type="button" variant="outline" disabled>Seleccionar cursos</Button>
                                                 <p className="text-xs text-muted-foreground">Funcionalidad para seleccionar prerrequisitos en desarrollo.</p>
                                             </div>
                                         </div>
@@ -899,6 +902,7 @@ function AdminCoursesView() {
                                 <DialogDescription>Modifica la información principal del curso. { hasCourseStarted(selectedCourse) && <span className="text-destructive font-semibold">Este curso ya ha iniciado y no se puede editar.</span>}</DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+                                {/* ... edit form fields ... */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <FormField control={updateCourseForm.control} name="courseId" render={({ field }) => (
                                         <FormItem>
@@ -1025,10 +1029,25 @@ function AdminCoursesView() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
+                                <FormField control={updateCourseForm.control} name="mode" render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Modalidad</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="Presencial">Presencial</SelectItem>
+                                            <SelectItem value="Online">Online</SelectItem>
+                                            <SelectItem value="Híbrido">Híbrido</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                                )} />
                                 <div className="space-y-4 rounded-md border p-4">
-                                    <h4 className="font-medium flex items-center justify-between"><span className='flex items-center gap-2'><Clock /> Horario</span>
-                                        <Button type="button" variant="outline" size="sm" onClick={addScheduleRow} disabled={hasCourseStarted(selectedCourse)}><PlusCircle className='mr-2'/> Añadir</Button>
-                                    </h4>
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
+                                        <Button type="button" variant="outline" size="sm" onClick={addScheduleRow} disabled={hasCourseStarted(selectedCourse)}><PlusCircle className='mr-2 h-4 w-4'/> Añadir</Button>
+                                    </div>
                                      {schedule.map((session, index) => (
                                         <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
                                             <div className="space-y-1">
@@ -1058,24 +1077,10 @@ function AdminCoursesView() {
                                                     <Label>Aula</Label>
                                                     <Input placeholder="Ej: A-101" value={session.classroom} onChange={(e) => handleScheduleChange(index, 'classroom', e.target.value)} disabled={hasCourseStarted(selectedCourse)} />
                                                 </div>
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1 || hasCourseStarted(selectedCourse)}><Trash2 className="text-destructive"/></Button>
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1 || hasCourseStarted(selectedCourse)}><Trash2 className="text-destructive h-4 w-4"/></Button>
                                             </div>
                                         </div>
                                     ))}
-                                    <FormField control={updateCourseForm.control} name="mode" render={({ field }) => (
-                                         <FormItem>
-                                            <FormLabel>Modalidad</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="Presencial">Presencial</SelectItem>
-                                                    <SelectItem value="Online">Online</SelectItem>
-                                                    <SelectItem value="Híbrido">Híbrido</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
                                 </div>
                             </div>
                             <DialogFooter>

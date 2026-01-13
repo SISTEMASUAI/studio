@@ -79,6 +79,7 @@ interface Course extends DocumentData {
     prerequisiteStatus?: 'met' | 'partial' | 'unmet';
     conflict?: boolean;
     waitlistStatus?: 'none' | 'on_waitlist';
+    status?: 'active' | 'inactive';
 }
 
 interface Professor extends DocumentData {
@@ -124,7 +125,11 @@ function StudentEnrollmentView() {
 
   const availableCoursesQuery = useMemoFirebase(() => {
       if (!firestore || !profile?.programId) return null;
-      return query(collection(firestore, 'courses'), where('programId', '==', profile.programId));
+      return query(
+        collection(firestore, 'courses'), 
+        where('programId', '==', profile.programId),
+        where('status', '==', 'active')
+      );
   }, [firestore, profile]);
 
   const { data: availableCourses, isLoading: areCoursesLoading } = useCollection<Course>(availableCoursesQuery);

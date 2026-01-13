@@ -71,7 +71,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
-import { collection, query, where, DocumentData, doc, getDocs } from 'firebase/firestore';
+import { collection, query, where, DocumentData, doc, getDocs, updateDoc, increment } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import Link from 'next/link';
@@ -218,7 +218,11 @@ function ProfessorCoursesView() {
 
     const coursesQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
-        return query(collection(firestore, 'courses'), where('instructorId', '==', user.uid));
+        return query(
+            collection(firestore, 'courses'), 
+            where('instructorId', '==', user.uid),
+            where('status', '==', 'active')
+        );
     }, [firestore, user]);
 
     const { data: courses, isLoading, error } = useCollection<Course>(coursesQuery);

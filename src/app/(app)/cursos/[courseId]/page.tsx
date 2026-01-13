@@ -21,7 +21,7 @@ import {
     TabsList,
     TabsTrigger,
   } from "@/components/ui/tabs"
-import { Loader2, Info, BookMarked, Users, Library, UserCheck as UserCheckIcon, Search, CheckCircle, XCircle, Book, Settings, Trash2, Megaphone, UserCog, PlusCircle, Check, Eye, BarChart2, FileText, ClipboardList, GraduationCap, Folder, File, Tv, AlertTriangle, BookOpen } from 'lucide-react';
+import { Loader2, Info, BookMarked, Users, Library, UserCheck as UserCheckIcon, Search, CheckCircle, XCircle, BookOpen, Settings, Trash2, Megaphone, UserCog, PlusCircle, Check, Eye, BarChart2, FileText, ClipboardList, GraduationCap, Folder, File, Tv, AlertTriangle, ShieldX } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +63,7 @@ interface CourseDetails {
   schedule?: { day: string; startTime: string; endTime: string; classroom: string }[];
   mode?: 'Presencial' | 'Online' | 'Híbrido';
   virtualRoomUrl?: string;
+  status?: 'active' | 'inactive';
 }
 
 // Define the type for the instructor's profile data
@@ -166,6 +167,25 @@ export default function CourseDetailPage() {
     );
   }
 
+  if (course.status === 'inactive') {
+    return (
+      <Card>
+        <CardHeader>
+            <CardTitle className="flex items-center gap-2"><ShieldX className="text-destructive"/> Curso Desactivado</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4"/>
+                <AlertTitle>Acceso Denegado</AlertTitle>
+                <AlertDescription>
+                    Este curso ha sido desactivado por un administrador y ya no está disponible. Contacta con tu institución si crees que esto es un error.
+                </AlertDescription>
+            </Alert>
+        </CardContent>
+      </Card>
+    )
+  }
+
   const isInstructor = profile?.uid === course.instructorId;
   const isStudent = profile?.role === 'student';
 
@@ -180,7 +200,7 @@ export default function CourseDetailPage() {
       <TabsTrigger value="assignments"><ClipboardList /> Tareas</TabsTrigger>
       <TabsTrigger value="grades"><GraduationCap/> Calificaciones</TabsTrigger>
       <TabsTrigger value="info"><Info /> Información</TabsTrigger>
-      <TabsTrigger value="materials"><Book /> Materiales</TabsTrigger>
+      <TabsTrigger value="materials"><BookOpen /> Materiales</TabsTrigger>
     </>
   );
 
@@ -189,7 +209,7 @@ export default function CourseDetailPage() {
         <TabsTrigger value="students"><Users/> Estudiantes</TabsTrigger>
         <TabsTrigger value="assignments"><ClipboardList /> Tareas</TabsTrigger>
         <TabsTrigger value="grades"><GraduationCap/> Calificaciones</TabsTrigger>
-        <TabsTrigger value="materials"><Book /> Materiales</TabsTrigger>
+        <TabsTrigger value="materials"><BookOpen /> Materiales</TabsTrigger>
         <TabsTrigger value="stats"><BarChart2 /> Estadísticas</TabsTrigger>
     </>
   )
@@ -211,7 +231,7 @@ export default function CourseDetailPage() {
                             <CourseAssignments />
                         </TabsContent>
                         <TabsContent value="grades" className="mt-6">
-                            <CourseGrades />
+                            <CourseGrades attendance={attendance} />
                         </TabsContent>
                     </>
                 )}
@@ -444,7 +464,7 @@ export default function CourseDetailPage() {
                 <TabsContent value="materials" className="mt-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><Book /> Materiales del Curso</CardTitle>
+                            <CardTitle className="flex items-center gap-2"><BookOpen /> Materiales del Curso</CardTitle>
                             <CardDescription>Descarga presentaciones, lecturas y otros recursos.</CardDescription>
                         </CardHeader>
                         <CardContent>

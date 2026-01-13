@@ -46,6 +46,7 @@ import {
 import { collection, query, where, DocumentData, getDocs } from 'firebase/firestore';
 import { addDays, format, parse, startOfDay, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Day, DayProps } from 'react-day-picker';
 
 interface ScheduleItem {
   title: string;
@@ -323,10 +324,16 @@ export default function SchedulePage() {
 
   const upcomingEvents = allEvents.filter(event => isBefore(startOfDay(new Date()), event.date)).slice(0, 5);
 
-  const DayWithDots = ({ date, displayMonth }: { date: Date; displayMonth: Date }) => {
-    if (!date || !displayMonth || date.getMonth() !== displayMonth.getMonth()) {
-      return <td></td>;
+  const DayWithDots = (props: DayProps) => {
+    const { date, displayMonth } = props;
+    if (!date || !displayMonth) {
+      return <Day {...props} />;
     }
+  
+    if (date.getMonth() !== displayMonth.getMonth()) {
+        return <Day {...props} />;
+    }
+  
     const eventsOnDay = allEvents.filter(
       (event) => event.date.toDateString() === date.toDateString()
     );
@@ -334,7 +341,7 @@ export default function SchedulePage() {
     return (
       <td className="h-9 w-9 text-center text-sm p-0 relative">
         <span className="relative flex h-full w-full items-center justify-center">
-            {format(date, 'd')}
+          {format(date, 'd')}
         </span>
         {eventsOnDay.length > 0 && (
           <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex space-x-1">

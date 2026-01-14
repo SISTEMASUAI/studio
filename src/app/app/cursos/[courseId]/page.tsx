@@ -355,10 +355,10 @@ export default function CourseDetailPage() {
                 <TabsContent value="info" className="mt-6">
                     <Tabs defaultValue="description" className="w-full">
                         <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="description"><Info className="mr-2"/>Descripción</TabsTrigger>
-                        <TabsTrigger value="content"><BookMarked className="mr-2"/>Contenido</TabsTrigger>
-                        <TabsTrigger value="classmates"><Users className="mr-2"/>Compañeros</TabsTrigger>
-                        <TabsTrigger value="attendance"><UserCheck className="mr-2"/>Asistencia</TabsTrigger>
+                            <TabsTrigger value="description"><Info className="mr-2"/>Descripción</TabsTrigger>
+                            <TabsTrigger value="content"><BookMarked className="mr-2"/>Contenido</TabsTrigger>
+                            <TabsTrigger value="classmates"><Users className="mr-2"/>Compañeros</TabsTrigger>
+                            <TabsTrigger value="attendance"><UserCheck className="mr-2"/>Asistencia</TabsTrigger>
                         </TabsList>
                         <TabsContent value="description" className="mt-6">
                             <Card>

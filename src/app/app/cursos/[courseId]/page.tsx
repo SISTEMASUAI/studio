@@ -79,7 +79,6 @@ interface AttendanceRecord {
     id: string;
     studentId: string;
     courseId: string;
-    sessionId: string;
     sessionTitle: string;
     date: string;
     status: 'presente' | 'ausente' | 'tarde' | 'justificado';
@@ -210,7 +209,6 @@ export default function CourseDetailPage() {
       <TabsTrigger value="grades"><GraduationCap/> Calificaciones</TabsTrigger>
       <TabsTrigger value="info"><Info /> Información</TabsTrigger>
       <TabsTrigger value="materials"><BookOpen /> Materiales</TabsTrigger>
-      <TabsTrigger value="attendance"><UserCheck /> Asistencia</TabsTrigger>
     </>
   );
 
@@ -231,7 +229,7 @@ export default function CourseDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
             <Tabs defaultValue={isStudent ? "assignments" : "students"} className="w-full">
-                <TabsList className={`grid w-full ${isStudent ? 'grid-cols-5' : 'grid-cols-5'}`}>
+                <TabsList className={`grid w-full ${isStudent ? 'grid-cols-4' : 'grid-cols-5'}`}>
                     {isStudent ? studentTabs : professorTabs}
                 </TabsList>
 
@@ -242,9 +240,6 @@ export default function CourseDetailPage() {
                         </TabsContent>
                         <TabsContent value="grades" className="mt-6">
                             <CourseGrades />
-                        </TabsContent>
-                        <TabsContent value="attendance" className="mt-6">
-                            {isAttendanceLoading ? <Loader2 className="animate-spin" /> : <CourseAttendance attendance={attendance || []} />}
                         </TabsContent>
                     </>
                 )}
@@ -359,10 +354,11 @@ export default function CourseDetailPage() {
 
                 <TabsContent value="info" className="mt-6">
                     <Tabs defaultValue="description" className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
+                        <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="description"><Info className="mr-2"/>Descripción</TabsTrigger>
                         <TabsTrigger value="content"><BookMarked className="mr-2"/>Contenido</TabsTrigger>
                         <TabsTrigger value="classmates"><Users className="mr-2"/>Compañeros</TabsTrigger>
+                        <TabsTrigger value="attendance"><UserCheck className="mr-2"/>Asistencia</TabsTrigger>
                         </TabsList>
                         <TabsContent value="description" className="mt-6">
                             <Card>
@@ -471,6 +467,11 @@ export default function CourseDetailPage() {
                                     </Alert>
                                 </CardContent>
                             </Card>
+                        </TabsContent>
+                        <TabsContent value="attendance" className="mt-6">
+                             {isStudent && (
+                                isAttendanceLoading ? <Loader2 className="animate-spin" /> : <CourseAttendance attendance={attendance || []} />
+                            )}
                         </TabsContent>
                     </Tabs>
                 </TabsContent>

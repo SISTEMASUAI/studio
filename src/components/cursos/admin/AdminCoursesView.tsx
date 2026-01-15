@@ -39,9 +39,9 @@ import {
     TabsTrigger,
   } from "@/components/ui/tabs";
 import { Form } from '@/components/ui/form';
-import CreateCourseForm from './CreateCourseForm';
-import EditCourseForm from './EditCourseForm';
 import CoursesTable from './CoursesTable';
+import CreateCourseForm from '../forms/CreateCourseForm';
+import EditCourseForm from '../forms/EditCourseForm';
 
 export interface ScheduleItem {
   title: string;

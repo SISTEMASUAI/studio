@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,10 +11,18 @@ import { ListTree, Edit, Loader2 } from 'lucide-react';
 import ModuleManagementDialog from '@/components/cursos/admin/ModuleManagementDialog';
 import type { Course } from '@/types/course';
 
-export default function AdminScheduleView() {
+export default function ModulesPage() {
+  const { profile, isUserLoading } = useUser();
+  const router = useRouter();
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false);
   const firestore = useFirestore();
+
+  useEffect(() => {
+    if (!isUserLoading && profile?.role !== 'admin') {
+      router.replace('/intranet');
+    }
+  }, [isUserLoading, profile, router]);
 
   const coursesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -27,8 +36,28 @@ export default function AdminScheduleView() {
     setSelectedCourse(course);
   };
 
+  if (isUserLoading || !profile || profile.role !== 'admin') {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <>
+    <div className="space-y-8">
+      <section>
+        <div>
+          <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
+            <ListTree className="text-primary" />
+            Gestión de Módulos y Semanas
+          </h1>
+          <p className="text-muted-foreground">
+            Añade y organiza el contenido semanal de cada curso.
+          </p>
+        </div>
+      </section>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -54,6 +83,7 @@ export default function AdminScheduleView() {
           </Button>
         </CardContent>
       </Card>
+
       {selectedCourse && (
         <ModuleManagementDialog
           isOpen={isModuleDialogOpen}
@@ -61,6 +91,6 @@ export default function AdminScheduleView() {
           course={selectedCourse}
         />
       )}
-    </>
+    </div>
   );
 }

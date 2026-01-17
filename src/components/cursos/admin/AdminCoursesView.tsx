@@ -36,7 +36,6 @@ import {
 import CoursesTable from './CoursesTable';
 import CreateCourseForm from '../forms/CreateCourseForm';
 import EditCourseForm from '../forms/EditCourseForm';
-import ModuleManagementDialog from './ModuleManagementDialog';
 import type { Course, Program } from '@/types/course';
 
 
@@ -59,7 +58,6 @@ export default function AdminCoursesView() {
     const { toast } = useToast();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [isModulesDialogOpen, setIsModulesDialogOpen] = useState(false);
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
     const firestore = useFirestore();
@@ -95,11 +93,6 @@ export default function AdminCoursesView() {
         setSelectedCourse(course);
         setIsEditDialogOpen(true);
     };
-
-    const handleOpenModulesDialog = (course: Course) => {
-        setSelectedCourse(course);
-        setIsModulesDialogOpen(true);
-    }
 
     const handleDeactivateCourse = async (course: Course) => {
         if (!firestore) return;
@@ -175,7 +168,6 @@ export default function AdminCoursesView() {
                                 programs={programs}
                                 onEdit={handleOpenEditDialog}
                                 onDeactivate={handleDeactivateCourse}
-                                onManageModules={handleOpenModulesDialog}
                                 isActive={true}
                             />
                         </TabsContent>
@@ -186,7 +178,6 @@ export default function AdminCoursesView() {
                                 programs={programs}
                                 onEdit={handleOpenEditDialog}
                                 onActivate={handleActivateCourse}
-                                onManageModules={handleOpenModulesDialog}
                                 isActive={false}
                             />
                         </TabsContent>
@@ -208,14 +199,6 @@ export default function AdminCoursesView() {
                         />
                     </DialogContent>
                  </Dialog>
-            )}
-            
-            {selectedCourse && (
-                <ModuleManagementDialog
-                    isOpen={isModulesDialogOpen}
-                    onOpenChange={setIsModulesDialogOpen}
-                    course={selectedCourse}
-                />
             )}
         </>
     );

@@ -27,6 +27,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -220,6 +221,39 @@ function CreateEventDialog() {
   );
 }
 
+function AdminCalendarManagement() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <UserCog /> Gestión del Calendario General
+        </CardTitle>
+        <CardDescription>
+          Herramientas para definir y modificar las fechas institucionales.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <Button variant="outline" disabled>
+            <CalendarCheck className="mr-2" /> Definir Períodos de Matrícula
+          </Button>
+          <Button variant="outline" disabled>
+            <CalendarX className="mr-2" /> Programar Feriados
+          </Button>
+        </div>
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Panel de Administrador</AlertTitle>
+          <AlertDescription>
+            Las herramientas avanzadas para la gestión global del calendario
+            académico estarán disponibles en esta sección.
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function SchedulePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const { profile, user } = useUser();
@@ -323,7 +357,8 @@ export default function SchedulePage() {
     );
   };
   
-  const canManageEvents = profile?.role === 'admin' || profile?.role === 'professor';
+  const canManageEvents =
+    profile?.role === 'admin' || profile?.role === 'professor';
   const isAdmin = profile?.role === 'admin';
 
   const handleSelectCourse = (courseId: string) => {

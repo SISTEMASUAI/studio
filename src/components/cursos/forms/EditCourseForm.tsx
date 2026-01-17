@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, PlusCircle, Trash2, Clock } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import type { Course, ScheduleItem, Program, Faculty } from '../admin/AdminCoursesView';
+import type { Course, ScheduleItem, Program, Faculty } from '@/types/course';
 
 const CourseSchema = z.object({
     courseId: z.string().min(3, "El código debe tener al menos 3 caracteres."),
@@ -33,8 +33,6 @@ const CourseSchema = z.object({
     level: z.string().min(1, "Debe seleccionar un nivel."),
     instructorId: z.string().min(1, "Debe seleccionar un instructor."),
     mode: z.string().min(1, "Debe seleccionar una modalidad."),
-    semesterStartDate: z.string().min(1, "Debe seleccionar una fecha de inicio."),
-    semesterEndDate: z.string().min(1, "Debe seleccionar una fecha de fin."),
   });
 
 interface Professor extends DocumentData {
@@ -94,11 +92,6 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
     }
   }, [course, programs, selectedCourseFacultyId, form]);
 
-  const hasCourseStarted = (course: Course | null) => {
-    if (!course || !course.semesterStartDate) return false;
-    return new Date(course.semesterStartDate) < new Date();
-  }
-
   const handleScheduleChange = (index: number, field: keyof ScheduleItem, value: string) => {
     const newSchedule = [...schedule];
     newSchedule[index] = { ...newSchedule[index], [field]: value };
@@ -144,21 +137,21 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
         <form onSubmit={form.handleSubmit(onSubmit)}>
             <DialogHeader>
                 <DialogTitle>Editar Curso: {course?.name}</DialogTitle>
-                <DialogDescription>Modifica la información principal del curso. { hasCourseStarted(course) && <span className="text-destructive font-semibold">Este curso ya ha iniciado y no se puede editar.</span>}</DialogDescription>
+                <DialogDescription>Modifica la información principal del curso.</DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="courseId" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Código del Curso</FormLabel>
-                            <FormControl><Input {...field} disabled={hasCourseStarted(course)} /></FormControl>
+                            <FormControl><Input {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
                      <FormField control={form.control} name="name" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Nombre del Curso</FormLabel>
-                            <FormControl><Input {...field} disabled={hasCourseStarted(course)}/></FormControl>
+                            <FormControl><Input {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
@@ -166,7 +159,7 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
                 <FormField control={form.control} name="description" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Descripción Breve</FormLabel>
-                        <FormControl><Textarea {...field} disabled={hasCourseStarted(course)} /></FormControl>
+                        <FormControl><Textarea {...field} /></FormControl>
                         <FormMessage />
                     </FormItem>
                 )} />
@@ -174,7 +167,7 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
                     <FormField control={form.control} name="credits" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Créditos</FormLabel>
-                            <FormControl><Input type="number" {...field} disabled={hasCourseStarted(course)} /></FormControl>
+                            <FormControl><Input type="number" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
@@ -188,7 +181,7 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
                     <FormField control={form.control} name="level" render={({ field }) => (
                          <FormItem>
                             <FormLabel>Nivel</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value} disabled={hasCourseStarted(course)}>
+                            <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger></FormControl>
                                 <SelectContent>
                                     <SelectItem value="Pregrado">Pregrado</SelectItem>
@@ -203,7 +196,7 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
                      <FormField control={form.control} name="facultyId" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Facultad</FormLabel>
-                            <Select onValueChange={(value) => { field.onChange(value); form.setValue('programId', ''); form.setValue('cycle', 1); }} value={field.value} disabled={hasCourseStarted(course)}>
+                            <Select onValueChange={(value) => { field.onChange(value); form.setValue('programId', ''); form.setValue('cycle', 1); }} value={field.value}>
                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una facultad..."/></SelectTrigger></FormControl>
                                 <SelectContent>
                                     {faculties ? faculties.map(fac => (
@@ -217,7 +210,7 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
                     <FormField control={form.control} name="programId" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Programa Académico</FormLabel>
-                            <Select onValueChange={(value) => { field.onChange(value); form.setValue('cycle', 1); }} value={field.value} disabled={!selectedFacultyId || hasCourseStarted(course)}>
+                            <Select onValueChange={(value) => { field.onChange(value); form.setValue('cycle', 1); }} value={field.value} disabled={!selectedFacultyId}>
                                 <FormControl><SelectTrigger><SelectValue placeholder={!selectedFacultyId ? "Selecciona una facultad primero" : "Asigna un programa..."}/></SelectTrigger></FormControl>
                                 <SelectContent>
                                     {programs?.filter(p => p.facultyId === selectedFacultyId).map(prog => (
@@ -232,7 +225,7 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
                  <FormField control={form.control} name="cycle" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Ciclo</FormLabel>
-                        <Select onValueChange={field.onChange} value={String(field.value)} disabled={!selectedProgramId || hasCourseStarted(course)}>
+                        <Select onValueChange={field.onChange} value={String(field.value)} disabled={!selectedProgramId}>
                             <FormControl><SelectTrigger><SelectValue placeholder={!selectedProgramId ? "Selecciona un programa primero" : "Asigna un ciclo..."}/></SelectTrigger></FormControl>
                             <SelectContent>
                                 {cyclesForSelectedProgram.map(cycleNum => (
@@ -243,22 +236,6 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
                         <FormMessage />
                     </FormItem>
                 )}/>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="semesterStartDate" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Fecha de Inicio del Semestre</FormLabel>
-                            <FormControl><Input type="date" {...field} disabled={hasCourseStarted(course)} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="semesterEndDate" render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Fecha de Fin del Semestre</FormLabel>
-                            <FormControl><Input type="date" {...field} disabled={hasCourseStarted(course)} /></FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )} />
-                </div>
                 <FormField control={form.control} name="instructorId" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Instructor</FormLabel>
@@ -276,7 +253,7 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
                 <FormField control={form.control} name="mode" render={({ field }) => (
                     <FormItem>
                     <FormLabel>Modalidad</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={hasCourseStarted(course)}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger></FormControl>
                         <SelectContent>
                             <SelectItem value="Presencial">Presencial</SelectItem>
@@ -290,17 +267,17 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
                 <div className="space-y-4 rounded-md border p-4">
                     <div className="flex items-center justify-between">
                         <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
-                        <Button type="button" variant="outline" size="sm" onClick={addScheduleRow} disabled={hasCourseStarted(course)}><PlusCircle className='mr-2 h-4 w-4'/> Añadir</Button>
+                        <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2 h-4 w-4'/> Añadir</Button>
                     </div>
                      {schedule.map((session, index) => (
                         <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
                             <div className="space-y-1 col-span-2 md:col-span-1">
                                 <Label>Título Sesión</Label>
-                                <Input placeholder="Ej: Teoría" value={session.title} onChange={(e) => handleScheduleChange(index, 'title', e.target.value)} disabled={hasCourseStarted(course)} />
+                                <Input placeholder="Ej: Teoría" value={session.title} onChange={(e) => handleScheduleChange(index, 'title', e.target.value)} />
                             </div>
                             <div className="space-y-1">
                                 <Label>Día</Label>
-                                <Select onValueChange={(value) => handleScheduleChange(index, 'day', value)} value={session.day} disabled={hasCourseStarted(course)}>
+                                <Select onValueChange={(value) => handleScheduleChange(index, 'day', value)} value={session.day}>
                                     <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="Lunes">Lunes</SelectItem>
@@ -314,18 +291,18 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
                             </div>
                             <div className="space-y-1">
                                 <Label>Hora Inicio</Label>
-                                <Input type="time" value={session.startTime} onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)} disabled={hasCourseStarted(course)} />
+                                <Input type="time" value={session.startTime} onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)} />
                             </div>
                             <div className="space-y-1">
                                 <Label>Hora Fin</Label>
-                                <Input type="time" value={session.endTime} onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)} disabled={hasCourseStarted(course)} />
+                                <Input type="time" value={session.endTime} onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)} />
                             </div>
                             <div className="flex gap-1 items-center">
                                 <div className='space-y-1 w-full'>
                                     <Label>Aula</Label>
-                                    <Input placeholder="Ej: A-101" value={session.classroom} onChange={(e) => handleScheduleChange(index, 'classroom', e.target.value)} disabled={hasCourseStarted(course)} />
+                                    <Input placeholder="Ej: A-101" value={session.classroom} onChange={(e) => handleScheduleChange(index, 'classroom', e.target.value)} />
                                 </div>
-                                <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1 || hasCourseStarted(course)}><Trash2 className="text-destructive h-4 w-4"/></Button>
+                                <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1}><Trash2 className="text-destructive h-4 w-4"/></Button>
                             </div>
                         </div>
                     ))}
@@ -333,7 +310,7 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
             </div>
             <DialogFooter>
                 <Button variant="outline" type="button" onClick={onCancel}>Cancelar</Button>
-                <Button type="submit" disabled={form.formState.isSubmitting || hasCourseStarted(course)}>
+                <Button type="submit" disabled={form.formState.isSubmitting}>
                     {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Guardar Cambios
                 </Button>

@@ -50,7 +50,7 @@ export interface Course {
     startTime: string;              // "15:40" (formato HH:mm)
     endTime: string;                // "16:39" o "16:40"
     classroom: string;              // "A-01", "B-12", "" (vacío si es virtual)
-    title?: string;                 // "TEORIA DE SISTEMAS", "PRACTICA SISTEMAS", etc.
+    title: string;                 // "TEORIA DE SISTEMAS", "PRACTICA SISTEMAS", etc.
   }
   
   // Perfil del instructor (documento en 'users/{instructorId}')
@@ -108,6 +108,7 @@ export interface Course {
     name: string;
     facultyId: string;
     totalCycles: number;
+    totalCredits: number;
 }
 export interface Enrollment {
     id: string; // Firestore document ID
@@ -116,6 +117,12 @@ export interface Enrollment {
     // ... otros campos del documento de matrícula que sean relevantes
   }
   
+  export interface Faculty {
+    id: string;
+    facultyId: string;
+    name: string;
+  }
+
   // Helper para timestamps de Firestore (si los lees como objeto)
   export type FirestoreTimestamp = {
     seconds: number;
@@ -127,3 +134,4 @@ export interface Enrollment {
     createdAt?: FirestoreTimestamp | string;
     updatedAt?: FirestoreTimestamp | string;
   };
+

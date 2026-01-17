@@ -19,7 +19,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, PlusCircle, Trash2, Clock } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { useMemo, useState } from 'react';
-import type { ScheduleItem } from '../admin/AdminCoursesView';
+
+interface ScheduleItem {
+    title: string;
+    day: string;
+    startTime: string;
+    endTime: string;
+    classroom: string;
+}
 
 const CourseSchema = z.object({
   courseId: z.string().min(3, "El código debe tener al menos 3 caracteres."),
@@ -33,8 +40,6 @@ const CourseSchema = z.object({
   level: z.string().min(1, "Debe seleccionar un nivel."),
   instructorId: z.string().min(1, "Debe seleccionar un instructor."),
   mode: z.string().min(1, "Debe seleccionar una modalidad."),
-  semesterStartDate: z.string().min(1, "Debe seleccionar una fecha de inicio."),
-  semesterEndDate: z.string().min(1, "Debe seleccionar una fecha de fin."),
 });
 
 interface Faculty extends DocumentData {
@@ -257,22 +262,6 @@ export default function CreateCourseForm({ form, onSuccess, onCancel }: CreateCo
                     <FormMessage />
                 </FormItem>
             )} />
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="semesterStartDate" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Fecha de Inicio del Semestre</FormLabel>
-                        <FormControl><Input type="date" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <FormField control={form.control} name="semesterEndDate" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Fecha de Fin del Semestre</FormLabel>
-                        <FormControl><Input type="date" {...field} /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-            </div>
             <FormField control={form.control} name="instructorId" render={({ field }) => (
                 <FormItem>
                     <FormLabel>Instructor</FormLabel>

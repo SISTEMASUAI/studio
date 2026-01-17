@@ -199,31 +199,6 @@
           "items": { "type": "string" },
           "description": "List of course IDs that are prerequisites for this course."
         },
-        "semesterStartDate": {
-            "type": "string",
-            "format": "date",
-            "description": "The start date of the semester for this course."
-        },
-        "semesterEndDate": {
-            "type": "string",
-            "format": "date",
-            "description": "The end date of the semester for this course."
-        },
-        "schedule": {
-          "type": "array",
-          "description": "Array of class sessions for the course.",
-          "items": {
-            "type": "object",
-            "properties": {
-              "title": { "type": "string", "description": "Title for the session type, e.g., 'Teoría' or 'Laboratorio'." },
-              "day": { "type": "string", "enum": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]},
-              "startTime": { "type": "string", "format": "time", "description": "e.g., 14:00" },
-              "endTime": { "type": "string", "format": "time", "description": "e.g., 16:00" },
-              "classroom": { "type": "string", "description": "e.g., 'Aula 101' or 'Online'" }
-            },
-            "required": ["day", "startTime", "endTime", "classroom"]
-          }
-        },
         "mode": {
           "type": "string",
           "enum": ["Presencial", "Online", "Híbrido"],
@@ -252,7 +227,35 @@
             "description": "The current status of the course."
         }
       },
-      "required": ["courseId", "name", "description", "instructorId", "schedule", "mode", "programId", "status"]
+      "required": ["courseId", "name", "description", "instructorId", "mode", "programId", "status"]
+    },
+    "CourseModule": {
+      "title": "CourseModule",
+      "type": "object",
+      "description": "Represents a week or module within a course.",
+      "properties": {
+        "moduleId": {
+          "type": "string",
+          "description": "Unique identifier for the module."
+        },
+        "courseId": {
+          "type": "string",
+          "description": "The ID of the course this module belongs to."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the module (e.g., 'Semana 1: Introducción')."
+        },
+        "weekNumber": {
+          "type": "number",
+          "description": "The sequential number of the week or module."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the module's content."
+        }
+      },
+      "required": ["moduleId", "courseId", "title", "weekNumber"]
     },
     "CourseAssignment": {
       "title": "CourseAssignment",
@@ -266,6 +269,10 @@
         "courseId": {
           "type": "string",
           "description": "The ID of the course this assignment belongs to."
+        },
+        "moduleId": {
+          "type": "string",
+          "description": "The ID of the module this assignment belongs to."
         },
         "title": {
           "type": "string",
@@ -514,6 +521,12 @@
           "$ref": "#/entities/VirtualClassroomCourse"
         },
         "description": "Stores course information. Readable by any authenticated user, but writable only by the instructor."
+      },
+       "/courses/{courseId}/modules/{moduleId}": {
+        "schema": {
+          "$ref": "#/entities/CourseModule"
+        },
+        "description": "Stores the thematic weeks or modules for a specific course. Writable by instructors."
       },
       "/enrollments/{enrollmentId}": {
         "schema": {

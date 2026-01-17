@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useUser, useCollection, useMemoFirebase, useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
@@ -120,9 +118,6 @@ interface Course extends DocumentData {
     programId: string;
     facultyId: string;
     cycle?: number;
-    semesterStartDate?: string;
-    semesterEndDate?: string;
-    schedule?: ScheduleItem[];
     mode?: string;
     capacity?: number;
     enrolled?: number;
@@ -271,7 +266,7 @@ function ProfessorCoursesView() {
                     />
                      <CardHeader>
                          <CardTitle>{course.name}</CardTitle>
-                         <CardDescription>Semestre {course.semesterStartDate ? new Date(course.semesterStartDate).getFullYear() : ''}</CardDescription>
+                         <CardDescription>Semestre {new Date().getFullYear()}</CardDescription>
                      </CardHeader>
                      <CardContent className="flex-grow">
                         <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -314,15 +309,12 @@ const CourseSchema = z.object({
     level: z.string().min(1, "Debe seleccionar un nivel."),
     instructorId: z.string().min(1, "Debe seleccionar un instructor."),
     mode: z.string().min(1, "Debe seleccionar una modalidad."),
-    semesterStartDate: z.string().min(1, "Debe seleccionar una fecha de inicio."),
-    semesterEndDate: z.string().min(1, "Debe seleccionar una fecha de fin."),
   });
 
 function AdminCoursesView() {
     const { toast } = useToast();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-    const [schedule, setSchedule] = useState<ScheduleItem[]>([{ title: '', day: '', startTime: '', endTime: '', classroom: '' }]);
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
     const firestore = useFirestore();
@@ -366,8 +358,6 @@ function AdminCoursesView() {
             level: 'Pregrado',
             instructorId: '',
             mode: 'Presencial',
-            semesterStartDate: '',
-            semesterEndDate: '',
         },
     });
     
@@ -392,23 +382,7 @@ function AdminCoursesView() {
             ...course,
             facultyId: selectedCourseFacultyId,
         });
-        setSchedule(course.schedule || [{ title: '', day: '', startTime: '', endTime: '', classroom: '' }]);
         setIsEditDialogOpen(true);
-    };
-
-    const handleScheduleChange = (index: number, field: keyof ScheduleItem, value: string) => {
-        const newSchedule = [...schedule];
-        newSchedule[index] = { ...newSchedule[index], [field]: value };
-        setSchedule(newSchedule);
-    };
-
-    const addScheduleRow = () => {
-        setSchedule([...schedule, { title: '', day: '', startTime: '', endTime: '', classroom: '' }]);
-    };
-
-    const removeScheduleRow = (index: number) => {
-        const newSchedule = schedule.filter((_, i) => i !== index);
-        setSchedule(newSchedule);
     };
 
     async function onCreateCourseSubmit(values: z.infer<typeof CourseSchema>) {
@@ -434,7 +408,7 @@ function AdminCoursesView() {
                 ...values,
                 enrolled: 0,
                 status: 'active',
-                schedule: schedule.filter(s => s.day && s.startTime && s.endTime),
+                schedule: [],
                 prerequisites: [],
                 objectives: [],
                 methodology: "",
@@ -447,7 +421,6 @@ function AdminCoursesView() {
                 description: `El curso "${values.name}" ha sido creado exitosamente.`,
             });
             courseForm.reset();
-            setSchedule([{ title: '', day: '', startTime: '', endTime: '', classroom: '' }]);
             setIsCreateDialogOpen(false);
         } catch (error) {
             console.error("Error creating course: ", error);
@@ -464,10 +437,7 @@ function AdminCoursesView() {
 
         try {
             const courseDocRef = doc(firestore, 'courses', selectedCourse.id);
-            await updateDocumentNonBlocking(courseDocRef, {
-                ...values,
-                schedule: schedule.filter(s => s.day && s.startTime && s.endTime),
-            });
+            await updateDocumentNonBlocking(courseDocRef, values);
 
             toast({
                 title: "Curso Actualizado",
@@ -521,11 +491,6 @@ function AdminCoursesView() {
                 description: "No se pudo activar el curso.",
             });
         }
-    }
-
-    const hasCourseStarted = (course: Course | null) => {
-        if (!course || !course.semesterStartDate) return false;
-        return new Date(course.semesterStartDate) < new Date();
     }
 
     const cyclesForSelectedProgramCreate = useMemo(() => {
@@ -674,7 +639,6 @@ function AdminCoursesView() {
                                             <DialogDescription>Completa el formulario para registrar un nuevo curso en el sistema.</DialogDescription>
                                         </DialogHeader>
                                         <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                                            {/* ... form fields ... */}
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <FormField control={courseForm.control} name="courseId" render={({ field }) => (
                                                     <FormItem>
@@ -774,22 +738,6 @@ function AdminCoursesView() {
                                                     <FormMessage />
                                                 </FormItem>
                                             )} />
-                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <FormField control={courseForm.control} name="semesterStartDate" render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Fecha de Inicio del Semestre</FormLabel>
-                                                        <FormControl><Input type="date" {...field} /></FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )} />
-                                                <FormField control={courseForm.control} name="semesterEndDate" render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Fecha de Fin del Semestre</FormLabel>
-                                                        <FormControl><Input type="date" {...field} /></FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )} />
-                                            </div>
                                             <FormField control={courseForm.control} name="instructorId" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Instructor</FormLabel>
@@ -826,56 +774,6 @@ function AdminCoursesView() {
                                                         <FormMessage />
                                                     </FormItem>
                                                 )} />
-                                            
-                                           <div className="space-y-4 rounded-md border p-4">
-                                                <div className="flex items-center justify-between">
-                                                  <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
-                                                  <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2 h-4 w-4'/> Añadir</Button>
-                                                </div>
-                                                {schedule.map((session, index) => (
-                                                    <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
-                                                        <div className="space-y-1 col-span-2 md:col-span-1">
-                                                            <Label>Título Sesión</Label>
-                                                            <Input placeholder="Ej: Teoría" value={session.title} onChange={(e) => handleScheduleChange(index, 'title', e.target.value)} />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <Label>Día</Label>
-                                                            <Select onValueChange={(value) => handleScheduleChange(index, 'day', value)} value={session.day}>
-                                                                <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="Lunes">Lunes</SelectItem>
-                                                                    <SelectItem value="Martes">Martes</SelectItem>
-                                                                    <SelectItem value="Miércoles">Miércoles</SelectItem>
-                                                                    <SelectItem value="Jueves">Jueves</SelectItem>
-                                                                    <SelectItem value="Viernes">Viernes</SelectItem>
-                                                                    <SelectItem value="Sábado">Sábado</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <Label>Hora Inicio</Label>
-                                                            <Input type="time" value={session.startTime} onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)} />
-                                                        </div>
-                                                        <div className="space-y-1">
-                                                            <Label>Hora Fin</Label>
-                                                            <Input type="time" value={session.endTime} onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)} />
-                                                        </div>
-                                                        <div className="flex gap-1 items-center">
-                                                            <div className='space-y-1 w-full'>
-                                                                <Label>Aula</Label>
-                                                                <Input placeholder="Ej: A-101" value={session.classroom} onChange={(e) => handleScheduleChange(index, 'classroom', e.target.value)} />
-                                                            </div>
-                                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1}><Trash2 className="text-destructive h-4 w-4"/></Button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <Label>Prerrequisitos</Label>
-                                                <Button type="button" variant="outline" disabled>Seleccionar cursos</Button>
-                                                <p className="text-xs text-muted-foreground">Funcionalidad para seleccionar prerrequisitos en desarrollo.</p>
-                                            </div>
                                         </div>
                                         <DialogFooter>
                                             <Button variant="outline" type="button" onClick={() => setIsCreateDialogOpen(false)}>Cancelar</Button>
@@ -912,22 +810,21 @@ function AdminCoursesView() {
                         <form onSubmit={updateCourseForm.handleSubmit(onUpdateCourseSubmit)}>
                             <DialogHeader>
                                 <DialogTitle>Editar Curso: {selectedCourse?.name}</DialogTitle>
-                                <DialogDescription>Modifica la información principal del curso. { hasCourseStarted(selectedCourse) && <span className="text-destructive font-semibold">Este curso ya ha iniciado y no se puede editar.</span>}</DialogDescription>
+                                <DialogDescription>Modifica la información principal del curso.</DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-                                {/* ... edit form fields ... */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <FormField control={updateCourseForm.control} name="courseId" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Código del Curso</FormLabel>
-                                            <FormControl><Input {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
+                                            <FormControl><Input {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                      <FormField control={updateCourseForm.control} name="name" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Nombre del Curso</FormLabel>
-                                            <FormControl><Input {...field} disabled={hasCourseStarted(selectedCourse)}/></FormControl>
+                                            <FormControl><Input {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -935,7 +832,7 @@ function AdminCoursesView() {
                                 <FormField control={updateCourseForm.control} name="description" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Descripción Breve</FormLabel>
-                                        <FormControl><Textarea {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
+                                        <FormControl><Textarea {...field} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )} />
@@ -943,7 +840,7 @@ function AdminCoursesView() {
                                     <FormField control={updateCourseForm.control} name="credits" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Créditos</FormLabel>
-                                            <FormControl><Input type="number" {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
+                                            <FormControl><Input type="number" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -957,7 +854,7 @@ function AdminCoursesView() {
                                     <FormField control={updateCourseForm.control} name="level" render={({ field }) => (
                                          <FormItem>
                                             <FormLabel>Nivel</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="Pregrado">Pregrado</SelectItem>
@@ -972,7 +869,7 @@ function AdminCoursesView() {
                                      <FormField control={updateCourseForm.control} name="facultyId" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Facultad</FormLabel>
-                                            <Select onValueChange={(value) => { field.onChange(value); updateCourseForm.setValue('programId', ''); updateCourseForm.setValue('cycle', 1); }} value={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                            <Select onValueChange={(value) => { field.onChange(value); updateCourseForm.setValue('programId', ''); updateCourseForm.setValue('cycle', 1); }} value={field.value}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="Selecciona una facultad..."/></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     {faculties ? faculties.map(fac => (
@@ -986,7 +883,7 @@ function AdminCoursesView() {
                                     <FormField control={updateCourseForm.control} name="programId" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Programa Académico</FormLabel>
-                                            <Select onValueChange={(value) => { field.onChange(value); updateCourseForm.setValue('cycle', 1); }} value={field.value} disabled={!selectedFacultyIdUpdateCourse || hasCourseStarted(selectedCourse)}>
+                                            <Select onValueChange={(value) => { field.onChange(value); updateCourseForm.setValue('cycle', 1); }} value={field.value} disabled={!selectedFacultyIdUpdateCourse}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder={!selectedFacultyIdUpdateCourse ? "Selecciona una facultad primero" : "Asigna un programa..."}/></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     {programs?.filter(p => p.facultyId === selectedFacultyIdUpdateCourse).map(prog => (
@@ -1001,7 +898,7 @@ function AdminCoursesView() {
                                  <FormField control={updateCourseForm.control} name="cycle" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Ciclo</FormLabel>
-                                        <Select onValueChange={field.onChange} value={String(field.value)} disabled={!selectedProgramIdUpdateCourse || hasCourseStarted(selectedCourse)}>
+                                        <Select onValueChange={field.onChange} value={String(field.value)} disabled={!selectedProgramIdUpdateCourse}>
                                             <FormControl><SelectTrigger><SelectValue placeholder={!selectedProgramIdUpdateCourse ? "Selecciona un programa primero" : "Asigna un ciclo..."}/></SelectTrigger></FormControl>
                                             <SelectContent>
                                                 {cyclesForSelectedProgramUpdate.map(cycleNum => (
@@ -1012,22 +909,6 @@ function AdminCoursesView() {
                                         <FormMessage />
                                     </FormItem>
                                 )}/>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormField control={updateCourseForm.control} name="semesterStartDate" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Fecha de Inicio del Semestre</FormLabel>
-                                            <FormControl><Input type="date" {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                    <FormField control={updateCourseForm.control} name="semesterEndDate" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Fecha de Fin del Semestre</FormLabel>
-                                            <FormControl><Input type="date" {...field} disabled={hasCourseStarted(selectedCourse)} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                </div>
                                 <FormField control={updateCourseForm.control} name="instructorId" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Instructor</FormLabel>
@@ -1045,7 +926,7 @@ function AdminCoursesView() {
                                 <FormField control={updateCourseForm.control} name="mode" render={({ field }) => (
                                     <FormItem>
                                     <FormLabel>Modalidad</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={hasCourseStarted(selectedCourse)}>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl><SelectTrigger><SelectValue placeholder="Selecciona..."/></SelectTrigger></FormControl>
                                         <SelectContent>
                                             <SelectItem value="Presencial">Presencial</SelectItem>
@@ -1056,53 +937,10 @@ function AdminCoursesView() {
                                     <FormMessage />
                                 </FormItem>
                                 )} />
-                                <div className="space-y-4 rounded-md border p-4">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
-                                        <Button type="button" variant="outline" size="sm" onClick={addScheduleRow} disabled={hasCourseStarted(selectedCourse)}><PlusCircle className='mr-2 h-4 w-4'/> Añadir</Button>
-                                    </div>
-                                     {schedule.map((session, index) => (
-                                        <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
-                                            <div className="space-y-1 col-span-2 md:col-span-1">
-                                                <Label>Título Sesión</Label>
-                                                <Input placeholder="Ej: Teoría" value={session.title} onChange={(e) => handleScheduleChange(index, 'title', e.target.value)} disabled={hasCourseStarted(selectedCourse)} />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label>Día</Label>
-                                                <Select onValueChange={(value) => handleScheduleChange(index, 'day', value)} value={session.day} disabled={hasCourseStarted(selectedCourse)}>
-                                                    <SelectTrigger><SelectValue placeholder="Día"/></SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="Lunes">Lunes</SelectItem>
-                                                        <SelectItem value="Martes">Martes</SelectItem>
-                                                        <SelectItem value="Miércoles">Miércoles</SelectItem>
-                                                        <SelectItem value="Jueves">Jueves</SelectItem>
-                                                        <SelectItem value="Viernes">Viernes</SelectItem>
-                                                        <SelectItem value="Sábado">Sábado</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label>Hora Inicio</Label>
-                                                <Input type="time" value={session.startTime} onChange={(e) => handleScheduleChange(index, 'startTime', e.target.value)} disabled={hasCourseStarted(selectedCourse)} />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <Label>Hora Fin</Label>
-                                                <Input type="time" value={session.endTime} onChange={(e) => handleScheduleChange(index, 'endTime', e.target.value)} disabled={hasCourseStarted(selectedCourse)} />
-                                            </div>
-                                            <div className="flex gap-1 items-center">
-                                                <div className='space-y-1 w-full'>
-                                                    <Label>Aula</Label>
-                                                    <Input placeholder="Ej: A-101" value={session.classroom} onChange={(e) => handleScheduleChange(index, 'classroom', e.target.value)} disabled={hasCourseStarted(selectedCourse)} />
-                                                </div>
-                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeScheduleRow(index)} disabled={schedule.length <= 1 || hasCourseStarted(selectedCourse)}><Trash2 className="text-destructive h-4 w-4"/></Button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
                             </div>
                             <DialogFooter>
                                 <Button variant="outline" type="button" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
-                                <Button type="submit" disabled={updateCourseForm.formState.isSubmitting || hasCourseStarted(selectedCourse)}>
+                                <Button type="submit" disabled={updateCourseForm.formState.isSubmitting}>
                                     {updateCourseForm.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Guardar Cambios
                                 </Button>
@@ -1159,4 +997,3 @@ export default function CoursesPage() {
     </div>
   );
 }
-

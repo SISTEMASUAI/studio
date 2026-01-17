@@ -35,8 +35,9 @@ import {
     PlusCircle,
     AlertTriangle,
     RotateCw,
+    ListTree,
 } from 'lucide-react';
-import type { Course, Program } from './AdminCoursesView';
+import type { Course, Program } from '@/types/course';
 
 interface CoursesTableProps {
   courses: Course[] | null;
@@ -45,6 +46,7 @@ interface CoursesTableProps {
   onEdit: (course: Course) => void;
   onDeactivate?: (course: Course) => void;
   onActivate?: (course: Course) => void;
+  onManageModules: (course: Course) => void;
   isActive: boolean;
 }
 
@@ -55,6 +57,7 @@ export default function CoursesTable({
   onEdit,
   onDeactivate,
   onActivate,
+  onManageModules,
   isActive
 }: CoursesTableProps) {
   return (
@@ -94,7 +97,9 @@ export default function CoursesTable({
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
-                                    <DropdownMenuItem><Eye className="mr-2"/>Ver Secciones</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => onManageModules(course)}>
+                                        <ListTree className="mr-2"/>Gestionar Módulos
+                                    </DropdownMenuItem>
                                     <DropdownMenuItem onSelect={() => onEdit(course)}>
                                         <Edit className="mr-2"/>Editar Curso
                                     </DropdownMenuItem>

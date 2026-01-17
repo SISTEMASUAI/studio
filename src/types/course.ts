@@ -2,6 +2,7 @@
 
 // Tipo principal del documento en la colección 'courses'
 export interface Course {
+    id: string; // Firestore document ID
     // Campos básicos / identificadores
     courseId?: string;              // a veces se guarda como campo, aunque Firestore usa el doc ID
     name: string;
@@ -17,10 +18,6 @@ export interface Course {
     cycle: number;                  // ciclo/semestre en el que se dicta
     enrolled: number;               // estudiantes actualmente inscritos
   
-    // Fechas del semestre
-    semesterStartDate: string;      // formato "YYYY-MM-DD"
-    semesterEndDate: string;        // formato "YYYY-MM-DD"
-  
     // Modalidad y ubicación
     mode: 'Presencial' | 'Online' | 'Híbrido' | string;
     virtualRoomUrl?: string;        // Zoom, Teams, Google Meet, etc.
@@ -31,11 +28,18 @@ export interface Course {
     prerequisites?: string[];
     syllabusUrl?: string;
   
-    // Horario (array de sesiones/clases)
-    schedule: ScheduleItem[];
+    // Horario (array de sesiones/clases) - MOVIDO A MODULOS
+    // schedule: ScheduleItem[];
   
     // Estado y metadatos
     status: 'active' | 'inactive' | 'archived' | 'draft';
+  }
+  
+  export interface CourseModule {
+    id: string; // Firestore document ID
+    title: string;
+    weekNumber: number;
+    description?: string;
   }
   
   // Item individual del horario (clase/sesión)
@@ -95,6 +99,14 @@ export interface Course {
     facultyId?: string;
     programId?: string;
   }
+
+  export interface Program {
+    id: string;
+    programId: string;
+    name: string;
+    facultyId: string;
+    totalCycles: number;
+}
   
   // Helper para timestamps de Firestore (si los lees como objeto)
   export type FirestoreTimestamp = {

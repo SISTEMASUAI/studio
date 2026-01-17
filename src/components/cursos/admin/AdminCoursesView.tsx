@@ -26,11 +26,6 @@ import {
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog";
 import {
     Tabs,
@@ -38,52 +33,12 @@ import {
     TabsList,
     TabsTrigger,
   } from "@/components/ui/tabs";
-import { Form } from '@/components/ui/form';
 import CoursesTable from './CoursesTable';
 import CreateCourseForm from '../forms/CreateCourseForm';
 import EditCourseForm from '../forms/EditCourseForm';
+import ModuleManagementDialog from './ModuleManagementDialog';
+import type { Course, Program } from '@/types/course';
 
-export interface ScheduleItem {
-  title: string;
-  day: string;
-  startTime: string;
-  endTime: string;
-  classroom: string;
-}
-
-export interface Course extends DocumentData {
-    id: string;
-    courseId: string;
-    name: string;
-    description: string;
-    credits: number;
-    level: string;
-    instructorId: string;
-    programId: string;
-    facultyId: string;
-    cycle?: number;
-    semesterStartDate?: string;
-    semesterEndDate?: string;
-    schedule?: ScheduleItem[];
-    mode?: string;
-    capacity?: number;
-    enrolled?: number;
-    status?: 'active' | 'inactive';
-}
-
-export interface Program extends DocumentData {
-    id: string;
-    programId: string;
-    name: string;
-    facultyId: string;
-    totalCycles: number;
-}
-
-export interface Faculty extends DocumentData {
-    id: string;
-    facultyId: string;
-    name: string;
-}
 
 const CourseSchema = z.object({
     courseId: z.string().min(3, "El código debe tener al menos 3 caracteres."),
@@ -97,8 +52,6 @@ const CourseSchema = z.object({
     level: z.string().min(1, "Debe seleccionar un nivel."),
     instructorId: z.string().min(1, "Debe seleccionar un instructor."),
     mode: z.string().min(1, "Debe seleccionar una modalidad."),
-    semesterStartDate: z.string().min(1, "Debe seleccionar una fecha de inicio."),
-    semesterEndDate: z.string().min(1, "Debe seleccionar una fecha de fin."),
 });
 
 
@@ -106,6 +59,7 @@ export default function AdminCoursesView() {
     const { toast } = useToast();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [isModulesDialogOpen, setIsModulesDialogOpen] = useState(false);
     const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
     const firestore = useFirestore();
@@ -130,7 +84,6 @@ export default function AdminCoursesView() {
         defaultValues: {
             courseId: '', name: '', description: '', credits: 1, capacity: 30, facultyId: '',
             programId: '', cycle: 1, level: 'Pregrado', instructorId: '', mode: 'Presencial',
-            semesterStartDate: '', semesterEndDate: '',
         },
     });
     
@@ -142,6 +95,11 @@ export default function AdminCoursesView() {
         setSelectedCourse(course);
         setIsEditDialogOpen(true);
     };
+
+    const handleOpenModulesDialog = (course: Course) => {
+        setSelectedCourse(course);
+        setIsModulesDialogOpen(true);
+    }
 
     const handleDeactivateCourse = async (course: Course) => {
         if (!firestore) return;
@@ -217,6 +175,7 @@ export default function AdminCoursesView() {
                                 programs={programs}
                                 onEdit={handleOpenEditDialog}
                                 onDeactivate={handleDeactivateCourse}
+                                onManageModules={handleOpenModulesDialog}
                                 isActive={true}
                             />
                         </TabsContent>
@@ -227,6 +186,7 @@ export default function AdminCoursesView() {
                                 programs={programs}
                                 onEdit={handleOpenEditDialog}
                                 onActivate={handleActivateCourse}
+                                onManageModules={handleOpenModulesDialog}
                                 isActive={false}
                             />
                         </TabsContent>
@@ -248,6 +208,14 @@ export default function AdminCoursesView() {
                         />
                     </DialogContent>
                  </Dialog>
+            )}
+            
+            {selectedCourse && (
+                <ModuleManagementDialog
+                    isOpen={isModulesDialogOpen}
+                    onOpenChange={setIsModulesDialogOpen}
+                    course={selectedCourse}
+                />
             )}
         </>
     );

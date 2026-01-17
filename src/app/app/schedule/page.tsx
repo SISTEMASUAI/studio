@@ -14,10 +14,7 @@ import { Button } from '@/components/ui/button';
 import {
   Download,
   PlusCircle,
-  CalendarCheck,
-  CalendarX,
   UserCog,
-  AlertTriangle,
   Loader2,
   ListTree,
   Edit,
@@ -27,7 +24,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -217,39 +213,6 @@ function CreateEventDialog() {
   );
 }
 
-function AdminCalendarManagement() {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <UserCog /> Gestión del Calendario General
-        </CardTitle>
-        <CardDescription>
-          Herramientas para definir y modificar las fechas institucionales.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Button variant="outline" disabled>
-            <CalendarCheck className="mr-2" /> Definir Períodos de Matrícula
-          </Button>
-          <Button variant="outline" disabled>
-            <CalendarX className="mr-2" /> Programar Feriados
-          </Button>
-        </div>
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Panel de Administrador</AlertTitle>
-          <AlertDescription>
-            Las herramientas avanzadas para la gestión global del calendario
-            académico estarán disponibles en esta sección.
-          </AlertDescription>
-        </Alert>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function SchedulePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const { profile, user } = useUser();
@@ -382,36 +345,36 @@ export default function SchedulePage() {
         </div>
       </section>
 
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+              <ListTree /> Gestión de Módulos por Curso
+          </CardTitle>
+          <CardDescription>
+              Selecciona un curso para añadir o editar sus semanas/módulos de contenido.
+          </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col sm:flex-row items-center gap-4">
+          <Select onValueChange={handleSelectCourse} disabled={areCoursesLoading}>
+              <SelectTrigger className="w-full sm:w-[320px]">
+                  <SelectValue placeholder={areCoursesLoading ? "Cargando cursos..." : "Selecciona un curso..."} />
+              </SelectTrigger>
+              <SelectContent>
+                  {courses?.map(course => (
+                      <SelectItem key={course.id} value={course.id}>{course.name} ({course.courseId})</SelectItem>
+                  ))}
+              </SelectContent>
+          </Select>
+          <Button onClick={() => setIsModuleDialogOpen(true)} disabled={!selectedCourse}>
+              <Edit className="mr-2"/> Gestionar Módulos
+          </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
-          {isAdmin && (
-            <Card>
-              <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                  <ListTree /> Gestión de Módulos por Curso
-              </CardTitle>
-              <CardDescription>
-                  Selecciona un curso para añadir o editar sus semanas/módulos de contenido.
-              </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col sm:flex-row items-center gap-4">
-              <Select onValueChange={handleSelectCourse} disabled={areCoursesLoading}>
-                  <SelectTrigger className="w-full sm:w-[320px]">
-                      <SelectValue placeholder={areCoursesLoading ? "Cargando cursos..." : "Selecciona un curso..."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                      {courses?.map(course => (
-                          <SelectItem key={course.id} value={course.id}>{course.name} ({course.courseId})</SelectItem>
-                      ))}
-                  </SelectContent>
-              </Select>
-              <Button onClick={() => setIsModuleDialogOpen(true)} disabled={!selectedCourse}>
-                  <Edit className="mr-2"/> Gestionar Módulos
-              </Button>
-              </CardContent>
-            </Card>
-          )}
-
           <Card>
             <CardContent className="p-0">
               <Calendar
@@ -428,9 +391,6 @@ export default function SchedulePage() {
               />
             </CardContent>
           </Card>
-
-           {isAdmin && <AdminCalendarManagement />}
-
         </div>
 
         <aside className="space-y-8">

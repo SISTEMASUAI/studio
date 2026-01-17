@@ -28,8 +28,10 @@ export interface Course {
     prerequisites?: string[];
     syllabusUrl?: string;
   
-    // Horario (array de sesiones/clases) - MOVIDO A MODULOS
-    // schedule: ScheduleItem[];
+    // Horario (array de sesiones/clases)
+    schedule?: ScheduleItem[];
+    semesterStartDate?: string; // YYYY-MM-DD
+    semesterEndDate?: string;   // YYYY-MM-DD
   
     // Estado y metadatos
     status: 'active' | 'inactive' | 'archived' | 'draft';
@@ -107,6 +109,12 @@ export interface Course {
     facultyId: string;
     totalCycles: number;
 }
+export interface Enrollment {
+    id: string; // Firestore document ID
+    studentId: string;
+    courseId: string;
+    // ... otros campos del documento de matrícula que sean relevantes
+  }
   
   // Helper para timestamps de Firestore (si los lees como objeto)
   export type FirestoreTimestamp = {

@@ -46,9 +46,9 @@ import {
 import { collection, query, where, DocumentData, getDocs } from 'firebase/firestore';
 import { addDays, format, parse, startOfDay, isBefore, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { DayPicker, DayProps } from 'react-day-picker';
+import { DayProps } from 'react-day-picker';
 import ModuleManagementDialog from '@/components/cursos/admin/ModuleManagementDialog';
-import type { Course } from '@/types/course';
+import type { Course, Enrollment } from '@/types/course';
 
 interface ScheduleItem {
   title: string;
@@ -58,10 +58,6 @@ interface ScheduleItem {
   classroom: string;
 }
 
-interface Enrollment {
-  id: string;
-  courseId: string;
-}
 
 interface UpcomingEvent {
   date: Date;
@@ -333,7 +329,7 @@ export default function SchedulePage() {
     const { date } = props;
 
     if (!date) {
-      return <Day {...props} />;
+      return <div className="relative flex h-full w-full items-center justify-center">...</div>;
     }
 
     const eventsOnDay = allEvents.filter((event) =>
@@ -342,7 +338,7 @@ export default function SchedulePage() {
     
     return (
       <div className="relative flex h-full w-full items-center justify-center">
-        <Day {...props} />
+        <div>{date.getDate()}</div>
         {eventsOnDay.length > 0 && (
           <div className="absolute bottom-1 flex space-x-1">
             {eventsOnDay.slice(0, 4).map((event, i) => (
@@ -433,36 +429,7 @@ export default function SchedulePage() {
             </CardContent>
           </Card>
 
-           {isAdmin && (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                    <UserCog /> Gestión del Calendario General
-                    </CardTitle>
-                    <CardDescription>
-                    Herramientas para definir y modificar las fechas institucionales.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <Button variant="outline" disabled>
-                            <CalendarCheck className="mr-2" /> Definir Períodos de Matrícula
-                        </Button>
-                        <Button variant="outline" disabled>
-                            <CalendarX className="mr-2" /> Programar Feriados
-                        </Button>
-                    </div>
-                     <Alert>
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Panel de Administrador</AlertTitle>
-                        <AlertDescription>
-                            Las herramientas avanzadas para la gestión global del calendario
-                            académico estarán disponibles en esta sección.
-                        </AlertDescription>
-                    </Alert>
-                </CardContent>
-            </Card>
-           )}
+           {isAdmin && <AdminCalendarManagement />}
 
         </div>
 

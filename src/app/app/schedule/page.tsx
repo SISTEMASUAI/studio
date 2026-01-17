@@ -230,8 +230,11 @@ export default function SchedulePage() {
     const coursesQuery = useMemoFirebase(() => {
         if (!firestore || !user || !profile) return null;
         
-        if (profile.role === 'professor' || profile.role === 'admin') {
+        if (profile.role === 'admin') {
             return query(collection(firestore, 'courses'), where('status', '==', 'active'));
+        }
+        if (profile.role === 'professor') {
+            return query(collection(firestore, 'courses'), where('instructorId', '==', user.uid), where('status', '==', 'active'));
         }
 
         if (profile.role === 'student') {

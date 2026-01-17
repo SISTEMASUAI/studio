@@ -220,101 +220,18 @@ function CreateEventDialog() {
   );
 }
 
-function AdminScheduleView() {
-    const firestore = useFirestore();
-    const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-    const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false);
-  
-    const coursesQuery = useMemoFirebase(() =>
-        firestore ? query(collection(firestore, 'courses'), where('status', '==', 'active')) : null,
-      [firestore]
-    );
-    const { data: courses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
-  
-    const handleSelectCourse = (courseId: string) => {
-      const course = courses?.find(c => c.id === courseId) || null;
-      setSelectedCourse(course);
-    }
-
-  return (
-    <>
-    <div className="space-y-8">
-        <Card>
-            <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-                <ListTree /> Gestión de Módulos por Curso
-            </CardTitle>
-            <CardDescription>
-                Selecciona un curso para añadir o editar sus semanas/módulos de contenido.
-            </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col sm:flex-row items-center gap-4">
-            <Select onValueChange={handleSelectCourse} disabled={areCoursesLoading}>
-                <SelectTrigger className="w-full sm:w-[320px]">
-                    <SelectValue placeholder={areCoursesLoading ? "Cargando cursos..." : "Selecciona un curso..."} />
-                </SelectTrigger>
-                <SelectContent>
-                    {courses?.map(course => (
-                        <SelectItem key={course.id} value={course.id}>{course.name} ({course.courseId})</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-            <Button onClick={() => setIsModuleDialogOpen(true)} disabled={!selectedCourse}>
-                <Edit className="mr-2"/> Gestionar Módulos
-            </Button>
-            </CardContent>
-        </Card>
-
-        <Card>
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-            <UserCog /> Gestión del Calendario General
-            </CardTitle>
-            <CardDescription>
-            Herramientas para definir y modificar las fechas institucionales.
-            </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" disabled>
-                <CalendarCheck className="mr-2" /> Definir Períodos de Matrícula
-            </Button>
-            <Button variant="outline" disabled>
-                <CalendarX className="mr-2" /> Programar Feriados
-            </Button>
-            </div>
-            <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Panel de Administrador</AlertTitle>
-            <AlertDescription>
-                Las herramientas avanzadas para la gestión global del calendario
-                académico estarán disponibles en esta sección.
-            </AlertDescription>
-            </Alert>
-        </CardContent>
-        </Card>
-    </div>
-    {selectedCourse && (
-        <ModuleManagementDialog
-            isOpen={isModuleDialogOpen}
-            onOpenChange={setIsModuleDialogOpen}
-            course={selectedCourse}
-        />
-    )}
-    </>
-  );
-}
-
 export default function SchedulePage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const { profile, user } = useUser();
   const firestore = useFirestore();
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false);
 
     const coursesQuery = useMemoFirebase(() => {
         if (!firestore || !user || !profile) return null;
         
-        if (profile.role === 'professor') {
-            return query(collection(firestore, 'courses'), where('instructorId', '==', user.uid), where('status', '==', 'active'));
+        if (profile.role === 'professor' || profile.role === 'admin') {
+            return query(collection(firestore, 'courses'), where('status', '==', 'active'));
         }
 
         if (profile.role === 'student') {
@@ -357,10 +274,17 @@ export default function SchedulePage() {
         }
     }, [initialData, profile, firestore]);
 
-    const courses = profile?.role === 'student' ? studentCourses : (initialData as Course[]);
-    const areCoursesLoading = profile?.role === 'student' ? isStudentCoursesLoading : isInitialDataLoading;
+    let courses: Course[] | null = null;
+    let areCoursesLoading: boolean = false;
+    
+    if (profile?.role === 'student') {
+        courses = studentCourses;
+        areCoursesLoading = isStudentCoursesLoading;
+    } else if (profile?.role === 'admin' || profile?.role === 'professor') {
+        courses = initialData as Course[];
+        areCoursesLoading = isInitialDataLoading;
+    }
 
-  
   const allEvents = useMemo(() => {
       if (!courses) return [];
       return generateClassEvents(courses);
@@ -396,50 +320,29 @@ export default function SchedulePage() {
     );
   };
   
-  const canManageEvents =
-    profile?.role === 'admin' || profile?.role === 'professor';
+  const canManageEvents = profile?.role === 'admin' || profile?.role === 'professor';
   const isAdmin = profile?.role === 'admin';
 
-  if (isAdmin) {
-    return (
-        <div className="space-y-8">
-            <section>
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                    <div>
-                        <h1 className="text-3xl font-bold font-headline">
-                        Gestión de Horarios y Calendario
-                        </h1>
-                        <p className="text-muted-foreground">
-                        Define la estructura académica de los cursos y los eventos institucionales.
-                        </p>
-                    </div>
-                    <div className="flex gap-2">
-                        <CreateEventDialog />
-                    </div>
-                </div>
-            </section>
-            <AdminScheduleView />
-        </div>
-    )
+  const handleSelectCourse = (courseId: string) => {
+    const course = courses?.find(c => c.id === courseId) || null;
+    setSelectedCourse(course);
   }
 
   return (
+    <>
     <div className="space-y-8">
       <section>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
             <h1 className="text-3xl font-bold font-headline">
-              Horarios y Calendario
+              {isAdmin ? 'Gestión de Horarios y Calendario' : 'Horarios y Calendario'}
             </h1>
             <p className="text-muted-foreground">
-              Consulta tus clases, exámenes y eventos académicos.
+              {isAdmin ? 'Define la estructura académica de los cursos y los eventos institucionales.' : 'Consulta tus clases, exámenes y eventos académicos.'}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" disabled>
-              <Download className="mr-2" />
-              Exportar
-            </Button>
+            {!isAdmin && <Button variant="outline" disabled><Download className="mr-2" />Exportar</Button>}
             {canManageEvents && <CreateEventDialog />}
           </div>
         </div>
@@ -447,6 +350,34 @@ export default function SchedulePage() {
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
+          {isAdmin && (
+            <Card>
+              <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                  <ListTree /> Gestión de Módulos por Curso
+              </CardTitle>
+              <CardDescription>
+                  Selecciona un curso para añadir o editar sus semanas/módulos de contenido.
+              </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col sm:flex-row items-center gap-4">
+              <Select onValueChange={handleSelectCourse} disabled={areCoursesLoading}>
+                  <SelectTrigger className="w-full sm:w-[320px]">
+                      <SelectValue placeholder={areCoursesLoading ? "Cargando cursos..." : "Selecciona un curso..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                      {courses?.map(course => (
+                          <SelectItem key={course.id} value={course.id}>{course.name} ({course.courseId})</SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
+              <Button onClick={() => setIsModuleDialogOpen(true)} disabled={!selectedCourse}>
+                  <Edit className="mr-2"/> Gestionar Módulos
+              </Button>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardContent className="p-0">
               <Calendar
@@ -455,17 +386,46 @@ export default function SchedulePage() {
                 onSelect={setDate}
                 className="w-full"
                 locale={es}
-                components={{
-                    Day: DayWithDots
-                }}
+                components={{ Day: DayWithDots }}
                 classNames={{
-                    day_selected:
-                      "bg-accent text-accent-foreground rounded-md",
+                    day_selected: "bg-accent text-accent-foreground rounded-md",
                     day_today: "bg-accent text-accent-foreground rounded-md",
                 }}
               />
             </CardContent>
           </Card>
+
+           {isAdmin && (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                    <UserCog /> Gestión del Calendario General
+                    </CardTitle>
+                    <CardDescription>
+                    Herramientas para definir y modificar las fechas institucionales.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <Button variant="outline" disabled>
+                            <CalendarCheck className="mr-2" /> Definir Períodos de Matrícula
+                        </Button>
+                        <Button variant="outline" disabled>
+                            <CalendarX className="mr-2" /> Programar Feriados
+                        </Button>
+                    </div>
+                     <Alert>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Panel de Administrador</AlertTitle>
+                        <AlertDescription>
+                            Las herramientas avanzadas para la gestión global del calendario
+                            académico estarán disponibles en esta sección.
+                        </AlertDescription>
+                    </Alert>
+                </CardContent>
+            </Card>
+           )}
+
         </div>
 
         <aside className="space-y-8">
@@ -510,5 +470,13 @@ export default function SchedulePage() {
         </aside>
       </div>
     </div>
+    {selectedCourse && (
+        <ModuleManagementDialog
+            isOpen={isModuleDialogOpen}
+            onOpenChange={setIsModuleDialogOpen}
+            course={selectedCourse}
+        />
+    )}
+    </>
   );
 }

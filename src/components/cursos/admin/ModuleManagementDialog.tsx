@@ -30,7 +30,7 @@ import { Loader2, PlusCircle, Trash2, Clock, Edit } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import type { Course, CourseModule, ScheduleItem } from '@/types/course';
-import { differenceInWeeks, parse, add, format, getDay } from 'date-fns';
+import { differenceInDays, parse, add, format, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const ModuleSchema = z.object({
@@ -55,8 +55,10 @@ const calculateTotalWeeks = (start?: string, end?: string): number => {
         const startDate = parse(start, 'yyyy-MM-dd', new Date());
         const endDate = parse(end, 'yyyy-MM-dd', new Date());
         if (startDate > endDate) return 0;
-        const weeks = differenceInWeeks(endDate, startDate);
-        return weeks + 1;
+        const diffInDays = differenceInDays(endDate, startDate);
+        // Add 1 to be inclusive of the start day, then divide by 7 and take the ceiling.
+        const weeks = Math.ceil((diffInDays + 1) / 7);
+        return weeks;
     } catch {
         return 0;
     }
@@ -75,7 +77,7 @@ const generateModuleSessions = (weekNumber: number, courseStartDateStr: string, 
 
             let sessionDate = new Date(weekStartDate);
             // Find the correct day in the week
-            while(getDay(sessionDate, {locale: es}) !== targetDay) {
+            while(getDay(sessionDate) !== targetDay) {
                 sessionDate = add(sessionDate, { days: 1 });
             }
             
@@ -320,11 +322,13 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
                                 <AccordionTrigger className="px-4 hover:no-underline">
                                     <div className="flex justify-between items-center w-full">
                                         <span className="font-medium">Semana {module.weekNumber}: {module.title}</span>
-                                        <Button asChild variant="ghost" size="icon" className="mr-2 hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); /* Lógica de borrado */ }}>
-                                            <div role="button" aria-label="Delete module">
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </div>
-                                        </Button>
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <Button asChild variant="ghost" size="icon" className="mr-2 hover:bg-destructive/10">
+                                                <div role="button" aria-label="Delete module">
+                                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                                </div>
+                                            </Button>
+                                        </div>
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent>

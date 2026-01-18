@@ -320,8 +320,10 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
                                 <AccordionTrigger className="px-4 hover:no-underline">
                                     <div className="flex justify-between items-center w-full">
                                         <span className="font-medium">Semana {module.weekNumber}: {module.title}</span>
-                                        <Button variant="ghost" size="icon" className="mr-2 hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); /* Lógica de borrado */ }}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        <Button asChild variant="ghost" size="icon" className="mr-2 hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); /* Lógica de borrado */ }}>
+                                            <div role="button" aria-label="Delete module">
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </div>
                                         </Button>
                                     </div>
                                 </AccordionTrigger>

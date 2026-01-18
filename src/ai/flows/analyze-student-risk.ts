@@ -30,14 +30,14 @@ const AssignmentSubmissionSchema = z.object({
   submittedAt: z.string(),
 });
 
-export const AnalyzeStudentRiskInputSchema = z.object({
+const AnalyzeStudentRiskInputSchema = z.object({
   student: UserProfileSchema,
   attendance: z.array(AttendanceRecordSchema),
   submissions: z.array(AssignmentSubmissionSchema),
 });
 export type AnalyzeStudentRiskInput = z.infer<typeof AnalyzeStudentRiskInputSchema>;
 
-export const AnalyzeStudentRiskOutputSchema = z.object({
+const AnalyzeStudentRiskOutputSchema = z.object({
   riskLevel: z.enum(['Bajo', 'Medio', 'Alto']).describe('The estimated academic risk level for the student.'),
   summary: z.string().describe('A concise summary explaining the reasoning for the risk assessment, highlighting key patterns in attendance and grades.'),
   recommendations: z.array(z.string()).describe('A list of 2-3 actionable recommendations for academic advisors or tutors.'),

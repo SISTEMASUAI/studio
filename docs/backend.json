@@ -348,6 +348,10 @@
           "type": "string",
           "description": "The UID of the student who made the submission."
         },
+        "courseId": {
+          "type": "string",
+          "description": "The ID of the course this submission belongs to."
+        },
         "submittedAt": {
           "type": "string",
           "description": "Date and time the assignment was submitted.",
@@ -363,7 +367,7 @@
           "description": "The grade received for the submission."
         }
       },
-      "required": ["submissionId", "assignmentId", "studentId", "submittedAt", "fileUrl"]
+      "required": ["submissionId", "assignmentId", "studentId", "courseId", "submittedAt", "fileUrl"]
     },
     "TramiteRequest": {
       "title": "TramiteRequest",
@@ -587,11 +591,11 @@
         },
         "description": "Stores assignments for a course. Readable by authenticated users, writable only by the course instructor."
       },
-      "/assignments/{assignmentId}/submissions/{submissionId}": {
+      "/submissions/{submissionId}": {
         "schema": {
           "$ref": "#/entities/AssignmentSubmission"
         },
-        "description": "Stores student submissions for an assignment. Readable by the submitting student and the course instructor. Writable only by the student."
+        "description": "Stores student submissions for an assignment. Students can only read/write their own. Instructors can read/update submissions for their courses."
       },
       "/tramites/{tramiteId}": {
         "schema": { "$ref": "#/entities/TramiteRequest" },

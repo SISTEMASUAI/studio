@@ -49,13 +49,12 @@ service cloud.firestore {
       }
     }
 
-    // University Programs: Readable by any signed-in user, writable by admins.
+    // University Programs & Faculties: Readable by any signed-in user, writable by admins.
     match /programs/{programId} {
       allow read: if isSignedIn();
       allow write: if isRole('admin');
     }
     
-    // Faculties: Readable by any signed-in user, writable by admins.
     match /faculties/{facultyId} {
       allow read: if isSignedIn();
       allow write: if isRole('admin');
@@ -79,6 +78,18 @@ service cloud.firestore {
         allow read: if isSignedIn();
         allow create: if isInstructor(courseId) || isRole('admin');
         allow update, delete: if isInstructor(courseId) || isRole('admin');
+      }
+
+      // Modules (weeks) nested under courses
+      match /modules/{moduleId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isInstructor(courseId) || isRole('admin');
+
+        // Sessions nested under modules
+        match /sessions/{sessionId} {
+            allow read: if isSignedIn();
+            allow write: if isInstructor(courseId) || isRole('admin');
+        }
       }
     }
 

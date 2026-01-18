@@ -225,6 +225,31 @@
             "type": "string",
             "enum": ["active", "inactive"],
             "description": "The current status of the course."
+        },
+        "semesterStartDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The start date of the semester for this course."
+        },
+        "semesterEndDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The end date of the semester for this course."
+        },
+        "schedule": {
+            "type": "array",
+            "description": "The weekly schedule for the course.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "title": { "type": "string" },
+                    "day": { "type": "string", "enum": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"] },
+                    "startTime": { "type": "string", "format": "time" },
+                    "endTime": { "type": "string", "format": "time" },
+                    "classroom": { "type": "string" }
+                },
+                "required": ["title", "day", "startTime", "endTime"]
+            }
         }
       },
       "required": ["courseId", "name", "description", "instructorId", "mode", "programId", "status"]
@@ -577,3 +602,5 @@
     }
   }
 }
+
+    

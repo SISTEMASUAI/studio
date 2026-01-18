@@ -19,14 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, PlusCircle, Trash2, Clock } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { useMemo, useState } from 'react';
-
-interface ScheduleItem {
-    title: string;
-    day: string;
-    startTime: string;
-    endTime: string;
-    classroom: string;
-}
+import type { ScheduleItem } from '@/types/course';
 
 const CourseSchema = z.object({
   courseId: z.string().min(3, "El código debe tener al menos 3 caracteres."),
@@ -40,6 +33,8 @@ const CourseSchema = z.object({
   level: z.string().min(1, "Debe seleccionar un nivel."),
   instructorId: z.string().min(1, "Debe seleccionar un instructor."),
   mode: z.string().min(1, "Debe seleccionar una modalidad."),
+  semesterStartDate: z.string().optional(),
+  semesterEndDate: z.string().optional(),
 });
 
 interface Faculty extends DocumentData {
@@ -300,9 +295,27 @@ export default function CreateCourseForm({ form, onSuccess, onCancel }: CreateCo
                 )} />
             
            <div className="space-y-4 rounded-md border p-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
-                  <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2 h-4 w-4'/> Añadir</Button>
+                <h4 className="font-medium flex items-center gap-2"><Clock /> Fechas y Horario del Semestre</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="semesterStartDate" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Fecha de Inicio del Semestre</FormLabel>
+                            <FormControl><Input type="date" {...field} value={field.value || ''} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="semesterEndDate" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Fecha de Fin del Semestre</FormLabel>
+                            <FormControl><Input type="date" {...field} value={field.value || ''}/></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                </div>
+
+                <div className="flex items-center justify-between pt-4">
+                  <h5 className="font-medium">Sesiones de Clase</h5>
+                  <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2 h-4 w-4'/> Añadir Sesión</Button>
                 </div>
                 {schedule.map((session, index) => (
                     <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
@@ -360,3 +373,5 @@ export default function CreateCourseForm({ form, onSuccess, onCancel }: CreateCo
     </Form>
   );
 }
+
+    

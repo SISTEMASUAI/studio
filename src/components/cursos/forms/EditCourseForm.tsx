@@ -33,7 +33,9 @@ const CourseSchema = z.object({
     level: z.string().min(1, "Debe seleccionar un nivel."),
     instructorId: z.string().min(1, "Debe seleccionar un instructor."),
     mode: z.string().min(1, "Debe seleccionar una modalidad."),
-  });
+    semesterStartDate: z.string().optional(),
+    semesterEndDate: z.string().optional(),
+});
 
 interface Professor extends DocumentData {
     id: string;
@@ -265,9 +267,27 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
                 </FormItem>
                 )} />
                 <div className="space-y-4 rounded-md border p-4">
-                    <div className="flex items-center justify-between">
-                        <h4 className="font-medium flex items-center gap-2"><Clock /> Horario</h4>
-                        <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2 h-4 w-4'/> Añadir</Button>
+                    <h4 className="font-medium flex items-center gap-2"><Clock /> Fechas y Horario del Semestre</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="semesterStartDate" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Fecha de Inicio del Semestre</FormLabel>
+                                <FormControl><Input type="date" {...field} value={field.value || ''} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="semesterEndDate" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Fecha de Fin del Semestre</FormLabel>
+                                <FormControl><Input type="date" {...field} value={field.value || ''} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4">
+                        <h5 className="font-medium">Sesiones de Clase</h5>
+                        <Button type="button" variant="outline" size="sm" onClick={addScheduleRow}><PlusCircle className='mr-2 h-4 w-4'/> Añadir Sesión</Button>
                     </div>
                      {schedule.map((session, index) => (
                         <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
@@ -319,3 +339,5 @@ export default function EditCourseForm({ form, course, onSuccess, onCancel }: Ed
     </Form>
   );
 }
+
+    

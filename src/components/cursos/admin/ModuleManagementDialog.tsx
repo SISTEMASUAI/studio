@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,15 +15,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, PlusCircle, Trash2, Clock } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Clock, Edit } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import type { Course, CourseModule, ScheduleItem } from '@/types/course';
+import { differenceInWeeks, parse, add, format, getDay } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const ModuleSchema = z.object({
   title: z.string().min(3, "El título debe tener al menos 3 caracteres."),
@@ -36,6 +44,52 @@ interface ModuleManagementDialogProps {
   onOpenChange: (isOpen: boolean) => void;
   course: Course | null;
 }
+
+const dayOfWeekMap: { [key: string]: number } = {
+  Domingo: 0, Lunes: 1, Martes: 2, Miércoles: 3, Jueves: 4, Viernes: 5, Sábado: 6,
+};
+
+const calculateTotalWeeks = (start?: string, end?: string): number => {
+    if (!start || !end) return 0;
+    try {
+        const startDate = parse(start, 'yyyy-MM-dd', new Date());
+        const endDate = parse(end, 'yyyy-MM-dd', new Date());
+        if (startDate > endDate) return 0;
+        const weeks = differenceInWeeks(endDate, startDate);
+        return weeks + 1;
+    } catch {
+        return 0;
+    }
+};
+
+const generateModuleSessions = (weekNumber: number, courseStartDateStr: string, courseSchedule: ScheduleItem[]) => {
+    if (!courseStartDateStr || !courseSchedule) return [];
+    
+    try {
+        const courseStartDate = parse(courseStartDateStr, 'yyyy-MM-dd', new Date());
+        const weekStartDate = add(courseStartDate, { weeks: weekNumber - 1 });
+        
+        const sessions = courseSchedule.map(session => {
+            const targetDay = dayOfWeekMap[session.day];
+            if (targetDay === undefined) return null;
+
+            let sessionDate = new Date(weekStartDate);
+            // Find the correct day in the week
+            while(getDay(sessionDate, {locale: es}) !== targetDay) {
+                sessionDate = add(sessionDate, { days: 1 });
+            }
+            
+            return {
+                ...session,
+                date: format(sessionDate, 'dd/MM/yyyy'),
+            };
+        }).filter(Boolean);
+
+        return sessions as (ScheduleItem & { date: string })[];
+    } catch {
+        return [];
+    }
+};
 
 export default function ModuleManagementDialog({ isOpen, onOpenChange, course }: ModuleManagementDialogProps) {
   const firestore = useFirestore();
@@ -72,6 +126,8 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
     }
   }, [modules, moduleForm]);
 
+  const totalWeeks = useMemo(() => calculateTotalWeeks(semesterStartDate, semesterEndDate), [semesterStartDate, semesterEndDate]);
+  const canAddMoreModules = totalWeeks > 0 && (modules?.length || 0) < totalWeeks;
 
   async function onCreateModuleSubmit(values: z.infer<typeof ModuleSchema>) {
     if (!firestore || !course) return;
@@ -235,7 +291,12 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" disabled={moduleForm.formState.isSubmitting}>
+                   {!canAddMoreModules && totalWeeks > 0 && (
+                    <p className="text-sm text-destructive">
+                        No se pueden crear más módulos. El ciclo tiene una duración de {totalWeeks} semanas.
+                    </p>
+                    )}
+                  <Button type="submit" disabled={moduleForm.formState.isSubmitting || !canAddMoreModules}>
                     {moduleForm.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                     Añadir Módulo
                   </Button>
@@ -246,42 +307,65 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
           <div className="flex flex-col overflow-hidden">
             <h3 className="font-semibold mb-4">Módulos Existentes</h3>
             <div className="flex-grow overflow-y-auto border rounded-md">
-              <Table>
-                <TableHeader className="sticky top-0 bg-background">
-                  <TableRow>
-                    <TableHead>Semana</TableHead>
-                    <TableHead>Título</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {areModulesLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center h-24">
+                {areModulesLoading ? (
+                    <div className="flex justify-center items-center h-full">
                         <Loader2 className="mx-auto h-6 w-6 animate-spin" />
-                      </TableCell>
-                    </TableRow>
-                  ) : modules && modules.length > 0 ? (
-                    modules.map(module => (
-                      <TableRow key={module.id}>
-                        <TableCell className="text-center font-mono">{module.weekNumber}</TableCell>
-                        <TableCell>{module.title}</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" disabled>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-center h-24">
-                        No hay módulos creados para este curso.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                    </div>
+                ) : modules && modules.length > 0 ? (
+                    <Accordion type="multiple" className="w-full">
+                        {modules.map(module => {
+                            const moduleSessions = generateModuleSessions(module.weekNumber, semesterStartDate, schedule);
+                            return (
+                            <AccordionItem value={`item-${module.id}`} key={module.id}>
+                                <AccordionTrigger className="px-4 hover:no-underline">
+                                    <div className="flex justify-between items-center w-full">
+                                        <span className="font-medium">Semana {module.weekNumber}: {module.title}</span>
+                                        <Button variant="ghost" size="icon" className="mr-2 hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); /* Lógica de borrado */ }}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    {moduleSessions.length > 0 ? (
+                                        <div className="px-2 pb-2">
+                                            <Table className="bg-accent/50">
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead className="text-xs">Clase</TableHead>
+                                                        <TableHead className="text-xs">Fecha</TableHead>
+                                                        <TableHead className="text-xs">Horario</TableHead>
+                                                        <TableHead className="text-right text-xs">Acción</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {moduleSessions.map((session, index) => (
+                                                        <TableRow key={index}>
+                                                            <TableCell className="text-sm py-2">{session.title}</TableCell>
+                                                            <TableCell className="text-sm py-2">{session.date}</TableCell>
+                                                            <TableCell className="text-sm py-2">{session.startTime} - {session.endTime}</TableCell>
+                                                            <TableCell className="text-right py-2">
+                                                                <Button variant="outline" size="sm" disabled>
+                                                                    <Edit className="mr-1.5 h-3 w-3"/> Editar
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground px-4 py-3">No hay sesiones programadas. Defina el horario del curso a la izquierda.</p>
+                                    )}
+                                </AccordionContent>
+                            </AccordionItem>
+                            )
+                        })}
+                    </Accordion>
+                ) : (
+                    <div className="flex justify-center items-center h-full text-center text-muted-foreground p-4">
+                        <p>No hay módulos creados para este curso. <br/> Añade uno desde el formulario de la izquierda.</p>
+                    </div>
+                )}
             </div>
           </div>
         </div>

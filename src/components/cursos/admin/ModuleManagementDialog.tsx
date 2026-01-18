@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/accordion";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, PlusCircle, Trash2, Clock, Edit } from 'lucide-react';
@@ -32,6 +32,18 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import type { Course, CourseModule, ScheduleItem } from '@/types/course';
 import { differenceInDays, parse, add, format, getDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 const ModuleSchema = z.object({
   title: z.string().min(3, "El título debe tener al menos 3 caracteres."),
@@ -56,7 +68,6 @@ const calculateTotalWeeks = (start?: string, end?: string): number => {
         const endDate = parse(end, 'yyyy-MM-dd', new Date());
         if (startDate > endDate) return 0;
         const diffInDays = differenceInDays(endDate, startDate);
-        // Add 1 to be inclusive of the start day, then divide by 7 and take the ceiling.
         const weeks = Math.ceil((diffInDays + 1) / 7);
         return weeks;
     } catch {
@@ -76,7 +87,6 @@ const generateModuleSessions = (weekNumber: number, courseStartDateStr: string, 
             if (targetDay === undefined) return null;
 
             let sessionDate = new Date(weekStartDate);
-            // Find the correct day in the week
             while(getDay(sessionDate) !== targetDay) {
                 sessionDate = add(sessionDate, { days: 1 });
             }
@@ -176,6 +186,18 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
     } finally {
       setIsSavingSchedule(false);
     }
+  };
+
+  const handleDeleteModule = (moduleId: string, moduleTitle: string) => {
+    if (!firestore || !course) return;
+
+    const moduleRef = doc(firestore, 'courses', course.id, 'modules', moduleId);
+    deleteDocumentNonBlocking(moduleRef);
+
+    toast({
+      title: 'Módulo Eliminado',
+      description: `El módulo "${moduleTitle}" ha sido eliminado.`,
+    });
   };
 
 
@@ -323,11 +345,34 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
                                     <div className="flex justify-between items-center w-full">
                                         <span className="font-medium">Semana {module.weekNumber}: {module.title}</span>
                                         <div onClick={(e) => e.stopPropagation()}>
-                                            <Button asChild variant="ghost" size="icon" className="mr-2 hover:bg-destructive/10">
-                                                <div role="button" aria-label="Delete module">
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </div>
-                                            </Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <div
+                                                        role="button"
+                                                        aria-label="Delete module"
+                                                        className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), "mr-2 hover:bg-destructive/10")}
+                                                    >
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </div>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Esta acción no se puede deshacer. Esto eliminará permanentemente el módulo "{module.title}".
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                            onClick={() => handleDeleteModule(module.id, module.title)}
+                                                        >
+                                                            Sí, eliminar
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </div>
                                     </div>
                                 </AccordionTrigger>

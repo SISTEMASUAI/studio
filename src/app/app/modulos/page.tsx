@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
@@ -14,7 +14,7 @@ import type { Course } from '@/types/course';
 export default function ModulesPage() {
   const { profile, isUserLoading } = useUser();
   const router = useRouter();
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [isModuleDialogOpen, setIsModuleDialogOpen] = useState(false);
   const firestore = useFirestore();
 
@@ -31,10 +31,13 @@ export default function ModulesPage() {
 
   const { data: courses, isLoading: areCoursesLoading } = useCollection<Course>(coursesQuery);
 
-  const handleSelectCourse = (courseId: string) => {
-    const course = courses?.find(c => c.id === courseId) || null;
-    setSelectedCourse(course);
-  };
+  const selectedCourse = useMemo(() => {
+    if (!selectedCourseId || !courses) {
+      return null;
+    }
+    return courses.find(c => c.id === selectedCourseId) || null;
+  }, [courses, selectedCourseId]);
+
 
   if (isUserLoading || !profile || profile.role !== 'admin') {
     return (
@@ -68,7 +71,7 @@ export default function ModulesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row items-center gap-4">
-          <Select onValueChange={handleSelectCourse} disabled={areCoursesLoading}>
+          <Select onValueChange={setSelectedCourseId} disabled={areCoursesLoading}>
             <SelectTrigger className="w-full sm:w-[320px]">
               <SelectValue placeholder={areCoursesLoading ? "Cargando cursos..." : "Selecciona un curso..."} />
             </SelectTrigger>

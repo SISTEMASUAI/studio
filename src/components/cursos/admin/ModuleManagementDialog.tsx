@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { collection, query, orderBy, doc, addDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, query, orderBy, doc, addDoc, updateDoc, deleteDoc, getDocs, setDoc } from 'firebase/firestore';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -66,11 +66,17 @@ const calculateTotalWeeks = (start?: string, end?: string): number => {
         const startDate = parse(start, 'yyyy-MM-dd', new Date());
         const endDate = parse(end, 'yyyy-MM-dd', new Date());
         if (isBefore(endDate, startDate)) return 0;
-        return differenceInWeeks(endDate, startDate, { weekStartsOn: 1 }) + 1;
+        
+        // Calculate the difference in days and divide by 7. Use Math.ceil to include partial weeks.
+        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return Math.ceil(diffDays / 7);
     } catch {
         return 0;
     }
 };
+
 
 const generateSessionsForModule = (weekNumber: number, courseStartDateStr: string, courseSchedule: ScheduleItem[]) => {
     const sessions = [];
@@ -78,7 +84,7 @@ const generateSessionsForModule = (weekNumber: number, courseStartDateStr: strin
 
     try {
         const courseStartDate = parse(courseStartDateStr, 'yyyy-MM-dd', new Date());
-        const weekStart = startOfWeek(add(courseStartDate, { weeks: weekNumber - 1 }), { weekStartsOn: 1 });
+        const weekStart = startOfWeek(add(courseStartDate, { weeks: weekNumber - 1 }), { weekStartsOn: 1 }); // Assuming week starts on Monday
 
         for (const session of courseSchedule) {
             const targetDay = dayOfWeekMap[session.day];

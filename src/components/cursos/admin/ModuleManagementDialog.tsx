@@ -4,8 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, query, orderBy, doc, addDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -25,13 +25,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, PlusCircle, Trash2, Clock, Edit } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Clock } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import type { Course, CourseModule, ScheduleItem } from '@/types/course';
-import { differenceInDays, parse, add, format, getDay } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { differenceInWeeks, parse, add, format, getDay, startOfWeek, isBefore, isSameDay } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +42,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+import ModuleSessions from './ModuleSessions';
 
 const ModuleSchema = z.object({
   title: z.string().min(3, "El título debe tener al menos 3 caracteres."),
@@ -66,42 +65,41 @@ const calculateTotalWeeks = (start?: string, end?: string): number => {
     try {
         const startDate = parse(start, 'yyyy-MM-dd', new Date());
         const endDate = parse(end, 'yyyy-MM-dd', new Date());
-        if (startDate > endDate) return 0;
-        const diffInDays = differenceInDays(endDate, startDate);
-        const weeks = Math.ceil((diffInDays + 1) / 7);
-        return weeks;
+        if (isBefore(endDate, startDate)) return 0;
+        return differenceInWeeks(endDate, startDate, { weekStartsOn: 1 }) + 1;
     } catch {
         return 0;
     }
 };
 
-const generateModuleSessions = (weekNumber: number, courseStartDateStr: string, courseSchedule: ScheduleItem[]) => {
+const generateSessionsForModule = (weekNumber: number, courseStartDateStr: string, courseSchedule: ScheduleItem[]) => {
+    const sessions = [];
     if (!courseStartDateStr || !courseSchedule) return [];
-    
+
     try {
         const courseStartDate = parse(courseStartDateStr, 'yyyy-MM-dd', new Date());
-        const weekStartDate = add(courseStartDate, { weeks: weekNumber - 1 });
-        
-        const sessions = courseSchedule.map(session => {
-            const targetDay = dayOfWeekMap[session.day];
-            if (targetDay === undefined) return null;
+        const weekStart = startOfWeek(add(courseStartDate, { weeks: weekNumber - 1 }), { weekStartsOn: 1 });
 
-            let sessionDate = new Date(weekStartDate);
-            while(getDay(sessionDate) !== targetDay) {
+        for (const session of courseSchedule) {
+            const targetDay = dayOfWeekMap[session.day];
+            if (targetDay === undefined) continue;
+
+            let sessionDate = new Date(weekStart);
+            while (getDay(sessionDate) !== targetDay) {
                 sessionDate = add(sessionDate, { days: 1 });
             }
-            
-            return {
-                ...session,
-                date: format(sessionDate, 'dd/MM/yyyy'),
-            };
-        }).filter(Boolean);
 
-        return sessions as (ScheduleItem & { date: string })[];
+            sessions.push({
+                ...session,
+                date: format(sessionDate, 'yyyy-MM-dd'),
+            });
+        }
+        return sessions;
     } catch {
         return [];
     }
 };
+
 
 export default function ModuleManagementDialog({ isOpen, onOpenChange, course }: ModuleManagementDialogProps) {
   const firestore = useFirestore();
@@ -114,7 +112,7 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
 
   useEffect(() => {
     if (course) {
-      setSchedule(course.schedule || [{ title: '', day: '', startTime: '', endTime: '', classroom: '' }]);
+      setSchedule(course.schedule || [{ title: '', day: 'Lunes', startTime: '', endTime: '', classroom: '' }]);
       setSemesterStartDate(course.semesterStartDate || '');
       setSemesterEndDate(course.semesterEndDate || '');
     }
@@ -145,8 +143,15 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
     if (!firestore || !course) return;
     try {
       const modulesCollection = collection(firestore, 'courses', course.id, 'modules');
-      await addDocumentNonBlocking(modulesCollection, values);
-      toast({ title: "Módulo Creado", description: `Se ha añadido "${values.title}" al curso.` });
+      const newModuleRef = await addDoc(modulesCollection, { courseId: course.id, ...values });
+      
+      const sessionsToCreate = generateSessionsForModule(values.weekNumber, semesterStartDate, schedule);
+      for (const sessionData of sessionsToCreate) {
+        const sessionDocRef = doc(collection(firestore, 'courses', course.id, 'modules', newModuleRef.id, 'sessions'));
+        await setDoc(sessionDocRef, { ...sessionData, sessionId: sessionDocRef.id, moduleId: newModuleRef.id, courseId: course.id });
+      }
+
+      toast({ title: "Módulo Creado", description: `Se ha añadido "${values.title}" y sus clases programadas.` });
       moduleForm.reset({ title: '', weekNumber: (modules?.length || 0) + 2, description: '' });
     } catch (error) {
       console.error("Error creating module: ", error);
@@ -161,7 +166,7 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
   };
 
   const addScheduleRow = () => {
-    setSchedule([...schedule, { title: '', day: '', startTime: '', endTime: '', classroom: '' }]);
+    setSchedule([...schedule, { title: '', day: 'Lunes', startTime: '', endTime: '', classroom: '' }]);
   };
 
   const removeScheduleRow = (index: number) => {
@@ -174,12 +179,31 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
     setIsSavingSchedule(true);
     try {
       const courseRef = doc(firestore, 'courses', course.id);
-      await updateDocumentNonBlocking(courseRef, {
+      const filteredSchedule = schedule.filter(s => s.day && s.startTime && s.endTime);
+      
+      await updateDoc(courseRef, {
         semesterStartDate,
         semesterEndDate,
-        schedule: schedule.filter(s => s.day && s.startTime && s.endTime),
+        schedule: filteredSchedule,
       });
-      toast({ title: "Horario Guardado", description: "Las fechas y el horario del curso han sido actualizados." });
+
+      if (modules && modules.length > 0) {
+        for (const module of modules) {
+            const sessionsCollectionRef = collection(firestore, 'courses', course.id, 'modules', module.id, 'sessions');
+            const existingSessionsSnapshot = await getDocs(sessionsCollectionRef);
+            for (const sessionDoc of existingSessionsSnapshot.docs) {
+                await deleteDoc(sessionDoc.ref);
+            }
+
+            const sessionsToCreate = generateSessionsForModule(module.weekNumber, semesterStartDate, filteredSchedule);
+            for (const sessionData of sessionsToCreate) {
+                const sessionDocRef = doc(sessionsCollectionRef);
+                await setDoc(sessionDocRef, { ...sessionData, sessionId: sessionDocRef.id, moduleId: module.id, courseId: course.id });
+            }
+        }
+      }
+
+      toast({ title: "Horario Guardado", description: "El horario y las clases programadas han sido actualizados." });
     } catch (error) {
       console.error("Error saving schedule: ", error);
       toast({ variant: "destructive", title: "Error", description: "No se pudo guardar el horario." });
@@ -188,16 +212,27 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
     }
   };
 
-  const handleDeleteModule = (moduleId: string, moduleTitle: string) => {
+  const handleDeleteModule = async (moduleId: string, moduleTitle: string) => {
     if (!firestore || !course) return;
 
-    const moduleRef = doc(firestore, 'courses', course.id, 'modules', moduleId);
-    deleteDocumentNonBlocking(moduleRef);
+    try {
+        const sessionsRef = collection(firestore, 'courses', course.id, 'modules', moduleId, 'sessions');
+        const sessionsSnap = await getDocs(sessionsRef);
+        for (const sessionDoc of sessionsSnap.docs) {
+            await deleteDoc(sessionDoc.ref);
+        }
 
-    toast({
-      title: 'Módulo Eliminado',
-      description: `El módulo "${moduleTitle}" ha sido eliminado.`,
-    });
+        const moduleRef = doc(firestore, 'courses', course.id, 'modules', moduleId);
+        await deleteDoc(moduleRef);
+
+        toast({
+        title: 'Módulo Eliminado',
+        description: `El módulo "${moduleTitle}" y todas sus clases han sido eliminados.`,
+        });
+    } catch (error) {
+        console.error("Error deleting module: ", error);
+        toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar el módulo." });
+    }
   };
 
 
@@ -337,9 +372,7 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
                     </div>
                 ) : modules && modules.length > 0 ? (
                     <Accordion type="multiple" className="w-full">
-                        {modules.map(module => {
-                            const moduleSessions = generateModuleSessions(module.weekNumber, semesterStartDate, schedule);
-                            return (
+                        {modules.map(module => (
                             <AccordionItem value={`item-${module.id}`} key={module.id}>
                                 <AccordionTrigger className="px-4 hover:no-underline">
                                     <div className="flex justify-between items-center w-full">
@@ -359,7 +392,7 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
                                                     <AlertDialogHeader>
                                                         <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                                                         <AlertDialogDescription>
-                                                            Esta acción no se puede deshacer. Esto eliminará permanentemente el módulo "{module.title}".
+                                                            Esta acción no se puede deshacer. Esto eliminará permanentemente el módulo "{module.title}" y sus clases programadas.
                                                         </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
@@ -377,40 +410,10 @@ export default function ModuleManagementDialog({ isOpen, onOpenChange, course }:
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent>
-                                    {moduleSessions.length > 0 ? (
-                                        <div className="px-2 pb-2">
-                                            <Table className="bg-accent/50">
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead className="text-xs">Clase</TableHead>
-                                                        <TableHead className="text-xs">Fecha</TableHead>
-                                                        <TableHead className="text-xs">Horario</TableHead>
-                                                        <TableHead className="text-right text-xs">Acción</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {moduleSessions.map((session, index) => (
-                                                        <TableRow key={index}>
-                                                            <TableCell className="text-sm py-2">{session.title}</TableCell>
-                                                            <TableCell className="text-sm py-2">{session.date}</TableCell>
-                                                            <TableCell className="text-sm py-2">{session.startTime} - {session.endTime}</TableCell>
-                                                            <TableCell className="text-right py-2">
-                                                                <Button variant="outline" size="sm" disabled>
-                                                                    <Edit className="mr-1.5 h-3 w-3"/> Editar
-                                                                </Button>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground px-4 py-3">No hay sesiones programadas. Defina el horario del curso a la izquierda.</p>
-                                    )}
+                                    {course && <ModuleSessions courseId={course.id} moduleId={module.id} />}
                                 </AccordionContent>
                             </AccordionItem>
-                            )
-                        })}
+                        ))}
                     </Accordion>
                 ) : (
                     <div className="flex justify-center items-center h-full text-center text-muted-foreground p-4">

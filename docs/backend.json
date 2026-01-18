@@ -282,6 +282,22 @@
       },
       "required": ["moduleId", "courseId", "title", "weekNumber"]
     },
+    "CourseModuleSession": {
+        "title": "CourseModuleSession",
+        "description": "Represents a single scheduled class session within a course module (week).",
+        "type": "object",
+        "properties": {
+            "sessionId": { "type": "string", "description": "Unique identifier for the session." },
+            "moduleId": { "type": "string", "description": "ID of the parent module." },
+            "courseId": { "type": "string", "description": "ID of the parent course." },
+            "title": { "type": "string", "description": "The title of the session (e.g., 'Teoría', 'Práctica')." },
+            "date": { "type": "string", "format": "date", "description": "The specific date of the class session." },
+            "startTime": { "type": "string", "format": "time" },
+            "endTime": { "type": "string", "format": "time" },
+            "classroom": { "type": "string" }
+        },
+        "required": ["sessionId", "moduleId", "courseId", "title", "date", "startTime", "endTime"]
+    },
     "CourseAssignment": {
       "title": "CourseAssignment",
       "type": "object",
@@ -553,6 +569,12 @@
         },
         "description": "Stores the thematic weeks or modules for a specific course. Writable by instructors."
       },
+      "/courses/{courseId}/modules/{moduleId}/sessions/{sessionId}": {
+        "schema": {
+            "$ref": "#/entities/CourseModuleSession"
+        },
+        "description": "Stores the individual, dated class sessions for a specific week/module."
+      },
       "/enrollments/{enrollmentId}": {
         "schema": {
             "$ref": "#/entities/Enrollment"
@@ -602,5 +624,3 @@
     }
   }
 }
-
-    

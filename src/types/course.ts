@@ -42,6 +42,19 @@ export interface Course {
     title: string;
     weekNumber: number;
     description?: string;
+    courseId: string;
+  }
+
+  export interface CourseModuleSession {
+    id: string; // Firestore document ID
+    sessionId: string;
+    moduleId: string;
+    courseId: string;
+    title: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    classroom: string;
   }
   
   // Item individual del horario (clase/sesión)

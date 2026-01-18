@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, DocumentData } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,10 +35,11 @@ export default function AnalyticsPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalyzeStudentRiskOutput | null>(null);
 
-  if (!isUserLoading && profile?.role !== 'admin') {
-    router.replace('/intranet');
-    return null;
-  }
+  useEffect(() => {
+    if (!isUserLoading && profile?.role !== 'admin') {
+      router.replace('/intranet');
+    }
+  }, [isUserLoading, profile, router]);
 
   const studentsQuery = useMemoFirebase(
     () => firestore ? query(collection(firestore, 'users'), where('role', '==', 'student')) : null,
@@ -97,7 +98,7 @@ export default function AnalyticsPage() {
     }
   };
   
-  if (isUserLoading || !profile) {
+  if (isUserLoading || !profile || profile.role !== 'admin') {
     return (
       <div className="flex h-64 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />

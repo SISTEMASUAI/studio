@@ -11,6 +11,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   Briefcase,
   Search,
   Bookmark,
@@ -19,10 +27,20 @@ import {
   BarChart,
   UserCog,
   PlusCircle,
+  MoreHorizontal,
+  Trash2,
+  Edit,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 const jobOffers = [
   {
@@ -31,6 +49,8 @@ const jobOffers = [
     company: 'Tech Solutions Inc.',
     location: 'Remoto',
     type: 'Full-time',
+    postedAt: '2024-08-01',
+    applicants: 12,
   },
   {
     id: '2',
@@ -38,6 +58,8 @@ const jobOffers = [
     company: 'Creative Minds Agency',
     location: 'Lima, Perú',
     type: 'Internship',
+    postedAt: '2024-08-05',
+    applicants: 25,
   },
   {
     id: '3',
@@ -45,6 +67,8 @@ const jobOffers = [
     company: 'DataCorp',
     location: 'Arequipa, Perú',
     type: 'Part-time',
+    postedAt: '2024-07-28',
+    applicants: 8,
   },
 ];
 
@@ -94,26 +118,55 @@ function AdminJobBoardView() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <UserCog /> Gestión de Bolsa de Trabajo
-        </CardTitle>
-        <CardDescription>
-          Administra las ofertas laborales, convenios empresariales y revisa estadísticas de empleabilidad.
-        </CardDescription>
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <UserCog /> Gestión de Bolsa de Trabajo
+            </CardTitle>
+            <CardDescription>
+              Administra las ofertas laborales, convenios empresariales y revisa estadísticas de empleabilidad.
+            </CardDescription>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+              <Button><PlusCircle className="mr-2" /> Publicar Nueva Oferta</Button>
+              <Button variant="outline"><Building className="mr-2" /> Gestionar Convenios</Button>
+              <Button variant="outline"><BarChart className="mr-2" /> Ver Estadísticas</Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-wrap gap-4 mb-6">
-            <Button><PlusCircle className="mr-2" /> Publicar Nueva Oferta</Button>
-            <Button variant="outline"><Building className="mr-2" /> Gestionar Convenios</Button>
-            <Button variant="outline"><BarChart className="mr-2" /> Ver Estadísticas</Button>
-        </div>
-        <Alert>
-          <UserCog className="h-4 w-4" />
-          <AlertTitle>En Desarrollo</AlertTitle>
-          <AlertDescription>
-            Las funcionalidades avanzadas para la administración de la bolsa de trabajo estarán disponibles próximamente.
-          </AlertDescription>
-        </Alert>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Título de la Oferta</TableHead>
+                <TableHead>Empresa</TableHead>
+                <TableHead>Fecha de Publicación</TableHead>
+                <TableHead className="text-center">Postulantes</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {jobOffers.map(offer => (
+                <TableRow key={offer.id}>
+                  <TableCell className="font-medium">{offer.title}</TableCell>
+                  <TableCell>{offer.company}</TableCell>
+                  <TableCell>{offer.postedAt}</TableCell>
+                  <TableCell className="text-center">{offer.applicants}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal/></Button></DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <DropdownMenuItem><Edit className="mr-2"/> Editar</DropdownMenuItem>
+                        <DropdownMenuItem><Search className="mr-2"/> Ver Postulantes</DropdownMenuItem>
+                        <DropdownMenuSeparator/>
+                        <DropdownMenuItem className="text-destructive"><Trash2 className="mr-2"/> Eliminar</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
       </CardContent>
     </Card>
   );

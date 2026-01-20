@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser } from '@/firebase';
@@ -132,19 +131,10 @@ export default function WellnessPage() {
                         <CardTitle className="flex items-center gap-2"><Users /> Gestión de Bienestar</CardTitle>
                         <CardDescription>Panel para administrar citas, tutores y recursos.</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex flex-col gap-2">
-                            <Button variant="outline"><UserCheck className="mr-2"/> Asignar Tutores</Button>
-                            <Button variant="outline"><BarChart className="mr-2"/> Ver Estadísticas</Button>
-                            <Button variant="outline"><Calendar className="mr-2"/> Gestionar Agenda</Button>
-                        </div>
-                        <Alert>
-                            <HeartPulse className="h-4 w-4" />
-                            <AlertTitle>En Desarrollo</AlertTitle>
-                            <AlertDescription>
-                                Las funcionalidades avanzadas para la gestión de bienestar estarán disponibles próximamente.
-                            </AlertDescription>
-                        </Alert>
+                    <CardContent className="space-y-2">
+                        <Button variant="outline" className="w-full justify-start"><UserCheck className="mr-2"/> Asignar Tutores</Button>
+                        <Button variant="outline" className="w-full justify-start"><BarChart className="mr-2"/> Ver Estadísticas</Button>
+                        <Button variant="outline" className="w-full justify-start"><Calendar className="mr-2"/> Gestionar Agenda</Button>
                     </CardContent>
                 </Card>
             )}

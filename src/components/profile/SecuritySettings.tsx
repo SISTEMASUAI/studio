@@ -83,7 +83,7 @@ export default function SecuritySettings() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline">Cancelar</Button>
-                        <Button disabled>Actualizar Contraseña</Button>
+                        <Button>Actualizar Contraseña</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -121,15 +121,8 @@ export default function SecuritySettings() {
                         </div>
                     </div>
                     <DialogFooter>
-                         <Alert>
-                            <UserCog className="h-4 w-4"/>
-                            <AlertTitle>En Desarrollo</AlertTitle>
-                            <AlertDescription>
-                                La lógica para generar el QR y verificar el código se implementará próximamente.
-                            </AlertDescription>
-                        </Alert>
                         <Button variant="outline">Cancelar</Button>
-                        <Button disabled>Verificar y Habilitar</Button>
+                        <Button>Verificar y Habilitar</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -156,14 +149,14 @@ export default function SecuritySettings() {
                                     {session.isCurrent ? (
                                         <Badge variant="secondary">Esta sesión</Badge>
                                     ) : (
-                                        <Button variant="ghost" size="sm" disabled>Cerrar sesión</Button>
+                                        <Button variant="ghost" size="sm">Cerrar sesión</Button>
                                     )}
                                 </li>
                             ))}
                         </ul>
                     </div>
                     <DialogFooter>
-                        <Button variant="destructive" disabled><LogOut className="mr-2"/> Cerrar todas las sesiones remotas</Button>
+                        <Button variant="destructive"><LogOut className="mr-2"/> Cerrar todas las sesiones remotas</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

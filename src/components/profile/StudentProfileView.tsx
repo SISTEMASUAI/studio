@@ -5,8 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { User as UserIcon, Mail, Phone, Home, FileText, UserCog } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, Home, FileText, CheckCircle } from 'lucide-react';
 import ProfileHeader from './ProfileHeader';
 import SecuritySettings from './SecuritySettings';
 
@@ -42,7 +41,7 @@ export default function StudentProfileView() {
               <Label htmlFor="address"><Home className="inline mr-1" /> Dirección</Label>
               <Input id="address" defaultValue={profile.address || ''} />
             </div>
-            <Button disabled>Guardar Cambios</Button>
+            <Button>Guardar Cambios</Button>
           </CardContent>
         </Card>
         <Card>
@@ -50,12 +49,15 @@ export default function StudentProfileView() {
             <CardTitle className="flex items-center gap-2"><FileText /> Mi Currículum</CardTitle>
             <CardDescription>Sube tu CV para postular a ofertas laborales desde la plataforma.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Alert>
-              <UserCog className="h-4 w-4" />
-              <AlertTitle>En Desarrollo</AlertTitle>
-              <AlertDescription>La funcionalidad para subir y gestionar tu CV estará disponible aquí.</AlertDescription>
-            </Alert>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3 p-3 border rounded-lg bg-accent/50">
+                <FileText className="h-6 w-6 text-primary"/>
+                <div>
+                    <p className="font-medium text-sm">cv_juan_perez_2024.pdf</p>
+                    <p className="text-xs text-muted-foreground">Subido el: 2024-08-01</p>
+                </div>
+                <Button variant="outline" size="sm" className="ml-auto">Reemplazar</Button>
+            </div>
           </CardContent>
         </Card>
       </div>

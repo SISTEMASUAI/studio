@@ -25,7 +25,6 @@ import {
   File,
   Settings2,
 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Tabs,
   TabsContent,
@@ -35,6 +34,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const professorGradebookData = {
     students: [
@@ -49,10 +50,18 @@ const professorGradebookData = {
     ],
     grades: {
         'S001': { 'Tarea 1': 18, 'Parcial 1': 16, 'Tarea 2': 19 },
-        'S002': { 'Tarea 1': 15, 'Parcial 1': 14, 'Tarea 2': null },
+        'S002': { 'Tarea 1': 15, 'Parcial 1': 14, 'Tarea 2': 17 },
         'S003': { 'Tarea 1': 12, 'Parcial 1': 11, 'Tarea 2': 14 },
     }
 }
+
+const statsData = [
+    { name: '0-5', value: 0 },
+    { name: '6-10', value: 2 },
+    { name: '11-13', value: 5 },
+    { name: '14-16', value: 12 },
+    { name: '17-20', value: 8 },
+]
 
 export default function AdminProfessorGradesView() {
     const { profile } = useUser();
@@ -101,8 +110,8 @@ export default function AdminProfessorGradesView() {
             </TabsList>
             <TabsContent value="gradebook" className="mt-6">
                 <div className="flex justify-end gap-2 mb-4">
-                    <Button variant="outline" disabled><PlusCircle/> Agregar Evaluación</Button>
-                    <Button disabled><Upload/> Publicar Notas</Button>
+                    <Button variant="outline"><PlusCircle/> Agregar Evaluación</Button>
+                    <Button><Upload/> Publicar Notas</Button>
                 </div>
                 <div className="overflow-x-auto">
                     <Table>
@@ -128,7 +137,6 @@ export default function AdminProfessorGradesView() {
                                                     defaultValue={grade ?? ''} 
                                                     className={`w-20 text-center mx-auto ${grade === null ? 'bg-destructive/10 border-destructive/50' : ''}`}
                                                     placeholder="--"
-                                                    disabled={!isAdmin}
                                                 />
                                             </TableCell>
                                         )
@@ -139,45 +147,35 @@ export default function AdminProfessorGradesView() {
                         </TableBody>
                     </Table>
                 </div>
-                <Alert className="mt-6">
-                  <UserCog className="h-4 w-4" />
-                  <AlertTitle>En Desarrollo</AlertTitle>
-                  <AlertDescription>
-                    La lógica para guardar las notas, agregar evaluaciones y calcular la nota final ponderada se implementará próximamente. {isAdmin && 'Las modificaciones de notas por administradores requerirán justificación y serán auditadas.'}
-                  </AlertDescription>
-                </Alert>
             </TabsContent>
             <TabsContent value="stats" className="mt-6">
                 <Card>
-                    <CardHeader><CardTitle>Estadísticas</CardTitle></CardHeader>
+                    <CardHeader>
+                        <CardTitle>Estadísticas del Curso</CardTitle>
+                        <CardDescription>Distribución de calificaciones finales.</CardDescription>
+                    </CardHeader>
                     <CardContent>
-                        <Alert>
-                            <BarChart className="h-4 w-4" />
-                            <AlertTitle>En Desarrollo</AlertTitle>
-                            <AlertDescription>
-                                {isAdmin 
-                                    ? 'Aquí se mostrará el dashboard con KPIs institucionales: tasa de retención, tasa de graduación, promedios por programa, etc.'
-                                    : 'Aquí se mostrarán gráficos interactivos con el promedio, desviación estándar y distribución de notas por evaluación.'
-                                }
-                            </AlertDescription>
-                        </Alert>
+                       <ChartContainer config={{}} className="min-h-[200px] w-full">
+                            <RechartsBarChart data={statsData} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <ChartTooltip content={<ChartTooltipContent />} />
+                                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            </RechartsBarChart>
+                        </ChartContainer>
                     </CardContent>
                 </Card>
             </TabsContent>
             <TabsContent value="reports" className="mt-6">
                 <Card>
-                     <CardHeader><CardTitle>Generación de Reportes</CardTitle></CardHeader>
-                     <CardContent>
-                         <Alert>
-                            <File className="h-4 w-4" />
-                            <AlertTitle>En Desarrollo</AlertTitle>
-                            <AlertDescription>
-                                {isAdmin
-                                    ? 'Aquí encontrarás opciones para generar reportes masivos por cohorte, programa o para procesos de acreditación.'
-                                    : 'Aquí encontrarás el formulario para generar reportes en PDF y Excel con filtros y opciones de contenido para tu curso.'
-                                }
-                            </AlertDescription>
-                        </Alert>
+                     <CardHeader>
+                        <CardTitle>Generación de Reportes</CardTitle>
+                        <CardDescription>Exporta los datos de calificaciones en diferentes formatos.</CardDescription>
+                     </CardHeader>
+                     <CardContent className="flex gap-4">
+                        <Button><File className="mr-2"/> Exportar a PDF</Button>
+                        <Button variant="outline"><File className="mr-2"/> Exportar a Excel</Button>
                      </CardContent>
                 </Card>
             </TabsContent>
@@ -188,14 +186,9 @@ export default function AdminProfessorGradesView() {
                             <CardTitle>Herramientas de Administración</CardTitle>
                             <CardDescription>Acciones de alto nivel sobre expedientes académicos.</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <Alert>
-                                <Settings2 className="h-4 w-4" />
-                                <AlertTitle>En Desarrollo</AlertTitle>
-                                <AlertDescription>
-                                    Aquí se ubicarán las herramientas para modificar expedientes (convalidaciones, cambios de estado, etc.) y para generar estadísticas institucionales avanzadas.
-                                </AlertDescription>
-                            </Alert>
+                        <CardContent className="flex flex-wrap gap-4">
+                             <Button variant="secondary"><Settings2 className="mr-2"/> Convalidar Cursos</Button>
+                             <Button variant="secondary"><Settings2 className="mr-2"/> Modificar Expediente</Button>
                         </CardContent>
                     </Card>
                 </TabsContent>

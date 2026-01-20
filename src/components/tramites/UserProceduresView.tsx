@@ -50,6 +50,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const userRequests = [
   {
@@ -179,6 +180,14 @@ export default function UserProceduresView() {
                             </Button>
                             <p className="text-xs text-muted-foreground">Puedes adjuntar hasta 5 archivos (máx 20MB total).</p>
                         </div>
+                        
+                         <Alert>
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>Costo Aplicable</AlertTitle>
+                            <AlertDescription>
+                               Algunos trámites pueden tener un costo asociado que deberá ser abonado en el módulo de Pagos para poder procesar la solicitud.
+                            </AlertDescription>
+                        </Alert>
                     </div>
                     <DialogFooter>
                         <Button variant="outline">Cancelar</Button>

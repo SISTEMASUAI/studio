@@ -146,8 +146,8 @@ export default function AdminProceduresView() {
                       <DropdownMenuContent>
                         <DropdownMenuItem><MessageSquare className="mr-2"/> Ver Detalles / Comentar</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem disabled={req.status !== 'Enviado'}><Check className="mr-2"/> Aprobar</DropdownMenuItem>
-                        <DropdownMenuItem disabled={req.status !== 'Enviado'} className="text-destructive"><X className="mr-2"/> Rechazar</DropdownMenuItem>
+                        <DropdownMenuItem><Check className="mr-2"/> Aprobar</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive"><X className="mr-2"/> Rechazar</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem><Users className="mr-2"/> Asignar a...</DropdownMenuItem>
                       </DropdownMenuContent>

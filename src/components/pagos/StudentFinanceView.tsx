@@ -130,17 +130,10 @@ export default function StudentFinanceView() {
                                                             </SelectContent>
                                                         </Select>
                                                     </div>
-                                                    <Alert>
-                                                        <AlertTriangle className="h-4 w-4" />
-                                                        <AlertTitle>En Desarrollo</AlertTitle>
-                                                        <AlertDescription>
-                                                            La integración con pasarelas de pago seguras (Niubiz, Culqi, etc.) y la lógica de procesamiento de pagos se implementará próximamente.
-                                                        </AlertDescription>
-                                                    </Alert>
                                                 </div>
                                                 <DialogFooter>
                                                     <Button variant="outline">Cancelar</Button>
-                                                    <Button disabled><CreditCard className="mr-2"/> Proceder al Pago</Button>
+                                                    <Button><CreditCard className="mr-2"/> Proceder al Pago</Button>
                                                 </DialogFooter>
                                             </DialogContent>
                                         </Dialog>
@@ -194,7 +187,7 @@ export default function StudentFinanceView() {
                         <p className="text-muted-foreground">Deuda Total</p>
                         <p className="text-4xl font-bold text-destructive">${Math.abs(studentFinancials.balance).toFixed(2)}</p>
                     </div>
-                    <Button className="w-full" disabled><CreditCard className="mr-2"/> Realizar Pago General</Button>
+                    <Button className="w-full"><CreditCard className="mr-2"/> Realizar Pago General</Button>
                     <Dialog>
                         <DialogTrigger asChild>
                             <Button variant="secondary" className="w-full"><Scale className="mr-2"/> Solicitar Plan de Pagos</Button>
@@ -239,7 +232,7 @@ export default function StudentFinanceView() {
                             </div>
                             <DialogFooter>
                                 <Button variant="outline">Cancelar</Button>
-                                <Button disabled><Scale className="mr-2"/> Enviar Solicitud</Button>
+                                <Button><Scale className="mr-2"/> Enviar Solicitud</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>

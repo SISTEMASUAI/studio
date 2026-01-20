@@ -15,14 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-    Alert,
-    AlertDescription,
-    AlertTitle,
-} from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ClipboardList, FileUp, AlertTriangle } from 'lucide-react';
+import { ClipboardList, FileUp } from 'lucide-react';
 
 const assignments = [
     { id: 1, title: 'Tarea 1: Investigación de Mercado', dueDate: '2024-08-20', status: 'Calificada', grade: '18/20' },
@@ -52,7 +47,7 @@ export default function CourseAssignments() {
                 <CardTitle className="flex items-center gap-2"><ClipboardList/> Tareas y Evaluaciones</CardTitle>
                 <CardDescription>Revisa tus próximas entregas y el estado de tus evaluaciones.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -79,13 +74,6 @@ export default function CourseAssignments() {
                         ))}
                     </TableBody>
                 </Table>
-                <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>
-                    <AlertDescription>
-                        Esta sección se conectará a los datos reales de tareas y entregas próximamente. La lógica para subir archivos aún no está implementada.
-                    </AlertDescription>
-                </Alert>
             </CardContent>
         </Card>
     )

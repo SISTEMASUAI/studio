@@ -20,7 +20,6 @@ import {
     Percent,
     Banknote,
 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 const allStudentsFinancials = [
@@ -41,8 +40,8 @@ export default function AdminFinanceView() {
             </CardDescription>
           </div>
            <div className="flex gap-2">
-                <Button variant="outline" disabled><Percent className="mr-2"/> Aplicar Descuentos</Button>
-                <Button disabled><Banknote className="mr-2"/> Registrar Pago</Button>
+                <Button variant="outline"><Percent className="mr-2"/> Aplicar Descuentos</Button>
+                <Button><Banknote className="mr-2"/> Registrar Pago</Button>
            </div>
         </div>
       </CardHeader>
@@ -63,19 +62,12 @@ export default function AdminFinanceView() {
                         <TableCell className={s.balance < 0 ? 'text-destructive' : ''}>${s.balance.toFixed(2)}</TableCell>
                         <TableCell>{s.pending}</TableCell>
                         <TableCell className="text-right">
-                            <Button size="sm" disabled>Ver Detalles</Button>
+                            <Button size="sm">Ver Detalles</Button>
                         </TableCell>
                     </TableRow>
                 ))}
             </TableBody>
         </Table>
-         <Alert className="mt-6">
-            <UserCog className="h-4 w-4" />
-            <AlertTitle>En Desarrollo</AlertTitle>
-            <AlertDescription>
-                La lógica para ver el detalle de cada estudiante, registrar pagos, generar estados de cuenta, modificar montos y aplicar becas se implementará próximamente.
-            </AlertDescription>
-        </Alert>
       </CardContent>
     </Card>
   );

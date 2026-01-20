@@ -278,10 +278,10 @@ export default function StudentGradesView() {
                         <CardDescription>Descarga documentos o solicita certificados oficiales.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <Button variant="outline" className="w-full" disabled>
+                        <Button variant="outline" className="w-full">
                             <Download className="mr-2" /> Descargar Historial (No Oficial)
                         </Button>
-                        <Button className="w-full" disabled>
+                        <Button className="w-full">
                             <FileText className="mr-2" /> Solicitar Certificado Oficial
                         </Button>
                         <p className="text-xs text-muted-foreground text-center">

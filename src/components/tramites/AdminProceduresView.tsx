@@ -24,7 +24,6 @@ import {
   MoreHorizontal,
   Users,
 } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -150,7 +149,7 @@ export default function AdminProceduresView() {
                         <DropdownMenuItem disabled={req.status !== 'Enviado'}><Check className="mr-2"/> Aprobar</DropdownMenuItem>
                         <DropdownMenuItem disabled={req.status !== 'Enviado'} className="text-destructive"><X className="mr-2"/> Rechazar</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem disabled><Users className="mr-2"/> Asignar a...</DropdownMenuItem>
+                        <DropdownMenuItem><Users className="mr-2"/> Asignar a...</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </TableCell>
@@ -158,13 +157,6 @@ export default function AdminProceduresView() {
             ))}
           </TableBody>
         </Table>
-        <Alert className="mt-6">
-            <UserCog className="h-4 w-4" />
-            <AlertTitle>En Desarrollo</AlertTitle>
-            <AlertDescription>
-                La lógica para aprobar, rechazar, reasignar, generar y firmar documentos, así como ver los detalles y estadísticas de cada solicitud, se implementará próximamente.
-            </AlertDescription>
-        </Alert>
       </CardContent>
     </Card>
   );

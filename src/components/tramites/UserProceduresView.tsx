@@ -39,7 +39,6 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { Search as SearchIcon } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -48,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -179,18 +179,10 @@ export default function UserProceduresView() {
                             </Button>
                             <p className="text-xs text-muted-foreground">Puedes adjuntar hasta 5 archivos (máx 20MB total).</p>
                         </div>
-                        
-                        <Alert>
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>Próximos Pasos</AlertTitle>
-                            <AlertDescription>
-                                La lógica para enviar la solicitud, realizar validaciones de pago y generar el documento se implementará próximamente.
-                            </AlertDescription>
-                        </Alert>
                     </div>
                     <DialogFooter>
                         <Button variant="outline">Cancelar</Button>
-                        <Button disabled><FilePlus className="mr-2"/> Enviar Solicitud</Button>
+                        <Button><FilePlus className="mr-2"/> Enviar Solicitud</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -257,7 +249,7 @@ export default function UserProceduresView() {
                                                 <DialogClose asChild>
                                                     <Button variant="outline">No, mantener</Button>
                                                 </DialogClose>
-                                                <Button variant="destructive" disabled>Sí, Cancelar</Button>
+                                                <Button variant="destructive">Sí, Cancelar</Button>
                                             </DialogFooter>
                                         </DialogContent>
                                     </Dialog>

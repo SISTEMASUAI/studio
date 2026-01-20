@@ -20,21 +20,27 @@ import {
     DialogTrigger,
   } from "@/components/ui/dialog"
 import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import {
   Activity,
   PlusCircle,
-  Calendar as CalendarIcon,
   Users,
   BarChart,
   CheckCircle,
-  UserCog,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import Image from 'next/image';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const activities = [
   {
@@ -67,6 +73,13 @@ const activities = [
 ];
 
 const enrolledActivities = ['1'];
+const participants = [
+    { id: 'usr_1', name: 'Ana García', avatar: 'https://i.pravatar.cc/150?u=usr_1', activity: 'Club de Debate'},
+    { id: 'usr_2', name: 'Juan Pérez', avatar: 'https://i.pravatar.cc/150?u=usr_2', activity: 'Equipo de Fútbol'},
+    { id: 'usr_3', name: 'Luis Martínez', avatar: 'https://i.pravatar.cc/150?u=usr_3', activity: 'Club de Debate'},
+    { id: 'usr_4', name: 'Maria Rodriguez', avatar: 'https://i.pravatar.cc/150?u=usr_4', activity: 'Taller de Fotografía'},
+]
+
 
 export default function ActivitiesPage() {
   const { profile } = useUser();
@@ -136,17 +149,10 @@ export default function ActivitiesPage() {
                             <Label>Ubicación</Label>
                             <Input placeholder="Ej: Auditorio Principal o Link de Zoom"/>
                         </div>
-                        <Alert>
-                            <UserCog className="h-4 w-4" />
-                            <AlertTitle>En Desarrollo</AlertTitle>
-                            <AlertDescription>
-                               La lógica para guardar el evento, subir imágenes y gestionar inscripciones se implementará próximamente.
-                            </AlertDescription>
-                        </Alert>
                     </div>
                     <DialogFooter>
                         <Button variant="outline">Cancelar</Button>
-                        <Button disabled><PlusCircle className="mr-2"/> Publicar Actividad</Button>
+                        <Button><PlusCircle className="mr-2"/> Publicar Actividad</Button>
                     </DialogFooter>
                 </DialogContent>
               </Dialog>
@@ -210,13 +216,32 @@ export default function ActivitiesPage() {
                 <CardDescription>Panel para administrar inscripciones, asistencia y comunicaciones de todos los eventos.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Alert>
-                    <UserCog className="h-4 w-4" />
-                    <AlertTitle>En Desarrollo</AlertTitle>
-                    <AlertDescription>
-                        Las funcionalidades avanzadas para la gestión de actividades, incluyendo la lista de inscritos, el control de asistencia por QR y las estadísticas de participación, estarán disponibles próximamente en este panel.
-                    </AlertDescription>
-                </Alert>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Participante</TableHead>
+                            <TableHead>Actividad</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {participants.map(p => (
+                            <TableRow key={p.id}>
+                                <TableCell className="flex items-center gap-3">
+                                    <Avatar>
+                                        <AvatarImage src={p.avatar} />
+                                        <AvatarFallback>{p.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <span>{p.name}</span>
+                                </TableCell>
+                                <TableCell>{p.activity}</TableCell>
+                                <TableCell className="text-right">
+                                    <Button variant="ghost" size="sm">Ver Perfil</Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </CardContent>
          </Card> 
       )}

@@ -64,6 +64,7 @@ const navItems = [
   { href: '/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin'] },
   { href: '/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin'] },
   { href: '/programas', icon: GraduationCap, label: 'Programas', roles: ['admin'] },
+  { href: '/tutor-ia', icon: Wand2, label: 'Tutor IA', roles: ['professor', 'admin'] },
   { href: '/app/analitica', icon: Wand2, label: 'Analítica IA', roles: ['admin'] },
   { href: '/configuracion', icon: Settings, label: 'Configuración', roles: ['admin'] },
 ];

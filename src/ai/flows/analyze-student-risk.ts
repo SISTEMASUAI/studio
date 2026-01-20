@@ -1,17 +1,9 @@
 'use server';
 
-/**
- * @fileOverview An AI agent to analyze student academic risk.
- * 
- * - analyzeStudentRisk - A function that analyzes student data.
- * - AnalyzeStudentRiskInput - The input type for the analyzeStudentRisk function.
- * - AnalyzeStudentRiskOutput - The return type for the analyzeStudentRisk function.
- */
-
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
-// Define Zod schemas based on Firestore structure for type safety
+// Schemas básicos
 const UserProfileSchema = z.object({
   uid: z.string(),
   firstName: z.string(),
@@ -30,55 +22,34 @@ const AssignmentSubmissionSchema = z.object({
   submittedAt: z.string(),
 });
 
+// Input schema
 const AnalyzeStudentRiskInputSchema = z.object({
   student: UserProfileSchema,
   attendance: z.array(AttendanceRecordSchema),
   submissions: z.array(AssignmentSubmissionSchema),
 });
+
 export type AnalyzeStudentRiskInput = z.infer<typeof AnalyzeStudentRiskInputSchema>;
 
+// Schema de salida extendido y alineado con el prompt
 const AnalyzeStudentRiskOutputSchema = z.object({
-  riskLevel: z.enum(['Bajo', 'Medio', 'Alto']).describe('The estimated academic risk level for the student.'),
-  summary: z.string().describe('A concise summary explaining the reasoning for the risk assessment, highlighting key patterns in attendance and grades.'),
-  recommendations: z.array(z.string()).describe('A list of 2-3 actionable recommendations for academic advisors or tutors.'),
+  riskLevel: z.enum(['Bajo', 'Medio', 'Alto']).describe('Nivel de riesgo académico general'),
+  riskOfDropout: z.enum(['Muy bajo', 'Bajo', 'Moderado', 'Alto', 'Muy alto']).describe('Probabilidad estimada de deserción'),
+  summary: z.string().describe('Resumen en 3-5 oraciones explicando patrones y riesgo'),
+  supportRecommendations: z.array(z.string()).describe('2-4 recomendaciones concretas y accionables'),
+  alertLevel: z.enum(['Verde', 'Amarillo', 'Naranja', 'Rojo']).describe('Nivel de alerta visual para el tutor/docente'),
 });
+
 export type AnalyzeStudentRiskOutput = z.infer<typeof AnalyzeStudentRiskOutputSchema>;
 
-
+// Función exportada
 export async function analyzeStudentRisk(
   input: AnalyzeStudentRiskInput
 ): Promise<AnalyzeStudentRiskOutput> {
   return analyzeStudentRiskFlow(input);
 }
 
-
-const prompt = ai.definePrompt({
-  name: 'analyzeStudentRiskPrompt',
-  input: { schema: AnalyzeStudentRiskInputSchema },
-  output: { schema: AnalyzeStudentRiskOutputSchema },
-  prompt: `
-    You are an expert academic advisor AI for a university. Your task is to analyze a student's academic data to identify potential risks of falling behind or dropping out.
-
-    Based on the provided JSON data (student profile, attendance records, and assignment submissions), perform a thorough analysis.
-
-    DATA:
-    - Student Profile: {{{json student}}}
-    - Attendance Records: {{{json attendance}}}
-    - Assignment Submissions: {{{json submissions}}}
-
-    ANALYSIS GUIDELINES:
-    1.  **Risk Level Assessment**: Categorize the student's risk as 'Bajo', 'Medio', or 'Alto'.
-        -   **Alto Riesgo**: Consistent absences ('ausente'), multiple late attendances ('tarde'), failing grades (below 11 out of 20), or a clear downward trend in performance. A combination of poor attendance and low grades is a strong indicator.
-        -   **Riesgo Medio**: Some absences or late attendances, grades that are barely passing (e.g., 11-13), or a recent drop in performance.
-        -   **Riesgo Bajo**: Good attendance ('presente', 'justificado'), and consistently good grades (above 14).
-    2.  **Summary**: Write a concise, 2-3 sentence summary explaining your risk assessment. Mention specific patterns you observed, for example, "El estudiante muestra un patrón de ausencias recurrentes en el curso X y una tendencia a la baja en las calificaciones de las últimas tareas, lo que indica un alto riesgo."
-    3.  **Recommendations**: Provide 2-3 brief, actionable recommendations for an academic advisor. Examples: "Contactar al estudiante para una sesión de tutoría académica", "Recomendar una cita con el servicio de bienestar estudiantil", "Sugerir al profesor del curso X que converse con el estudiante".
-
-    Return your complete analysis strictly in the requested JSON output format.
-  `,
-});
-
-
+// Flujo principal
 const analyzeStudentRiskFlow = ai.defineFlow(
   {
     name: 'analyzeStudentRiskFlow',
@@ -86,10 +57,68 @@ const analyzeStudentRiskFlow = ai.defineFlow(
     outputSchema: AnalyzeStudentRiskOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    const response = await ai.generate({
+      prompt: `
+Eres un experto en retención estudiantil en universidades peruanas. Tu misión es analizar el perfil académico de un estudiante y determinar su riesgo real de deserción (decertar) durante el semestre.
+
+Analiza cuidadosamente los siguientes datos del estudiante:
+
+PERFIL:
+${JSON.stringify(input.student, null, 2)}
+
+ASISTENCIAS (registros por curso y fecha):
+${JSON.stringify(input.attendance, null, 2)}
+
+ENTREGAS DE TAREAS / CALIFICACIONES:
+${JSON.stringify(input.submissions, null, 2)}
+
+CRITERIOS DE EVALUACIÓN DE RIESGO DE DESERCIÓN (escala peruana típica 0-20):
+- ALTO RIESGO DE DESERCIÓN (probabilidad > 60%):
+  • Más del 30% de ausencias injustificadas
+  • Promedio de asistencias < 60% en algún curso clave
+  • Varias notas por debajo de 11
+  • Tendencia clara de empeoramiento (asistencia y/o notas bajando)
+  • Ausencias consecutivas recientes (últimas 3-4 semanas)
+
+- RIESGO MEDIO (probabilidad 30-60%):
+  • 15-30% de ausencias
+  • Notas entre 11-13 en promedio
+  • Algunas ausencias consecutivas o tardanzas frecuentes
+  • Mejora o empeoramiento leve reciente
+
+- BAJO RIESGO (<30%):
+  • Asistencia > 85%
+  • Notas consistentes ≥14
+  • Sin patrones preocupantes
+
+TAREAS DEL ANÁLISIS:
+1. Calcula porcentajes reales de asistencia por curso y en general
+2. Identifica tendencias (¿está empeorando la asistencia o las notas?)
+3. Correlaciona asistencia con rendimiento académico
+4. Determina nivel de riesgo con justificación clara y objetiva
+
+Devuelve **SOLO** el siguiente JSON, sin ningún texto adicional fuera del objeto:
+{
+  "riskLevel": "Alto" | "Medio" | "Bajo",
+  "riskOfDropout": "Muy alto" | "Alto" | "Moderado" | "Bajo" | "Muy bajo",
+  "summary": "Resumen en 3-5 oraciones explicando los patrones detectados y el riesgo de deserción",
+  "supportRecommendations": [
+    "Recomendación 1 concreta y accionable",
+    "Recomendación 2...",
+    "Recomendación 3... (máximo 4)"
+  ],
+  "alertLevel": "Rojo" | "Naranja" | "Amarillo" | "Verde"
+}
+      `,
+      output: { schema: AnalyzeStudentRiskOutputSchema },
+    });
+
+    const output = response.output;
+
     if (!output) {
-      throw new Error("The AI model did not return a valid analysis.");
+      throw new Error("No se recibió una respuesta válida del modelo.");
     }
-    return output;
+
+    return output as AnalyzeStudentRiskOutput;
   }
 );

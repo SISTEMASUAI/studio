@@ -21,6 +21,7 @@ import {
   Users,
   ListTree,
   Wand2,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -65,7 +66,7 @@ const navItems = [
   { href: '/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin'] },
   { href: '/programas', icon: GraduationCap, label: 'Programas', roles: ['admin'] },
   { href: '/tutor-ia', icon: Wand2, label: 'Tutor IA', roles: ['professor', 'admin'] },
-  { href: '/app/analitica', icon: Wand2, label: 'Analítica IA', roles: ['admin'] },
+  { href: '/app/analitica', icon: ShieldAlert, label: 'Analítica IA', roles: ['admin'] },
   { href: '/configuracion', icon: Settings, label: 'Configuración', roles: ['admin'] },
 ];
 
@@ -130,9 +131,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <SidebarMenuButton onClick={handleLogout} tooltip="Log Out">
+          <SidebarMenuButton onClick={handleLogout} tooltip="Cerrar Sesión">
             <LogOut />
-            <span>Log Out</span>
+            <span>Cerrar Sesión</span>
           </SidebarMenuButton>
         </SidebarFooter>
       </Sidebar>
@@ -199,13 +200,13 @@ function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push('/profile')}>
           <User className="w-4 h-4 mr-2" />
-          Profile
+          Perfil
         </DropdownMenuItem>
-        <DropdownMenuItem disabled>Settings</DropdownMenuItem>
+        <DropdownMenuItem disabled>Configuración</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="w-4 h-4 mr-2" />
-          Log out
+          Cerrar Sesión
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

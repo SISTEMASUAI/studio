@@ -7,42 +7,42 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const announcements = [
   {
-    title: 'System Maintenance Scheduled',
+    title: 'Mantenimiento del Sistema Programado',
     date: '2024-08-15',
-    content: 'Please be advised that all campus systems will be down for scheduled maintenance on August 20th from 2 AM to 4 AM.',
+    content: 'Se informa que todos los sistemas del campus estarán fuera de servicio por mantenimiento programado el 20 de agosto de 2 a 4 AM.',
   },
   {
-    title: 'Annual Campus Festival',
+    title: 'Festival Anual del Campus',
     date: '2024-08-10',
-    content: 'Join us for the annual campus festival on September 5th! More details to follow.',
+    content: '¡Únete a nosotros para el festival anual del campus el 5 de septiembre! Más detalles próximamente.',
   },
 ];
 
 const newsItems = [
   {
     id: 'news-1',
-    title: 'Innovation Fair Highlights Student Creativity',
-    excerpt: 'This year\'s innovation fair was a massive success, showcasing projects from over 50 student teams...',
+    title: 'Feria de Innovación Destaca la Creatividad Estudiantil',
+    excerpt: 'La feria de innovación de este año fue un gran éxito, mostrando proyectos de más de 50 equipos de estudiantes...',
     date: '2024-08-12',
   },
   {
     id: 'news-2',
-    title: 'Library Expansion Project Breaks Ground',
-    excerpt: 'Construction has officially begun on the new wing of the campus library, expected to open in Fall 2025...',
+    title: 'Proyecto de Expansión de la Biblioteca Inicia Construcción',
+    excerpt: 'La construcción del nuevo ala de la biblioteca del campus ha comenzado oficialmente, se espera que abra en otoño de 2025...',
     date: '2024-08-10',
   },
   {
     id: 'news-3',
-    title: 'A New Semester Kicks Off with Record Enrollment',
-    excerpt: 'We are thrilled to welcome the largest incoming class in the university\'s history this fall...',
+    title: 'Un Nuevo Semestre Arranca con Matrícula Récord',
+    excerpt: 'Estamos encantados de dar la bienvenida a la clase entrante más grande en la historia de la universidad este otoño...',
     date: '2024-08-05',
   },
 ];
 
 const resources = [
-    { title: 'Employee Handbook', type: 'PDF' },
-    { title: 'IT Support Guide', type: 'PDF' },
-    { title: 'Campus Map', type: 'PNG' },
+    { title: 'Manual del Empleado', type: 'PDF' },
+    { title: 'Guía de Soporte TI', type: 'PDF' },
+    { title: 'Mapa del Campus', type: 'PNG' },
 ]
 
 export default function IntranetPage() {
@@ -51,11 +51,11 @@ export default function IntranetPage() {
       <div className="lg:col-span-2 space-y-8">
         <section>
             <h1 className="text-3xl font-bold font-headline">Portal Nuxtu</h1>
-            <p className="text-muted-foreground">Your central hub for campus communication.</p>
+            <p className="text-muted-foreground">Tu centro de comunicación para todo el campus.</p>
         </section>
 
         <section>
-          <h2 className="text-2xl font-headline font-semibold mb-4 flex items-center gap-2"><Megaphone className="text-primary"/>Announcements</h2>
+          <h2 className="text-2xl font-headline font-semibold mb-4 flex items-center gap-2"><Megaphone className="text-primary"/>Anuncios</h2>
           <div className="space-y-4">
             {announcements.map((item, index) => (
               <Alert key={index}>
@@ -68,7 +68,7 @@ export default function IntranetPage() {
         </section>
 
         <section>
-          <h2 className="text-2xl font-headline font-semibold mb-4 flex items-center gap-2"><Rss className="text-primary"/>News Feed</h2>
+          <h2 className="text-2xl font-headline font-semibold mb-4 flex items-center gap-2"><Rss className="text-primary"/>Noticias</h2>
           <div className="grid gap-6 md:grid-cols-2">
             {newsItems.map((item) => {
               const image = PlaceHolderImages.find(img => img.id === item.id);
@@ -92,8 +92,8 @@ export default function IntranetPage() {
       <aside className="space-y-8">
         <Card>
             <CardHeader>
-                <CardTitle className="font-headline">AI Summarizer</CardTitle>
-                <CardDescription>Summarize any text using AI.</CardDescription>
+                <CardTitle className="font-headline">Resumidor con IA</CardTitle>
+                <CardDescription>Resume cualquier texto usando IA.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Summarizer />
@@ -101,8 +101,8 @@ export default function IntranetPage() {
         </Card>
         <Card>
             <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2"><FileText className="text-primary"/>Resources</CardTitle>
-                <CardDescription>Quick access to important documents.</CardDescription>
+                <CardTitle className="font-headline flex items-center gap-2"><FileText className="text-primary"/>Recursos</CardTitle>
+                <CardDescription>Acceso rápido a documentos importantes.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ul className="space-y-2">

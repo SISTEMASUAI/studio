@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const FormSchema = z.object({
   content: z.string().min(50, {
-    message: 'Content must be at least 50 characters.',
+    message: 'El contenido debe tener al menos 50 caracteres.',
   }),
 });
 
@@ -41,8 +41,8 @@ export default function Summarizer() {
       console.error('Summarization failed:', error);
       toast({
         variant: "destructive",
-        title: "Summarization Failed",
-        description: "Could not generate summary. Please try again.",
+        title: "Falló la Creación de Resumen",
+        description: "No se pudo generar el resumen. Por favor, inténtalo de nuevo.",
       });
     } finally {
       setIsLoading(false);
@@ -58,10 +58,10 @@ export default function Summarizer() {
             name="content"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Content to summarize</FormLabel>
+                <FormLabel>Contenido a resumir</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Paste your news, announcement, or any text here..."
+                    placeholder="Pega tus noticias, anuncios o cualquier texto aquí..."
                     className="resize-y min-h-[150px]"
                     {...field}
                   />
@@ -76,14 +76,14 @@ export default function Summarizer() {
             ) : (
               <Wand2 className="mr-2 h-4 w-4" />
             )}
-            Generate Summary
+            Generar Resumen
           </Button>
         </form>
       </Form>
       {summary && (
         <Card className="bg-accent/50">
           <CardContent className="p-4">
-            <h3 className="font-headline font-semibold mb-2">Summary</h3>
+            <h3 className="font-headline font-semibold mb-2">Resumen</h3>
             <p className="text-sm text-foreground/90">{summary}</p>
           </CardContent>
         </Card>

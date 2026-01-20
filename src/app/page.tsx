@@ -31,8 +31,8 @@ import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 import { useEffect, useState } from 'react';
 
 const FormSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  email: z.string().email({ message: 'Por favor, introduce un correo electrónico válido.' }),
+  password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres.' }),
 });
 
 export default function LoginPage() {
@@ -67,8 +67,8 @@ export default function LoginPage() {
       setIsLoading(false);
       toast({
         variant: 'destructive',
-        title: 'Login Failed',
-        description: error.message || 'An unexpected error occurred.',
+        title: 'Error al iniciar sesión',
+        description: error.message || 'Ocurrió un error inesperado.',
       });
     }
   };
@@ -92,16 +92,16 @@ export default function LoginPage() {
             Nuxtu
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Your unified campus portal.
+            Tu portal unificado del campus.
           </p>
         </div>
         <Card>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <CardHeader>
-                <CardTitle className="font-headline">Login</CardTitle>
+                <CardTitle className="font-headline">Iniciar Sesión</CardTitle>
                 <CardDescription>
-                  Enter your credentials to access your dashboard.
+                  Ingresa tus credenciales para acceder a tu panel.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -110,7 +110,7 @@ export default function LoginPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Correo Electrónico</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="m@example.com"
@@ -126,7 +126,7 @@ export default function LoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>Contraseña</FormLabel>
                       <FormControl>
                         <Input type="password" {...field} />
                       </FormControl>
@@ -138,12 +138,12 @@ export default function LoginPage() {
               <CardFooter className="flex flex-col gap-4">
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Sign In
+                  Iniciar Sesión
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
-                  Don&apos;t have an account?{' '}
+                  ¿No tienes una cuenta?{' '}
                   <Link href="/signup" className="underline font-semibold">
-                    Sign up
+                    Regístrate
                   </Link>
                 </p>
               </CardFooter>

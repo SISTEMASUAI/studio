@@ -22,7 +22,7 @@ const ptSans = PT_Sans({
 
 // export const metadata: Metadata = {
 //   title: 'Nuxtu',
-//   description: 'Unified portal for intranet and virtual classroom.',
+//   description: 'Portal unificado para intranet y aula virtual.',
 // };
 
 function AppShellOrChildren({ children }: { children: React.ReactNode }) {
@@ -42,10 +42,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
        <head>
         <title>Nuxtu</title>
-        <meta name="description" content="Unified portal for intranet and virtual classroom." />
+        <meta name="description" content="Portal unificado para intranet y aula virtual." />
       </head>
       <body className={`${poppins.variable} ${ptSans.variable} font-body antialiased`}>
         <FirebaseClientProvider>

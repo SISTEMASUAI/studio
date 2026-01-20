@@ -102,7 +102,7 @@ function buildRequestObject(context: SecurityRuleContext): SecurityRuleRequest {
  * @returns A string containing the error message and the JSON payload.
  */
 function buildErrorMessage(requestObject: SecurityRuleRequest): string {
-  return `Missing or insufficient permissions: The following request was denied by Firestore Security Rules:
+  return `Permisos faltantes o insuficientes: La siguiente solicitud fue denegada por las Reglas de Seguridad de Firestore:
 ${JSON.stringify(requestObject, null, 2)}`;
 }
 

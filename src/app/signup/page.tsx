@@ -38,10 +38,10 @@ import { doc } from 'firebase/firestore';
 import { useState } from 'react';
 
 const FormSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email({ message: 'Please enter a valid email.' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+  firstName: z.string().min(1, 'El nombre es requerido'),
+  lastName: z.string().min(1, 'El apellido es requerido'),
+  email: z.string().email({ message: 'Por favor, introduce un correo electrónico válido.' }),
+  password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres.' }),
   role: z.enum(['student', 'professor', 'admin']),
 });
 
@@ -99,8 +99,8 @@ export default function SignupPage() {
       setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
 
       toast({
-        title: 'Account Created!',
-        description: 'You have been successfully registered.',
+        title: '¡Cuenta Creada!',
+        description: 'Te has registrado exitosamente.',
       });
 
       router.push('/intranet');
@@ -108,8 +108,8 @@ export default function SignupPage() {
       console.error('Sign up failed:', error);
       toast({
         variant: 'destructive',
-        title: 'Sign Up Failed',
-        description: error.message || 'An unexpected error occurred. Please try again.',
+        title: 'Error al Registrarse',
+        description: error.message || 'Ocurrió un error inesperado. Por favor, inténtalo de nuevo.',
       });
     } finally {
       setIsLoading(false);
@@ -124,19 +124,19 @@ export default function SignupPage() {
             <Building2 className="w-12 h-12 text-primary" />
           </div>
           <h1 className="text-4xl font-headline font-bold text-foreground">
-            Create an Account
+            Crear una Cuenta
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Join the Nuxtu community.
+            Únete a la comunidad de Nuxtu.
           </p>
         </div>
         <Card>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <CardHeader>
-                <CardTitle className="font-headline">Sign Up</CardTitle>
+                <CardTitle className="font-headline">Registrarse</CardTitle>
                 <CardDescription>
-                  Fill in the details below to create your account.
+                  Completa los siguientes datos para crear tu cuenta.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -146,7 +146,7 @@ export default function SignupPage() {
                     name="firstName"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>First Name</FormLabel>
+                        <FormLabel>Nombres</FormLabel>
                         <FormControl>
                             <Input placeholder="John" {...field} />
                         </FormControl>
@@ -159,7 +159,7 @@ export default function SignupPage() {
                     name="lastName"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Last Name</FormLabel>
+                        <FormLabel>Apellidos</FormLabel>
                         <FormControl>
                             <Input placeholder="Doe" {...field} />
                         </FormControl>
@@ -173,7 +173,7 @@ export default function SignupPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Correo Electrónico</FormLabel>
                       <FormControl>
                         <Input
                           type="email"
@@ -190,7 +190,7 @@ export default function SignupPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>Contraseña</FormLabel>
                       <FormControl>
                         <Input type="password" {...field} />
                       </FormControl>
@@ -203,17 +203,17 @@ export default function SignupPage() {
                   name="role"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Role</FormLabel>
+                      <FormLabel>Rol</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a role" />
+                            <SelectValue placeholder="Selecciona un rol" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="student">Student</SelectItem>
-                          <SelectItem value="professor">Professor</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="student">Estudiante</SelectItem>
+                          <SelectItem value="professor">Profesor</SelectItem>
+                          <SelectItem value="admin">Administrador</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -224,12 +224,12 @@ export default function SignupPage() {
               <CardFooter className="flex flex-col gap-4">
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Account
+                  Crear Cuenta
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
-                  Already have an account?{' '}
+                  ¿Ya tienes una cuenta?{' '}
                   <Link href="/" className="underline font-semibold">
-                    Sign in
+                    Inicia Sesión
                   </Link>
                 </p>
               </CardFooter>

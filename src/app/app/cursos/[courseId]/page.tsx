@@ -6,11 +6,11 @@ import { Loader2 } from 'lucide-react';
 
 import { useDoc, useCollection, useUser, useMemoFirebase, useFirestore } from '@/firebase';
 
-import CourseHeader from '@/components/cursos/ui/CourseHeader';
-import CourseSchedule from '@/components/cursos/ui/CourseSchedule';
-import StudentView from '@/components/cursos/student/StudentView';
-import ProfessorView from '@/components/cursos/professor/ProfessorView';
-import DropCourseDialog from '@/components/cursos/ui/DropCourseDialog';
+import CourseHeader from '@/components/cursos/CourseHeader';
+import CourseSchedule from '@/components/cursos/CourseSchedule';
+import StudentView from '@/components/cursos/StudentView';
+import ProfessorView from '@/components/cursos/ProfessorView';
+import DropCourseDialog from '@/components/cursos/DropCourseDialog';
 import { Course, InstructorProfile, AttendanceRecord } from '@/types/course';
 
 export default function CourseDetailPage() {

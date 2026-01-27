@@ -57,31 +57,17 @@ function getStatusBadge(status: 'Calificada' | 'Entregada' | 'Pendiente' | 'Venc
 }
 
 export default function CourseAssignments({ course }: { course: Course }) {
-    if (!course) {
-        return (
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><ClipboardList/> Tareas y Evaluaciones</CardTitle>
-                    <CardDescription>Revisa tus próximas entregas y el estado de tus evaluaciones.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
-                </CardContent>
-            </Card>
-        );
-    }
-
     const firestore = useFirestore();
     const { user } = useUser();
 
     const assignmentsQuery = useMemoFirebase(() =>
-        firestore ? collection(firestore, 'courses', course.id, 'assignments') : null,
-    [firestore, course.id]);
+        (firestore && course) ? collection(firestore, 'courses', course.id, 'assignments') : null,
+    [firestore, course]);
     const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
 
     const submissionsQuery = useMemoFirebase(() =>
-        (firestore && user) ? query(collection(firestore, 'courses', course.id, 'submissions'), where('studentId', '==', user.uid)) : null,
-    [firestore, user, course.id]);
+        (firestore && user && course) ? query(collection(firestore, 'courses', course.id, 'submissions'), where('studentId', '==', user.uid)) : null,
+    [firestore, user, course]);
     const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
 
     const mergedData = useMemo(() => {

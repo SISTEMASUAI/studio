@@ -32,39 +32,23 @@ interface Submission {
     id: string;
     assignmentId: string;
     grade: number | null;
-    status: string;
 }
 
 export default function CourseGrades({ course }: { course: Course | null }) {
-    
-    if (!course) {
-        return (
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><GraduationCap /> Mis Calificaciones</CardTitle>
-                    <CardDescription>Resumen de tu rendimiento en el curso.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
-                </CardContent>
-            </Card>
-        );
-    }
-
     const firestore = useFirestore();
     const { user } = useUser();
 
     const assignmentsQuery = useMemoFirebase(() =>
-        (firestore) ? collection(firestore, 'courses', course.id, 'assignments') : null,
-    [firestore, course.id]);
+        (firestore && course) ? collection(firestore, 'courses', course.id, 'assignments') : null,
+    [firestore, course]);
     const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
 
     const submissionsQuery = useMemoFirebase(() =>
-        (firestore && user) ? query(
+        (firestore && user && course) ? query(
             collection(firestore, 'courses', course.id, 'submissions'),
             where('studentId', '==', user.uid)
         ) : null,
-    [firestore, course.id, user]);
+    [firestore, course, user]);
     const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
     
     const submissionsMap = useMemo(() => {
@@ -98,13 +82,13 @@ export default function CourseGrades({ course }: { course: Course | null }) {
     
     const isLoading = areAssignmentsLoading || areSubmissionsLoading;
 
-    const getStatusText = (submission: Submission | null) => {
+    const getStatusText = (submission?: Submission) => {
         if (submission?.grade !== null && submission?.grade !== undefined) return 'Calificada';
         if (submission) return 'Entregada';
         return 'Pendiente';
     };
     
-    const getStatusVariant = (submission: Submission | null): 'default' | 'secondary' | 'outline' => {
+    const getStatusVariant = (submission?: Submission): 'default' | 'secondary' | 'outline' => {
         if (submission?.grade !== null && submission?.grade !== undefined) return 'secondary';
         if (submission) return 'outline';
         return 'outline';

@@ -57,6 +57,20 @@ function getStatusBadge(status: 'Calificada' | 'Entregada' | 'Pendiente' | 'Venc
 }
 
 export default function CourseAssignments({ course }: { course: Course }) {
+    if (!course) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><ClipboardList/> Tareas y Evaluaciones</CardTitle>
+                    <CardDescription>Revisa tus próximas entregas y el estado de tus evaluaciones.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
+                </CardContent>
+            </Card>
+        );
+    }
+
     const firestore = useFirestore();
     const { user } = useUser();
 
@@ -174,7 +188,7 @@ export default function CourseAssignments({ course }: { course: Course }) {
                                                                     <span>Adjuntar archivo</span>
                                                                     <input type="file" className="sr-only" />
                                                                 </label>
-                                                            </Button>
+                                                             </Button>
                                                              <Alert>
                                                                 <AlertTriangle className="h-4 w-4" />
                                                                 <AlertTitle>Funcionalidad en Desarrollo</AlertTitle>

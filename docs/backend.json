@@ -365,9 +365,13 @@
         "grade": {
           "type": "number",
           "description": "The grade received for the submission."
+        },
+        "feedback": {
+          "type": "string",
+          "description": "Feedback or comments from the instructor."
         }
       },
-      "required": ["submissionId", "assignmentId", "studentId", "courseId", "submittedAt", "fileUrl"]
+      "required": ["submissionId", "assignmentId", "studentId", "courseId", "submittedAt"]
     },
     "TramiteRequest": {
       "title": "TramiteRequest",

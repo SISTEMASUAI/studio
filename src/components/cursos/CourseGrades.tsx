@@ -35,21 +35,36 @@ interface Submission {
     status: string;
 }
 
-export default function CourseGrades({ course }: { course: Course }) {
+export default function CourseGrades({ course }: { course: Course | null }) {
+    
+    if (!course) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><GraduationCap /> Mis Calificaciones</CardTitle>
+                    <CardDescription>Resumen de tu rendimiento en el curso.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
+                </CardContent>
+            </Card>
+        );
+    }
+
     const firestore = useFirestore();
     const { user } = useUser();
 
     const assignmentsQuery = useMemoFirebase(() =>
-        (firestore && course) ? collection(firestore, 'courses', course.id, 'assignments') : null,
-    [firestore, course]);
+        (firestore) ? collection(firestore, 'courses', course.id, 'assignments') : null,
+    [firestore, course.id]);
     const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
 
     const submissionsQuery = useMemoFirebase(() =>
-        (firestore && user && course) ? query(
+        (firestore && user) ? query(
             collection(firestore, 'courses', course.id, 'submissions'),
             where('studentId', '==', user.uid)
         ) : null,
-    [firestore, course, user]);
+    [firestore, course.id, user]);
     const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
     
     const submissionsMap = useMemo(() => {
@@ -81,17 +96,17 @@ export default function CourseGrades({ course }: { course: Course }) {
 
     }, [submissions]);
     
-    const isLoading = areAssignmentsLoading || areSubmissionsLoading || !course;
+    const isLoading = areAssignmentsLoading || areSubmissionsLoading;
 
-    const getStatusText = (status?: string) => {
-        if (status === 'graded') return 'Calificada';
-        if (status === 'submitted') return 'Entregada';
+    const getStatusText = (submission: Submission | null) => {
+        if (submission?.grade !== null && submission?.grade !== undefined) return 'Calificada';
+        if (submission) return 'Entregada';
         return 'Pendiente';
     };
     
-    const getStatusVariant = (status?: string): 'default' | 'secondary' | 'destructive' | 'outline' | null | undefined => {
-        if (status === 'graded') return 'secondary';
-        if (status === 'submitted') return 'outline';
+    const getStatusVariant = (submission: Submission | null): 'default' | 'secondary' | 'outline' => {
+        if (submission?.grade !== null && submission?.grade !== undefined) return 'secondary';
+        if (submission) return 'outline';
         return 'outline';
     };
 
@@ -99,20 +114,6 @@ export default function CourseGrades({ course }: { course: Course }) {
         if (letterGrade === 'Aprobado') return 'secondary';
         if (letterGrade === 'Desaprobado') return 'destructive';
         return 'secondary';
-    }
-
-    if (!course) {
-        return (
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><GraduationCap /> Mis Calificaciones</CardTitle>
-                    <CardDescription>Resumen de tu rendimiento en el curso.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
-                </CardContent>
-            </Card>
-        );
     }
 
     return (
@@ -152,7 +153,7 @@ export default function CourseGrades({ course }: { course: Course }) {
                                 return (
                                     <TableRow key={assignment.id}>
                                         <TableCell className="font-medium">{assignment.title}</TableCell>
-                                        <TableCell><Badge variant={getStatusVariant(submission?.status)}>{getStatusText(submission?.status)}</Badge></TableCell>
+                                        <TableCell><Badge variant={getStatusVariant(submission)}>{getStatusText(submission)}</Badge></TableCell>
                                         <TableCell className="text-right font-mono">{submission?.grade !== null && submission?.grade !== undefined ? submission.grade : '--'}</TableCell>
                                     </TableRow>
                                 )

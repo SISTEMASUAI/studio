@@ -50,7 +50,7 @@ export default function StudentView({ course, attendance, isAttendanceLoading }:
       </TabsContent>
 
       <TabsContent value="assignments" className="mt-6">
-        <CourseAssignments />
+        <CourseAssignments course={course} />
       </TabsContent>
 
       <TabsContent value="grades" className="mt-6">

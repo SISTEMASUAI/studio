@@ -39,56 +39,6 @@ export default function CourseGrades({ course }: { course: Course }) {
     const firestore = useFirestore();
     const { user } = useUser();
 
-    const assignmentsQuery = useMemoFirebase(() =>
-        firestore && course ? collection(firestore, 'courses', course.id, 'assignments') : null,
-    [firestore, course?.id]);
-    const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
-
-    const submissionsQuery = useMemoFirebase(() =>
-        (firestore && user && course) ? query(
-            collection(firestore, 'courses', course.id, 'submissions'),
-            where('studentId', '==', user.uid)
-        ) : null,
-    [firestore, course?.id, user]);
-    const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
-    
-    const submissionsMap = useMemo(() => {
-        const map = new Map<string, Submission>();
-        submissions?.forEach(sub => map.set(sub.assignmentId, sub));
-        return map;
-    }, [submissions]);
-
-    const { finalGrade, letterGrade } = useMemo(() => {
-        if (!assignments || !submissions) return { finalGrade: 0, letterGrade: 'N/A' };
-        
-        let totalWeightedGrade = 0;
-        let totalWeight = 0;
-        
-        assignments.forEach(assignment => {
-            const submission = submissionsMap.get(assignment.id);
-            if (submission?.grade !== null && submission?.grade !== undefined && assignment.weight) {
-                totalWeightedGrade += submission.grade * assignment.weight;
-                totalWeight += assignment.weight;
-            }
-        });
-        
-        const finalGradeValue = totalWeight > 0 ? totalWeightedGrade / totalWeight : 0;
-
-        let letterGradeValue = 'N/A';
-        if (totalWeight > 0) {
-            if (finalGradeValue >= 10.5) {
-                letterGradeValue = 'Aprobado';
-            } else {
-                letterGradeValue = 'Desaprobado';
-            }
-        }
-        
-        return { finalGrade: parseFloat(finalGradeValue.toFixed(1)), letterGrade: letterGradeValue };
-
-    }, [assignments, submissionsMap]);
-    
-    const isLoading = areAssignmentsLoading || areSubmissionsLoading;
-
     if (!course) {
         return (
              <Card>
@@ -103,8 +53,64 @@ export default function CourseGrades({ course }: { course: Course }) {
         );
     }
 
+    const assignmentsQuery = useMemoFirebase(() =>
+        firestore ? collection(firestore, 'courses', course.id, 'assignments') : null,
+    [firestore, course.id]);
+    const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
+
+    const submissionsQuery = useMemoFirebase(() =>
+        (firestore && user) ? query(
+            collection(firestore, 'courses', course.id, 'submissions'),
+            where('studentId', '==', user.uid)
+        ) : null,
+    [firestore, course.id, user]);
+    const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
+    
+    const submissionsMap = useMemo(() => {
+        const map = new Map<string, Submission>();
+        submissions?.forEach(sub => map.set(sub.assignmentId, sub));
+        return map;
+    }, [submissions]);
+
+    const { finalGrade, letterGrade } = useMemo(() => {
+        if (!submissions) return { finalGrade: 0, letterGrade: 'N/A' };
+        
+        const gradedSubmissions = submissions.filter(s => s.grade !== null && s.grade !== undefined);
+
+        if (gradedSubmissions.length === 0) {
+            return { finalGrade: 0, letterGrade: 'N/A' };
+        }
+
+        const sumOfGrades = gradedSubmissions.reduce((acc, sub) => acc + sub.grade!, 0);
+        const finalGradeValue = sumOfGrades / gradedSubmissions.length;
+        
+        let letterGradeValue = 'N/A';
+        if (finalGradeValue >= 10.5) {
+            letterGradeValue = 'Aprobado';
+        } else {
+            letterGradeValue = 'Desaprobado';
+        }
+        
+        return { finalGrade: parseFloat(finalGradeValue.toFixed(1)), letterGrade: letterGradeValue };
+
+    }, [submissions]);
+    
+    const isLoading = areAssignmentsLoading || areSubmissionsLoading;
+
+    const getStatusText = (status?: string) => {
+        if (status === 'graded') return 'Calificada';
+        if (status === 'submitted') return 'Entregada';
+        return 'Pendiente';
+    };
+    
+    const getStatusVariant = (status?: string): 'default' | 'secondary' | 'destructive' | 'outline' | null | undefined => {
+        if (status === 'graded') return 'secondary';
+        if (status === 'submitted') return 'outline';
+        return 'outline';
+    };
+
     const getLetterGradeVariant = () => {
-        if (letterGrade === 'Aprobado') return 'default';
+        if (letterGrade === 'Aprobado') return 'secondary';
         if (letterGrade === 'Desaprobado') return 'destructive';
         return 'secondary';
     }
@@ -146,7 +152,7 @@ export default function CourseGrades({ course }: { course: Course }) {
                                 return (
                                     <TableRow key={assignment.id}>
                                         <TableCell className="font-medium">{assignment.title}</TableCell>
-                                        <TableCell><Badge variant={submission?.status === 'graded' ? 'default' : 'secondary'}>{submission?.status || 'Pendiente'}</Badge></TableCell>
+                                        <TableCell><Badge variant={getStatusVariant(submission?.status)}>{getStatusText(submission?.status)}</Badge></TableCell>
                                         <TableCell className="text-right font-mono">{submission?.grade !== null && submission?.grade !== undefined ? submission.grade : '--'}</TableCell>
                                     </TableRow>
                                 )

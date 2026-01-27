@@ -54,7 +54,7 @@ export default function StudentView({ course, attendance, isAttendanceLoading }:
       </TabsContent>
 
       <TabsContent value="grades" className="mt-6">
-          <CourseGrades />
+          <CourseGrades course={course} />
       </TabsContent>
       
       <TabsContent value="attendance" className="mt-6">

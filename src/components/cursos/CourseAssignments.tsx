@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
@@ -62,13 +61,13 @@ export default function CourseAssignments({ course }: { course: Course | null })
     const { user } = useUser();
 
     const assignmentsQuery = useMemoFirebase(() =>
-        (firestore && course) ? query(collection(firestore, 'courses', course.id, 'assignments'), orderBy('dueDate')) : null,
-    [firestore, course]);
+        (firestore && course?.id) ? query(collection(firestore, 'courses', course.id, 'assignments'), orderBy('dueDate')) : null,
+    [firestore, course?.id]);
     const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
 
     const submissionsQuery = useMemoFirebase(() =>
-        (firestore && user && course) ? query(collection(firestore, 'courses', course.id, 'submissions'), where('studentId', '==', user.uid)) : null,
-    [firestore, user, course]);
+        (firestore && user && course?.id) ? query(collection(firestore, 'courses', course.id, 'submissions'), where('studentId', '==', user.uid)) : null,
+    [firestore, user, course?.id]);
     const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
 
     const mergedData = useMemo(() => {

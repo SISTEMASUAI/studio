@@ -142,6 +142,9 @@ export default function ProfessorGradebook({ course }: { course: Course }) {
                                         <TableCell key={assignment.id} className="text-center">
                                             <Input
                                                 type="number"
+                                                min="0"
+                                                max="20"
+                                                step="0.1"
                                                 placeholder="--"
                                                 className="w-24 text-center mx-auto"
                                                 value={displayGrade}

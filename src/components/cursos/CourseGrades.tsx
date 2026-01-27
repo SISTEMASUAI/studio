@@ -41,7 +41,7 @@ export default function CourseGrades({ course }: { course: Course }) {
 
     const assignmentsQuery = useMemoFirebase(() =>
         firestore && course ? collection(firestore, 'courses', course.id, 'assignments') : null,
-    [firestore, course]);
+    [firestore, course?.id]);
     const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
 
     const submissionsQuery = useMemoFirebase(() =>
@@ -49,7 +49,7 @@ export default function CourseGrades({ course }: { course: Course }) {
             collection(firestore, 'courses', course.id, 'submissions'),
             where('studentId', '==', user.uid)
         ) : null,
-    [firestore, course, user]);
+    [firestore, course?.id, user]);
     const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
     
     const submissionsMap = useMemo(() => {
@@ -61,27 +61,29 @@ export default function CourseGrades({ course }: { course: Course }) {
     const { finalGrade, letterGrade } = useMemo(() => {
         if (!assignments || !submissions) return { finalGrade: 0, letterGrade: 'N/A' };
         
+        let totalWeightedGrade = 0;
         let totalWeight = 0;
-        let weightedSum = 0;
         
         assignments.forEach(assignment => {
             const submission = submissionsMap.get(assignment.id);
             if (submission?.grade !== null && submission?.grade !== undefined && assignment.weight) {
-                weightedSum += submission.grade * (assignment.weight / 100);
+                totalWeightedGrade += submission.grade * assignment.weight;
                 totalWeight += assignment.weight;
             }
         });
         
-        const finalGrade = totalWeight > 0 ? (weightedSum / totalWeight) * 100 : 0;
+        const finalGradeValue = totalWeight > 0 ? totalWeightedGrade / totalWeight : 0;
 
-        let letterGrade = 'N/A';
-        if (finalGrade >= 90) letterGrade = 'A';
-        else if (finalGrade >= 80) letterGrade = 'B';
-        else if (finalGrade >= 70) letterGrade = 'C';
-        else if (finalGrade >= 60) letterGrade = 'D';
-        else if (totalWeight > 0) letterGrade = 'F';
+        let letterGradeValue = 'N/A';
+        if (totalWeight > 0) {
+            if (finalGradeValue >= 10.5) {
+                letterGradeValue = 'Aprobado';
+            } else {
+                letterGradeValue = 'Desaprobado';
+            }
+        }
         
-        return { finalGrade: Math.round(finalGrade), letterGrade };
+        return { finalGrade: parseFloat(finalGradeValue.toFixed(1)), letterGrade: letterGradeValue };
 
     }, [assignments, submissionsMap]);
     
@@ -101,6 +103,12 @@ export default function CourseGrades({ course }: { course: Course }) {
         );
     }
 
+    const getLetterGradeVariant = () => {
+        if (letterGrade === 'Aprobado') return 'default';
+        if (letterGrade === 'Desaprobado') return 'destructive';
+        return 'secondary';
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -113,9 +121,9 @@ export default function CourseGrades({ course }: { course: Course }) {
                     <div className="flex items-center gap-2 mt-4 sm:mt-0">
                         <div className="text-right">
                             <p className="text-sm text-muted-foreground">Nota Final</p>
-                            <p className="text-2xl font-bold">{finalGrade}<span className="text-base font-normal text-muted-foreground">/100</span></p>
+                            <p className="text-2xl font-bold">{finalGrade}<span className="text-base font-normal text-muted-foreground">/20</span></p>
                         </div>
-                        <Badge variant="default" className="text-lg h-10">{letterGrade}</Badge>
+                        <Badge variant={getLetterGradeVariant()} className="text-lg h-10">{letterGrade}</Badge>
                     </div>
                     }
                 </div>

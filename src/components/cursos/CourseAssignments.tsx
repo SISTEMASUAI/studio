@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import {
   Card,
   CardContent,
@@ -56,12 +57,12 @@ function getStatusBadge(status: 'Calificada' | 'Entregada' | 'Pendiente' | 'Venc
     }
 }
 
-export default function CourseAssignments({ course }: { course: Course }) {
+export default function CourseAssignments({ course }: { course: Course | null }) {
     const firestore = useFirestore();
     const { user } = useUser();
 
     const assignmentsQuery = useMemoFirebase(() =>
-        (firestore && course) ? collection(firestore, 'courses', course.id, 'assignments') : null,
+        (firestore && course) ? query(collection(firestore, 'courses', course.id, 'assignments'), orderBy('dueDate')) : null,
     [firestore, course]);
     const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
 
@@ -90,6 +91,20 @@ export default function CourseAssignments({ course }: { course: Course }) {
     
     const isLoading = areAssignmentsLoading || areSubmissionsLoading;
 
+    if (!course) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><ClipboardList/> Tareas y Evaluaciones</CardTitle>
+                    <CardDescription>Revisa tus próximas entregas y el estado de tus evaluaciones.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+                </CardContent>
+            </Card>
+        );
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -111,12 +126,12 @@ export default function CourseAssignments({ course }: { course: Course }) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {mergedData.map(item => {
+                        {mergedData && mergedData.length > 0 ? mergedData.map(item => {
                             const status = getStatus(item.submission, item.assignment.dueDate);
                             return (
                                 <TableRow key={item.assignment.id}>
                                     <TableCell className="font-medium">{item.assignment.title}</TableCell>
-                                    <TableCell>{item.assignment.dueDate}</TableCell>
+                                    <TableCell>{new Date(item.assignment.dueDate).toLocaleString()}</TableCell>
                                     <TableCell>{getStatusBadge(status)}</TableCell>
                                     <TableCell>{item.submission?.grade ?? '--'}</TableCell>
                                     <TableCell className="text-right">
@@ -130,7 +145,7 @@ export default function CourseAssignments({ course }: { course: Course }) {
                                                 <DialogHeader>
                                                     <DialogTitle>{item.assignment.title}</DialogTitle>
                                                     <DialogDescription>
-                                                        Fecha de entrega: {item.assignment.dueDate}
+                                                        Fecha de entrega: {new Date(item.assignment.dueDate).toLocaleString()}
                                                     </DialogDescription>
                                                 </DialogHeader>
                                                 <div className="py-4 space-y-6">
@@ -143,7 +158,7 @@ export default function CourseAssignments({ course }: { course: Course }) {
                                                         <>
                                                             <div className="space-y-2">
                                                                 <h4 className="font-semibold">Mi Entrega</h4>
-                                                                <p className="text-sm text-muted-foreground">Entregado el: {item.submission.submittedAt}</p>
+                                                                <p className="text-sm text-muted-foreground">Entregado el: {new Date(item.submission.submittedAt).toLocaleString()}</p>
                                                                 {item.submission.fileUrl ? (
                                                                      <Button variant="outline" asChild>
                                                                          <Link href={item.submission.fileUrl} target="_blank">
@@ -195,7 +210,11 @@ export default function CourseAssignments({ course }: { course: Course }) {
                                     </TableCell>
                                 </TableRow>
                             );
-                        })}
+                        }) : (
+                            <TableRow>
+                                <TableCell colSpan={5} className="text-center h-24">No hay tareas para este curso.</TableCell>
+                            </TableRow>
+                        )}
                     </TableBody>
                 </Table>
                 )}

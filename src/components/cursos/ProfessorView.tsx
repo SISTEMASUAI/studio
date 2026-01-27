@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -6,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 import type { Course } from '@/types/course';
 import CourseStudentsManagement from './CourseStudentsManagement';
-import CourseAssignments from './CourseAssignments';
 import ProfessorGradebook from './professor/ProfessorGradebook';
+import ProfessorAssignments from './professor/ProfessorAssignments';
 import CourseMaterials from './CourseMaterials';
 
 interface ProfessorViewProps {
@@ -48,9 +49,7 @@ export default function ProfessorView({ course }: ProfessorViewProps) {
       </TabsContent>
 
       <TabsContent value="assignments" className="mt-6">
-        <div className="space-y-6">
-          <CourseAssignments />
-        </div>
+        <ProfessorAssignments course={course} />
       </TabsContent>
 
       <TabsContent value="grades" className="mt-6">

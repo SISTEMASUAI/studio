@@ -40,16 +40,16 @@ export default function CourseGrades({ course }: { course: Course }) {
     const { user } = useUser();
 
     const assignmentsQuery = useMemoFirebase(() =>
-        firestore ? collection(firestore, 'courses', course.id, 'assignments') : null,
-    [firestore, course.id]);
+        firestore && course ? collection(firestore, 'courses', course.id, 'assignments') : null,
+    [firestore, course]);
     const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
 
     const submissionsQuery = useMemoFirebase(() =>
-        (firestore && user) ? query(
+        (firestore && user && course) ? query(
             collection(firestore, 'courses', course.id, 'submissions'),
             where('studentId', '==', user.uid)
         ) : null,
-    [firestore, course.id, user]);
+    [firestore, course, user]);
     const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
     
     const submissionsMap = useMemo(() => {
@@ -86,6 +86,20 @@ export default function CourseGrades({ course }: { course: Course }) {
     }, [assignments, submissionsMap]);
     
     const isLoading = areAssignmentsLoading || areSubmissionsLoading;
+
+    if (!course) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><GraduationCap /> Mis Calificaciones</CardTitle>
+                    <CardDescription>Resumen de tu rendimiento en el curso.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
+                </CardContent>
+            </Card>
+        );
+    }
 
     return (
         <Card>
@@ -125,7 +139,7 @@ export default function CourseGrades({ course }: { course: Course }) {
                                     <TableRow key={assignment.id}>
                                         <TableCell className="font-medium">{assignment.title}</TableCell>
                                         <TableCell><Badge variant={submission?.status === 'graded' ? 'default' : 'secondary'}>{submission?.status || 'Pendiente'}</Badge></TableCell>
-                                        <TableCell className="text-right font-mono">{submission?.grade !== null && submission?.grade !== undefined ? submission?.grade : '--'}</TableCell>
+                                        <TableCell className="text-right font-mono">{submission?.grade !== null && submission?.grade !== undefined ? submission.grade : '--'}</TableCell>
                                     </TableRow>
                                 )
                             })}

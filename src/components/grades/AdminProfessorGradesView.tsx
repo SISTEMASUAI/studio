@@ -12,29 +12,13 @@ import {
   UserCog,
   BookOpen,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useState, useMemo } from 'react';
 import { collection, query, where, DocumentData } from 'firebase/firestore';
 import ProfessorGradebook from '../cursos/professor/ProfessorGradebook';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import type { Course, Faculty, Program } from '@/types/course';
 
-interface Faculty extends DocumentData {
-    id: string;
-    name: string;
-}
-
-interface Program extends DocumentData {
-    id: string;
-    name: string;
-    facultyId: string;
-}
-
-interface Course extends DocumentData {
-    id: string;
-    name: string;
-    programId: string;
-}
 
 export default function AdminProfessorGradesView() {
     const { profile } = useUser();
@@ -45,7 +29,7 @@ export default function AdminProfessorGradesView() {
     const [selectedProgramId, setSelectedProgramId] = useState<string | null>(null);
     const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
-    // Fetch all necessary data
+    // 1. Fetch data
     const facultiesQuery = useMemoFirebase(() => isAdmin ? collection(firestore, 'faculties') : null, [isAdmin, firestore]);
     const { data: faculties } = useCollection<Faculty>(facultiesQuery);
 
@@ -54,26 +38,45 @@ export default function AdminProfessorGradesView() {
 
     const coursesQuery = useMemoFirebase(() => {
         if (!firestore) return null;
-        if (isAdmin) return collection(firestore, 'courses');
-        return query(collection(firestore, 'courses'), where('instructorId', '==', profile?.uid || ''));
+        // Admin gets all courses
+        if (isAdmin) return query(collection(firestore, 'courses'), where('status', '==', 'active'));
+        // Professor gets only their courses
+        return query(collection(firestore, 'courses'), where('instructorId', '==', profile?.uid || '---'), where('status', '==', 'active'));
     }, [firestore, isAdmin, profile?.uid]);
-    const { data: allCourses } = useCollection<Course>(coursesQuery);
+    const { data: coursesForUser } = useCollection<Course>(coursesQuery);
 
-    // Filter data based on selection
-    const filteredPrograms = useMemo(() => {
-        if (!selectedFacultyId) return isAdmin ? allPrograms : [];
-        return allPrograms?.filter(p => p.facultyId === selectedFacultyId);
-    }, [selectedFacultyId, allPrograms, isAdmin]);
+    // 2. Memos for dropdown lists
+    const programList = useMemo(() => {
+        if (isAdmin) {
+            if (!selectedFacultyId) return allPrograms;
+            return allPrograms?.filter(p => p.facultyId === selectedFacultyId);
+        } else { // Professor
+            if (!coursesForUser || !allPrograms) return [];
+            const programIds = new Set(coursesForUser.map(c => c.programId));
+            return allPrograms.filter(p => programIds.has(p.id));
+        }
+    }, [isAdmin, selectedFacultyId, allPrograms, coursesForUser]);
 
-    const filteredCourses = useMemo(() => {
-        if (!selectedProgramId) return [];
-        return allCourses?.filter(c => c.programId === selectedProgramId);
-    }, [selectedProgramId, allCourses]);
+    const courseList = useMemo(() => {
+        if (!selectedProgramId || !coursesForUser) return [];
+        return coursesForUser.filter(c => c.programId === selectedProgramId);
+    }, [selectedProgramId, coursesForUser]);
     
     const selectedCourse = useMemo(() => {
-        if (!selectedCourseId) return null;
-        return allCourses?.find(c => c.id === selectedCourseId) || null;
-    }, [selectedCourseId, allCourses]);
+        return coursesForUser?.find(c => c.id === selectedCourseId) || null;
+    }, [selectedCourseId, coursesForUser]);
+    
+    // Handlers
+    const handleFacultyChange = (facultyId: string) => {
+        setSelectedFacultyId(facultyId);
+        setSelectedProgramId(null);
+        setSelectedCourseId(null);
+    }
+    
+    const handleProgramChange = (programId: string) => {
+        setSelectedProgramId(programId);
+        setSelectedCourseId(null);
+    }
 
     return (
       <Card>
@@ -91,7 +94,7 @@ export default function AdminProfessorGradesView() {
             </div>
              <div className="flex flex-col sm:flex-row gap-2 pt-4">
                 {isAdmin && (
-                    <Select onValueChange={setSelectedFacultyId}>
+                    <Select onValueChange={handleFacultyChange}>
                         <SelectTrigger className="w-full sm:w-[220px]">
                             <SelectValue placeholder="Filtrar por facultad" />
                         </SelectTrigger>
@@ -100,12 +103,12 @@ export default function AdminProfessorGradesView() {
                         </SelectContent>
                     </Select>
                 )}
-                <Select onValueChange={setSelectedProgramId} disabled={isAdmin && !selectedFacultyId}>
+                <Select onValueChange={handleProgramChange} disabled={isAdmin && !selectedFacultyId}>
                     <SelectTrigger className="w-full sm:w-[220px]">
                         <SelectValue placeholder="Filtrar por programa" />
                     </SelectTrigger>
                     <SelectContent>
-                        {filteredPrograms?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        {programList?.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <Select onValueChange={setSelectedCourseId} disabled={!selectedProgramId}>
@@ -113,7 +116,7 @@ export default function AdminProfessorGradesView() {
                         <SelectValue placeholder="Seleccionar curso..." />
                     </SelectTrigger>
                     <SelectContent>
-                        {filteredCourses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                        {courseList?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>

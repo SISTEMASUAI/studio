@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -48,7 +48,7 @@ export default function ProfessorAssignments({ course }: { course: Course }) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   
   const assignmentsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'courses', course.id, 'assignments'), orderBy('dueDate')) : null),
+    () => (firestore ? collection(firestore, 'courses', course.id, 'assignments') : null),
     [firestore, course.id]
   );
   const { data: assignments, isLoading } = useCollection<Assignment>(assignmentsQuery);

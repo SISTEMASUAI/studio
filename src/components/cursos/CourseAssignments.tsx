@@ -1,7 +1,7 @@
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import {
   Card,
   CardContent,
@@ -61,7 +61,7 @@ export default function CourseAssignments({ course }: { course: Course | null })
     const { user } = useUser();
 
     const assignmentsQuery = useMemoFirebase(() =>
-        (firestore && course?.id) ? query(collection(firestore, 'courses', course.id, 'assignments'), orderBy('dueDate')) : null,
+        (firestore && course?.id) ? query(collection(firestore, 'courses', course.id, 'assignments')) : null,
     [firestore, course?.id]);
     const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
 

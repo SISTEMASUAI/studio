@@ -17,7 +17,7 @@ export default function CourseDetailPage() {
   const params = useParams();
   const courseId = params.courseId as string;
   const firestore = useFirestore();
-  const { profile } = useUser();
+  const { profile, isUserLoading: isProfileLoading } = useUser();
 
   const courseRef = useMemoFirebase(
     () => (firestore && courseId ? doc(firestore, 'courses', courseId) : null),
@@ -44,12 +44,12 @@ export default function CourseDetailPage() {
   }, [firestore, profile?.uid, courseId, profile?.role]);
 
   const { data: attendance = [], isLoading: isAttendanceLoading } = useCollection<AttendanceRecord>(attendanceQuery);
-
+  
   const renderCourseContent = () => {
     if (!profile || !course) {
       return (
-        <div className="p-8 text-center text-muted-foreground">
-           Cargando...
+        <div className="flex items-center justify-center p-8 text-center text-muted-foreground">
+           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       );
     }
@@ -76,7 +76,7 @@ export default function CourseDetailPage() {
   };
 
 
-  if (isCourseLoading || isInstructorLoading) {
+  if (isCourseLoading || isInstructorLoading || isProfileLoading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

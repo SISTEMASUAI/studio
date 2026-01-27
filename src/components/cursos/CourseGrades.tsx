@@ -102,7 +102,7 @@ export default function CourseGrades({ course }: { course: Course | null }) {
         return 'Pendiente';
     };
     
-    const getStatusVariant = (submission?: Submission): 'default' | 'secondary' | 'outline' => {
+    const getStatusVariant = (submission?: Submission): 'secondary' | 'outline' => {
         if (submission?.grade !== null && submission?.grade !== undefined) return 'secondary';
         if (submission) return 'outline';
         return 'outline';

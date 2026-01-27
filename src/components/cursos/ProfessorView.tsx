@@ -2,7 +2,7 @@
 'use client';
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Users, ClipboardList, GraduationCap, BookOpen, BarChart2 } from 'lucide-react';
+import { Users, ClipboardList, GraduationCap, BookOpen, BarChart2, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 import type { Course } from '@/types/course';
@@ -16,6 +16,10 @@ interface ProfessorViewProps {
 }
 
 export default function ProfessorView({ course }: ProfessorViewProps) {
+  if (!course) {
+    return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+  }
+  
   return (
     <Tabs defaultValue="students" className="w-full">
       <TabsList className="grid w-full grid-cols-5">

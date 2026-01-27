@@ -45,8 +45,36 @@ export default function CourseDetailPage() {
 
   const { data: attendance = [], isLoading: isAttendanceLoading } = useCollection<AttendanceRecord>(attendanceQuery);
 
-  const isInstructor = profile?.uid === course?.instructorId;
-  const isStudent = profile?.role === 'student' && !!course;
+  const renderCourseContent = () => {
+    if (!profile || !course) {
+      return (
+        <div className="p-8 text-center text-muted-foreground">
+           Cargando...
+        </div>
+      );
+    }
+    
+    if (profile.role === 'student') {
+      return (
+        <StudentView
+          course={course}
+          attendance={attendance}
+          isAttendanceLoading={isAttendanceLoading}
+        />
+      );
+    }
+
+    if (profile.role === 'professor' || profile.role === 'admin') {
+       return <ProfessorView course={course} />;
+    }
+    
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        No tienes permisos para ver este contenido.
+      </div>
+    );
+  };
+
 
   if (isCourseLoading || isInstructorLoading) {
     return (
@@ -83,19 +111,7 @@ export default function CourseDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {isStudent ? (
-            <StudentView
-              course={course}
-              attendance={attendance}
-              isAttendanceLoading={isAttendanceLoading}
-            />
-          ) : isInstructor ? (
-            <ProfessorView course={course} />
-          ) : (
-            <div className="p-8 text-center text-muted-foreground">
-              No tienes permisos para ver este contenido.
-            </div>
-          )}
+          {renderCourseContent()}
         </div>
 
         <aside className="space-y-8">
@@ -105,7 +121,7 @@ export default function CourseDetailPage() {
             virtualRoomUrl={course.virtualRoomUrl}
           />
 
-          {isStudent && <DropCourseDialog courseName={course.name} courseId={courseId} />}
+          {profile?.role === 'student' && <DropCourseDialog courseName={course.name} courseId={courseId} />}
         </aside>
       </div>
     </div>

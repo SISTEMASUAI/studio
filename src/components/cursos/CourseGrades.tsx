@@ -39,31 +39,17 @@ export default function CourseGrades({ course }: { course: Course }) {
     const firestore = useFirestore();
     const { user } = useUser();
 
-    if (!course) {
-        return (
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><GraduationCap /> Mis Calificaciones</CardTitle>
-                    <CardDescription>Resumen de tu rendimiento en el curso.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
-                </CardContent>
-            </Card>
-        );
-    }
-
     const assignmentsQuery = useMemoFirebase(() =>
-        firestore ? collection(firestore, 'courses', course.id, 'assignments') : null,
-    [firestore, course.id]);
+        (firestore && course) ? collection(firestore, 'courses', course.id, 'assignments') : null,
+    [firestore, course]);
     const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
 
     const submissionsQuery = useMemoFirebase(() =>
-        (firestore && user) ? query(
+        (firestore && user && course) ? query(
             collection(firestore, 'courses', course.id, 'submissions'),
             where('studentId', '==', user.uid)
         ) : null,
-    [firestore, course.id, user]);
+    [firestore, course, user]);
     const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
     
     const submissionsMap = useMemo(() => {
@@ -95,7 +81,7 @@ export default function CourseGrades({ course }: { course: Course }) {
 
     }, [submissions]);
     
-    const isLoading = areAssignmentsLoading || areSubmissionsLoading;
+    const isLoading = areAssignmentsLoading || areSubmissionsLoading || !course;
 
     const getStatusText = (status?: string) => {
         if (status === 'graded') return 'Calificada';
@@ -113,6 +99,20 @@ export default function CourseGrades({ course }: { course: Course }) {
         if (letterGrade === 'Aprobado') return 'secondary';
         if (letterGrade === 'Desaprobado') return 'destructive';
         return 'secondary';
+    }
+
+    if (!course) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><GraduationCap /> Mis Calificaciones</CardTitle>
+                    <CardDescription>Resumen de tu rendimiento en el curso.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
+                </CardContent>
+            </Card>
+        );
     }
 
     return (

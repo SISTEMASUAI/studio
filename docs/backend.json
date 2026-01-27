@@ -591,11 +591,11 @@
         },
         "description": "Stores assignments for a course. Readable by authenticated users, writable only by the course instructor."
       },
-      "/submissions/{submissionId}": {
+      "/courses/{courseId}/submissions/{submissionId}": {
         "schema": {
           "$ref": "#/entities/AssignmentSubmission"
         },
-        "description": "Stores student submissions for an assignment. Students can only read/write their own. Instructors can read/update submissions for their courses."
+        "description": "Stores student submissions for assignments within a course. Students can read/write their own. Instructors can read/update all submissions for their course."
       },
       "/tramites/{tramiteId}": {
         "schema": { "$ref": "#/entities/TramiteRequest" },

@@ -91,6 +91,14 @@ service cloud.firestore {
             allow write: if isInstructor(courseId) || isRole('admin');
         }
       }
+      
+      // Submissions nested under courses
+      match /submissions/{submissionId} {
+        allow read: if isInstructor(courseId) || isRole('admin') || isOwner(resource.data.studentId);
+        allow create: if isOwner(request.resource.data.studentId);
+        allow update: if isInstructor(courseId) || isRole('admin'); // Only prof/admin can grade
+        allow delete: if isOwner(resource.data.studentId);
+      }
     }
 
     // Enrollments: Students can read their own. Admins/Professors can read all.
@@ -101,21 +109,6 @@ service cloud.firestore {
       allow update, delete: if isRole('admin');
     }
     
-    // Submissions for assignments
-    match /submissions/{submissionId} {
-      function getCourseId() {
-          return resource.data.courseId;
-      }
-      function getRequestCourseId() {
-          return request.resource.data.courseId;
-      }
-
-      allow read: if isSignedIn() && (isOwner(resource.data.studentId) || isInstructor(getCourseId()) || isRole('admin'));
-      allow create: if isSignedIn() && isOwner(request.resource.data.studentId);
-      allow update: if isSignedIn() && (isOwner(resource.data.studentId) || isInstructor(getRequestCourseId()));
-      allow delete: if isSignedIn() && isOwner(resource.data.studentId);
-    }
-
     // Administrative Requests (Trámites)
     match /tramites/{tramiteId} {
       allow read: if isSignedIn() && (isOwner(resource.data.applicantId) || isRole('admin'));

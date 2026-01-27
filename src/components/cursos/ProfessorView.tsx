@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import type { Course } from '@/types/course';
 import CourseStudentsManagement from './CourseStudentsManagement';
 import CourseAssignments from './CourseAssignments';
-import CourseGrades from './CourseGrades';
+import ProfessorGradebook from './professor/ProfessorGradebook';
 import CourseMaterials from './CourseMaterials';
 
 interface ProfessorViewProps {
@@ -54,7 +54,7 @@ export default function ProfessorView({ course }: ProfessorViewProps) {
       </TabsContent>
 
       <TabsContent value="grades" className="mt-6">
-        <CourseGrades />
+        <ProfessorGradebook course={course} />
       </TabsContent>
 
       <TabsContent value="materials" className="mt-6">

@@ -1,9 +1,9 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where, DocumentData } from 'firebase/firestore';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,6 +36,14 @@ interface Assignment {
     description: string;
 }
 
+interface Submission extends DocumentData {
+    assignmentId: string;
+}
+
+interface Enrollment extends DocumentData {
+    studentId: string;
+}
+
 const AssignmentSchema = z.object({
     title: z.string().min(5, "El título debe tener al menos 5 caracteres."),
     description: z.string().min(10, "La descripción es requerida."),
@@ -51,7 +59,29 @@ export default function ProfessorAssignments({ course }: { course: Course }) {
     () => (firestore ? collection(firestore, 'courses', course.id, 'assignments') : null),
     [firestore, course.id]
   );
-  const { data: assignments, isLoading } = useCollection<Assignment>(assignmentsQuery);
+  const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
+
+  const submissionsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'courses', course.id, 'submissions') : null),
+    [firestore, course.id]
+  );
+  const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
+
+  const enrollmentsQuery = useMemoFirebase(() => 
+    firestore ? query(collection(firestore, 'enrollments'), where('courseId', '==', course.id)) : null, 
+  [firestore, course.id]);
+  const { data: enrollments, isLoading: areEnrollmentsLoading } = useCollection<Enrollment>(enrollmentsQuery);
+
+  const submissionsByAssignment = useMemo(() => {
+    if (!submissions) return new Map<string, number>();
+    return submissions.reduce((acc, sub) => {
+        acc.set(sub.assignmentId, (acc.get(sub.assignmentId) || 0) + 1);
+        return acc;
+    }, new Map<string, number>());
+  }, [submissions]);
+
+  const totalEnrolled = enrollments?.length || 0;
+  const isLoading = areAssignmentsLoading || areSubmissionsLoading || areEnrollmentsLoading;
 
   const form = useForm<z.infer<typeof AssignmentSchema>>({
     resolver: zodResolver(AssignmentSchema),
@@ -159,7 +189,7 @@ export default function ProfessorAssignments({ course }: { course: Course }) {
                 <TableRow key={assignment.id}>
                   <TableCell className="font-medium">{assignment.title}</TableCell>
                   <TableCell>{new Date(assignment.dueDate).toLocaleString()}</TableCell>
-                  <TableCell>0/{course.enrolled || 0}</TableCell>
+                  <TableCell>{submissionsByAssignment.get(assignment.id) || 0}/{totalEnrolled}</TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

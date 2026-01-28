@@ -20,7 +20,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ClipboardList, FileUp, Loader2, Download, MessageSquare, AlertTriangle, Info } from 'lucide-react';
-import type { Course } from '@/types/course';
 import { useMemo } from 'react';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
@@ -56,18 +55,18 @@ function getStatusBadge(status: 'Calificada' | 'Entregada' | 'Pendiente' | 'Venc
     }
 }
 
-export default function CourseAssignments({ course }: { course: Course | null }) {
+export default function CourseAssignments({ courseId }: { courseId: string }) {
     const firestore = useFirestore();
     const { user } = useUser();
 
     const assignmentsQuery = useMemoFirebase(() =>
-        (firestore && course?.id) ? query(collection(firestore, 'courses', course.id, 'assignments')) : null,
-    [firestore, course?.id]);
+        (firestore && courseId) ? query(collection(firestore, 'courses', courseId, 'assignments')) : null,
+    [firestore, courseId]);
     const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
 
     const submissionsQuery = useMemoFirebase(() =>
-        (firestore && user && course?.id) ? query(collection(firestore, 'courses', course.id, 'submissions'), where('studentId', '==', user.uid)) : null,
-    [firestore, user, course?.id]);
+        (firestore && user && courseId) ? query(collection(firestore, 'courses', courseId, 'submissions'), where('studentId', '==', user.uid)) : null,
+    [firestore, user, courseId]);
     const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
 
     const mergedData = useMemo(() => {
@@ -89,20 +88,6 @@ export default function CourseAssignments({ course }: { course: Course | null })
     }
     
     const isLoading = areAssignmentsLoading || areSubmissionsLoading;
-
-    if (!course) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><ClipboardList/> Tareas y Evaluaciones</CardTitle>
-                    <CardDescription>Revisa tus próximas entregas y el estado de tus evaluaciones.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
-                </CardContent>
-            </Card>
-        );
-    }
 
     return (
         <Card>

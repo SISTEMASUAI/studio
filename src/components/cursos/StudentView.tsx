@@ -12,11 +12,12 @@ import { Course, AttendanceRecord } from '@/types/course';
 
 interface StudentViewProps {
   course: Course;
+  courseId: string;
   attendance: AttendanceRecord[];
   isAttendanceLoading: boolean;
 }
 
-export default function StudentView({ course, attendance, isAttendanceLoading }: StudentViewProps) {
+export default function StudentView({ course, courseId, attendance, isAttendanceLoading }: StudentViewProps) {
   return (
     <Tabs defaultValue="assignments" className="w-full">
       <TabsList className="grid w-full grid-cols-5">
@@ -50,11 +51,11 @@ export default function StudentView({ course, attendance, isAttendanceLoading }:
       </TabsContent>
 
       <TabsContent value="assignments" className="mt-6">
-        <CourseAssignments course={course} />
+        <CourseAssignments courseId={courseId} />
       </TabsContent>
 
       <TabsContent value="grades" className="mt-6">
-          <CourseGrades course={course} />
+          <CourseGrades courseId={courseId} />
       </TabsContent>
       
       <TabsContent value="attendance" className="mt-6">

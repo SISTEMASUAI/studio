@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, GraduationCap } from 'lucide-react';
-import type { Course } from '@/types/course';
 import { useMemo } from 'react';
 
 interface Assignment {
@@ -34,21 +33,21 @@ interface Submission {
     grade: number | null;
 }
 
-export default function CourseGrades({ course }: { course: Course | null }) {
+export default function CourseGrades({ courseId }: { courseId: string }) {
     const firestore = useFirestore();
     const { user } = useUser();
 
     const assignmentsQuery = useMemoFirebase(() =>
-        (firestore && course?.id) ? collection(firestore, 'courses', course.id, 'assignments') : null,
-    [firestore, course?.id]);
+        (firestore && courseId) ? collection(firestore, 'courses', courseId, 'assignments') : null,
+    [firestore, courseId]);
     const { data: assignments, isLoading: areAssignmentsLoading } = useCollection<Assignment>(assignmentsQuery);
 
     const submissionsQuery = useMemoFirebase(() =>
-        (firestore && user && course?.id) ? query(
-            collection(firestore, 'courses', course.id, 'submissions'),
+        (firestore && user && courseId) ? query(
+            collection(firestore, 'courses', courseId, 'submissions'),
             where('studentId', '==', user.uid)
         ) : null,
-    [firestore, course?.id, user]);
+    [firestore, courseId, user]);
     const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
     
     const submissionsMap = useMemo(() => {
@@ -81,20 +80,6 @@ export default function CourseGrades({ course }: { course: Course | null }) {
     }, [submissions]);
     
     const isLoading = areAssignmentsLoading || areSubmissionsLoading;
-
-    if (!course) {
-        return (
-            <Card>
-                <CardHeader>
-                     <CardTitle className="flex items-center gap-2"><GraduationCap /> Mis Calificaciones</CardTitle>
-                    <CardDescription>Resumen de tu rendimiento en el curso.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-center p-8"><Loader2 className="animate-spin"/></div>
-                </CardContent>
-            </Card>
-        );
-    }
 
     const getStatusText = (submission?: Submission) => {
         if (submission?.grade !== null && submission?.grade !== undefined) return 'Calificada';

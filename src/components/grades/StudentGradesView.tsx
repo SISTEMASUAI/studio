@@ -84,7 +84,7 @@ export default function StudentGradesView() {
                                 </div>
                             </AccordionTrigger>
                             <AccordionContent className="p-2">
-                                <CourseGrades course={course} />
+                                <CourseGrades courseId={course.id} />
                             </AccordionContent>
                         </AccordionItem>
                     ))}

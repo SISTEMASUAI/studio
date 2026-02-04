@@ -298,6 +298,23 @@
         },
         "required": ["sessionId", "moduleId", "courseId", "title", "date", "startTime", "endTime"]
     },
+    "CourseMaterial": {
+      "title": "CourseMaterial",
+      "type": "object",
+      "description": "Represents a learning material or resource associated with a course.",
+      "properties": {
+        "id": { "type": "string" },
+        "courseId": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["document", "video", "link", "other"] },
+        "url": { "type": "string", "format": "uri" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["id", "courseId", "title", "url", "type"]
+    },
     "CourseAssignment": {
       "title": "CourseAssignment",
       "type": "object",
@@ -576,6 +593,12 @@
           "$ref": "#/entities/CourseModule"
         },
         "description": "Stores the thematic weeks or modules for a specific course. Writable by instructors."
+      },
+      "/courses/{courseId}/materials/{materialId}": {
+        "schema": {
+          "$ref": "#/entities/CourseMaterial"
+        },
+        "description": "Stores learning materials and resources for a course."
       },
       "/courses/{courseId}/modules/{moduleId}/sessions/{sessionId}": {
         "schema": {

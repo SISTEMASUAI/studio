@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -47,7 +48,7 @@ export default function StudentView({ course, courseId, attendance, isAttendance
       </TabsContent>
 
       <TabsContent value="materials" className="mt-6">
-        <CourseMaterials />
+        <CourseMaterials courseId={courseId} />
       </TabsContent>
 
       <TabsContent value="assignments" className="mt-6">

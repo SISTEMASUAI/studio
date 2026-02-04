@@ -1,3 +1,4 @@
+
 // src/types/course.ts
 
 // Tipo principal del documento en la colección 'courses'
@@ -56,6 +57,18 @@ export interface Course {
     endTime: string;
     classroom: string;
   }
+
+  export interface CourseMaterial {
+    id: string;
+    courseId: string;
+    moduleId?: string;
+    title: string;
+    description?: string;
+    type: 'document' | 'video' | 'link' | 'other' | string;
+    url: string;
+    createdAt?: string;
+    createdBy?: string;
+  }
   
   // Item individual del horario (clase/sesión)
   export interface ScheduleItem {
@@ -105,7 +118,7 @@ export interface Course {
   export interface UserProfile {
     uid: string;
     email: string;
-    role: 'student' | 'instructor' | 'admin';
+    role: 'student' | 'professor' | 'admin' | 'staff';
     firstName?: string;
     lastName?: string;
     displayName?: string;
@@ -147,5 +160,3 @@ export interface Enrollment {
     createdAt?: FirestoreTimestamp | string;
     updatedAt?: FirestoreTimestamp | string;
   };
-
-    

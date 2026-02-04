@@ -61,7 +61,7 @@ export default function ProfessorView({ course }: ProfessorViewProps) {
       </TabsContent>
 
       <TabsContent value="materials" className="mt-6">
-        <CourseMaterials />
+        <CourseMaterials courseId={course.id} />
       </TabsContent>
 
       <TabsContent value="stats" className="mt-6">

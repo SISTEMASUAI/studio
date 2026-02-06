@@ -1,4 +1,5 @@
 
+
 // src/types/course.ts
 
 // Tipo principal del documento en la colección 'courses'
@@ -103,6 +104,17 @@ export interface Course {
     notes?: string;
     justifiedAt?: string;
     justificationReason?: string;
+  }
+
+  export interface QuizResult {
+    id: string;
+    completionDate: string;
+    courseId: string;
+    quizId: string;
+    score: number;
+    status: string;
+    userId: string;
+    answers?: any[];
   }
   
   // Tipo auxiliar para resumen de calificaciones por estudiante

@@ -390,6 +390,24 @@
       },
       "required": ["submissionId", "assignmentId", "studentId", "courseId", "submittedAt"]
     },
+    "QuizResult": {
+      "title": "QuizResult",
+      "type": "object",
+      "description": "Represents a student's result for a quiz/exam.",
+      "properties": {
+        "completionDate": { "type": "string", "format": "date-time" },
+        "courseId": { "type": "string" },
+        "quizId": { "type": "string" },
+        "score": { "type": "number" },
+        "status": { "type": "string" },
+        "userId": { "type": "string" },
+        "answers": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      },
+      "required": ["completionDate", "courseId", "quizId", "score", "userId"]
+    },
     "TramiteRequest": {
       "title": "TramiteRequest",
       "description": "Represents a single administrative request made by a user.",
@@ -623,6 +641,12 @@
           "$ref": "#/entities/AssignmentSubmission"
         },
         "description": "Stores student submissions for assignments within a course. Students can read/write their own. Instructors can read/update all submissions for their course."
+      },
+      "/courses/{courseId}/quizResults/{resultId}": {
+        "schema": {
+          "$ref": "#/entities/QuizResult"
+        },
+        "description": "Stores student results for quizzes/exams within a course."
       },
       "/tramites/{tramiteId}": {
         "schema": { "$ref": "#/entities/TramiteRequest" },

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -58,17 +57,24 @@ export default function ProfessorGradebook({ course }: { course: Course }) {
     [firestore, course.id]);
     const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<Submission>(submissionsQuery);
 
-    // 4. Obtener resultados de exámenes
+    // 4. Obtener resultados de exámenes (quizResults)
     const quizResultsQuery = useMemoFirebase(() =>
         firestore ? collection(firestore, 'courses', course.id, 'quizResults') : null,
     [firestore, course.id]);
     const { data: quizResults, isLoading: areQuizzesLoading } = useCollection<QuizResult>(quizResultsQuery);
 
-    // 5. Estado local para edición de notas
+    // 5. Estado local para edición de notas de tareas
     const [localGrades, setLocalGrades] = useState<Record<string, Record<string, string>>>({});
     const [isSaving, setIsSaving] = useState(false);
 
-    // Mapas para acceso rápido
+    // Mapas para acceso rápido y columnas dinámicas
+    const uniqueQuizzes = useMemo(() => {
+        if (!quizResults) return [];
+        const quizIds = new Set<string>();
+        quizResults.forEach(r => quizIds.add(r.quizId));
+        return Array.from(quizIds).sort();
+    }, [quizResults]);
+
     const submissionsMap = useMemo(() => {
         const map = new Map<string, Submission>();
         submissions?.forEach(sub => {
@@ -78,9 +84,12 @@ export default function ProfessorGradebook({ course }: { course: Course }) {
     }, [submissions]);
 
     const quizResultsMap = useMemo(() => {
-        const map = new Map<string, QuizResult>();
+        const map = new Map<string, Map<string, QuizResult>>();
         quizResults?.forEach(result => {
-            map.set(result.userId, result); // Nota: por ahora asumo un quiz por curso para el demo
+            if (!map.has(result.userId)) {
+                map.set(result.userId, new Map<string, QuizResult>());
+            }
+            map.get(result.userId)!.set(result.quizId, result);
         });
         return map;
     }, [quizResults]);
@@ -152,12 +161,14 @@ export default function ProfessorGradebook({ course }: { course: Course }) {
                                     </div>
                                 </TableHead>
                             ))}
-                            <TableHead className="text-center min-w-[150px] bg-primary/5">
-                                <div className="flex flex-col items-center">
-                                    <PenTool className="h-3 w-3 mb-1 text-primary" />
-                                    <span className="text-xs">Examen / Quiz</span>
-                                </div>
-                            </TableHead>
+                            {uniqueQuizzes.map((quizId, idx) => (
+                                <TableHead key={quizId} className="text-center min-w-[120px] bg-primary/5">
+                                    <div className="flex flex-col items-center">
+                                        <PenTool className="h-3 w-3 mb-1 text-primary" />
+                                        <span className="text-xs">Examen {idx + 1}</span>
+                                    </div>
+                                </TableHead>
+                            ))}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -177,23 +188,25 @@ export default function ProfessorGradebook({ course }: { course: Course }) {
                                                 max="20"
                                                 step="0.1"
                                                 placeholder="--"
-                                                className="w-24 text-center mx-auto"
+                                                className="w-20 text-center mx-auto"
                                                 value={displayGrade}
                                                 onChange={(e) => handleGradeChange(student.uid, assignment.id, e.target.value)}
                                             />
                                         </TableCell>
                                     );
                                 })}
-                                {/* Columna de Examen (Solo lectura desde quizResults) */}
-                                <TableCell className="text-center bg-primary/5">
-                                    <div className="font-bold text-primary">
-                                        {quizResultsMap.get(student.uid)?.score ?? '--'}
-                                    </div>
-                                </TableCell>
+                                {/* Columnas de Exámenes (Lectura) */}
+                                {uniqueQuizzes.map(quizId => (
+                                    <TableCell key={quizId} className="text-center bg-primary/5">
+                                        <div className="font-bold text-primary">
+                                            {quizResultsMap.get(student.uid)?.get(quizId)?.score ?? '--'}
+                                        </div>
+                                    </TableCell>
+                                ))}
                             </TableRow>
                         )) : (
                             <TableRow>
-                                <TableCell colSpan={(assignments?.length || 0) + 2} className="text-center h-24">
+                                <TableCell colSpan={(assignments?.length || 0) + uniqueQuizzes.length + 1} className="text-center h-24">
                                     No hay estudiantes inscritos en este curso.
                                 </TableCell>
                             </TableRow>

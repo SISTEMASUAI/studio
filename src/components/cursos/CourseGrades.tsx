@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
@@ -158,10 +157,10 @@ export default function CourseGrades({ courseId }: { courseId: string }) {
                                 )
                             })}
                             {/* Exámenes */}
-                            {quizResults?.map(quiz => (
+                            {quizResults?.map((quiz, index) => (
                                 <TableRow key={quiz.id}>
                                     <TableCell><PenTool className="h-4 w-4 text-primary" /></TableCell>
-                                    <TableCell className="font-medium">Examen / Quiz</TableCell>
+                                    <TableCell className="font-medium">Examen {index + 1}</TableCell>
                                     <TableCell><Badge variant="default">Completado</Badge></TableCell>
                                     <TableCell className="text-right font-mono font-bold text-primary">{quiz.score}</TableCell>
                                 </TableRow>

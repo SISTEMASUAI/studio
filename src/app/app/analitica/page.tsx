@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, DocumentData, collectionGroup, getDocs } from 'firebase/firestore';
+import { collection, query, where, DocumentData, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -65,7 +65,7 @@ export default function AnalyticsPage() {
   const handleAnalyze = async () => {
     if (!firestore || !selectedStudentId) return;
 
-    const student = students?.find(s => s.id === selectedStudentId);
+    const student = students?.find(s => s.uid === selectedStudentId);
     if (!student) return;
 
     setIsAnalyzing(true);
@@ -73,23 +73,43 @@ export default function AnalyticsPage() {
     setAnalysisError(null);
 
     try {
-      // 1. Obtener asistencias
+      // 1. Obtener asistencias (colección de primer nivel)
       const attSnap = await getDocs(query(collection(firestore, 'attendance'), where('studentId', '==', selectedStudentId)));
       const attendance = attSnap.docs.map(doc => doc.data() as AttendanceRecord);
 
-      // 2. Obtener entregas de tareas (usando collectionGroup para buscar en todas las subcolecciones de cursos)
-      const subSnap = await getDocs(query(collectionGroup(firestore, 'submissions'), where('studentId', '==', selectedStudentId)));
-      const submissions = subSnap.docs.map(doc => doc.data() as AssignmentSubmission);
+      // 2. Obtener inscripciones para saber en qué cursos buscar las subcolecciones
+      const enrollSnap = await getDocs(query(collection(firestore, 'enrollments'), where('studentId', '==', selectedStudentId)));
+      const courseIds = enrollSnap.docs.map(doc => doc.data().courseId);
 
-      // 3. Obtener resultados de exámenes
-      const quizSnap = await getDocs(query(collectionGroup(firestore, 'quizResults'), where('userId', '==', selectedStudentId)));
-      const quizzes = quizSnap.docs.map(doc => doc.data() as QuizResult);
+      // 3. Obtener entregas y exámenes por cada curso (evitando collectionGroup para no requerir índices manuales)
+      let allSubmissions: AssignmentSubmission[] = [];
+      let allQuizzes: QuizResult[] = [];
 
+      // Procesamos las subcolecciones de cada curso del alumno
+      await Promise.all(courseIds.map(async (courseId) => {
+        // Buscar entregas del alumno en este curso específico
+        const subSnap = await getDocs(query(
+          collection(firestore, 'courses', courseId, 'submissions'), 
+          where('studentId', '==', selectedStudentId)
+        ));
+        const subs = subSnap.docs.map(d => ({ ...d.data(), courseId } as AssignmentSubmission));
+        allSubmissions = [...allSubmissions, ...subs];
+
+        // Buscar resultados de exámenes del alumno en este curso específico
+        const quizSnap = await getDocs(query(
+          collection(firestore, 'courses', courseId, 'quizResults'), 
+          where('userId', '==', selectedStudentId)
+        ));
+        const results = quizSnap.docs.map(d => ({ ...d.data(), courseId } as QuizResult));
+        allQuizzes = [...allQuizzes, ...results];
+      }));
+
+      // 4. Llamada al flujo de IA con todos los datos recolectados
       const result = await analyzeStudentRisk({
         student: { uid: student.uid, firstName: student.firstName, lastName: student.lastName },
         attendance,
-        submissions,
-        quizzes,
+        submissions: allSubmissions,
+        quizzes: allQuizzes,
       });
 
       setAnalysisResult(result);
@@ -119,7 +139,7 @@ export default function AnalyticsPage() {
     );
   }
 
-  const studentSelected = students?.find(s => s.id === selectedStudentId);
+  const studentSelected = students?.find(s => s.uid === selectedStudentId);
 
   return (
     <div className="space-y-8 p-6">
@@ -145,7 +165,7 @@ export default function AnalyticsPage() {
             </SelectTrigger>
             <SelectContent>
               {students?.map(student => (
-                <SelectItem key={student.id} value={student.id}>
+                <SelectItem key={student.uid} value={student.uid}>
                   {student.lastName}, {student.firstName}
                 </SelectItem>
               ))}
@@ -278,7 +298,7 @@ export default function AnalyticsPage() {
               <AlertTriangle className="h-4 w-4 text-blue-600" />
               <AlertTitle className="text-blue-800">Nota del Sistema</AlertTitle>
               <AlertDescription className="text-blue-700">
-                Este análisis ha sido generado cruzando datos históricos de asistencia, notas de tareas y el desempeño en los últimos exámenes.
+                Este análisis ha sido generado cruzando datos históricos de asistencia, notas de tareas y el desempeño en los últimos exámenes de todos los cursos registrados.
               </AlertDescription>
             </Alert>
           </CardContent>

@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, DocumentData } from 'firebase/firestore';
+import { collection, query, where, DocumentData, collectionGroup, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { BarChart, Loader2, User, AlertTriangle, Lightbulb, ShieldAlert } from 'lucide-react';
+import { BarChart, Loader2, User, AlertTriangle, Lightbulb, ShieldAlert, GraduationCap, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { analyzeStudentRisk, AnalyzeStudentRiskOutput } from '@/ai/flows/analyze-student-risk';
@@ -29,6 +29,15 @@ interface AssignmentSubmission extends DocumentData {
   grade?: number;
   assignmentId: string;
   submittedAt: string;
+  courseId?: string;
+}
+
+interface QuizResult extends DocumentData {
+  score: number;
+  quizId: string;
+  completionDate: string;
+  courseId: string;
+  userId: string;
 }
 
 export default function AnalyticsPage() {
@@ -47,64 +56,58 @@ export default function AnalyticsPage() {
     }
   }, [isUserLoading, profile, router]);
 
-  // Usar useMemoFirebase en lugar de useMemo para los queries
   const studentsQuery = useMemoFirebase(
     () => firestore ? query(collection(firestore, 'users'), where('role', '==', 'student')) : null,
     [firestore]
   );
   const { data: students, isLoading: areStudentsLoading } = useCollection<StudentProfile>(studentsQuery);
 
-  const selectedStudent = students?.find(s => s.id === selectedStudentId) || null;
-
-  const attendanceQuery = useMemoFirebase(
-    () => (firestore && selectedStudentId) ? query(collection(firestore, 'attendance'), where('studentId', '==', selectedStudentId)) : null,
-    [firestore, selectedStudentId]
-  );
-  const { data: attendance, isLoading: isAttendanceLoading } = useCollection<AttendanceRecord>(attendanceQuery);
-
-  const submissionsQuery = useMemoFirebase(
-    () => (firestore && selectedStudentId) ? query(collection(firestore, 'submissions'), where('studentId', '==', selectedStudentId)) : null,
-    [firestore, selectedStudentId]
-  );
-  const { data: submissions, isLoading: areSubmissionsLoading } = useCollection<AssignmentSubmission>(submissionsQuery);
-
   const handleAnalyze = async () => {
-    if (!selectedStudent || !attendance || !submissions) return;
+    if (!firestore || !selectedStudentId) return;
+
+    const student = students?.find(s => s.id === selectedStudentId);
+    if (!student) return;
 
     setIsAnalyzing(true);
     setAnalysisResult(null);
     setAnalysisError(null);
 
     try {
+      // 1. Obtener asistencias
+      const attSnap = await getDocs(query(collection(firestore, 'attendance'), where('studentId', '==', selectedStudentId)));
+      const attendance = attSnap.docs.map(doc => doc.data() as AttendanceRecord);
+
+      // 2. Obtener entregas de tareas (usando collectionGroup para buscar en todas las subcolecciones de cursos)
+      const subSnap = await getDocs(query(collectionGroup(firestore, 'submissions'), where('studentId', '==', selectedStudentId)));
+      const submissions = subSnap.docs.map(doc => doc.data() as AssignmentSubmission);
+
+      // 3. Obtener resultados de exámenes
+      const quizSnap = await getDocs(query(collectionGroup(firestore, 'quizResults'), where('userId', '==', selectedStudentId)));
+      const quizzes = quizSnap.docs.map(doc => doc.data() as QuizResult);
+
       const result = await analyzeStudentRisk({
-        student: selectedStudent,
+        student: { uid: student.uid, firstName: student.firstName, lastName: student.lastName },
         attendance,
         submissions,
+        quizzes,
       });
+
       setAnalysisResult(result);
     } catch (error: any) {
-      console.error("Analysis failed:", error);
-      setAnalysisError(error.message || "Ocurrió un error al analizar al estudiante. Intenta nuevamente.");
+      console.error("Análisis fallido:", error);
+      setAnalysisError(error.message || "Ocurrió un error al procesar los datos. Intenta nuevamente.");
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const getRiskVariant = (risk: string) => {
-    switch (risk) {
-      case 'Alto': return 'destructive';
-      case 'Medio': return 'secondary';
-      default: return 'default';
-    }
-  };
-
-  const getAlertVariant = (alert: string) => {
+  const getAlertStyles = (alert: string) => {
     switch (alert) {
-      case 'Rojo': return 'destructive';
-      case 'Naranja': return 'secondary';
-      case 'Amarillo': return 'outline';
-      case 'Verde': return 'default';
-      default: return 'default';
+      case 'Rojo': return { border: 'border-red-500', bg: 'bg-red-50', text: 'text-red-700', icon: <AlertTriangle className="text-red-500" /> };
+      case 'Naranja': return { border: 'border-orange-500', bg: 'bg-orange-50', text: 'text-orange-700', icon: <AlertTriangle className="text-orange-500" /> };
+      case 'Amarillo': return { border: 'border-yellow-500', bg: 'bg-yellow-50', text: 'text-yellow-700', icon: <AlertTriangle className="text-yellow-500" /> };
+      case 'Verde': return { border: 'border-green-500', bg: 'bg-green-50', text: 'text-green-700', icon: <CheckCircle2 className="text-green-500" /> };
+      default: return { border: 'border-gray-200', bg: 'bg-gray-50', text: 'text-gray-700', icon: null };
     }
   };
 
@@ -116,27 +119,29 @@ export default function AnalyticsPage() {
     );
   }
 
+  const studentSelected = students?.find(s => s.id === selectedStudentId);
+
   return (
     <div className="space-y-8 p-6">
       <section>
         <h1 className="text-3xl font-bold flex items-center gap-2">
           <ShieldAlert className="text-primary" />
-          Asistente de Analítica IA - Retención Estudiantil
+          Analítica IA Avanzada - Riesgo Académico
         </h1>
         <p className="text-muted-foreground mt-2">
-          Analiza asistencias, calificaciones y patrones para identificar alumnos en riesgo de deserción.
+          La IA evalúa asistencias, tareas y exámenes para generar un perfil de riesgo integral.
         </p>
       </section>
 
       <Card>
         <CardHeader>
-          <CardTitle>Selecciona un estudiante</CardTitle>
-          <CardDescription>La IA analizará sus asistencias y rendimiento para estimar riesgo de deserción.</CardDescription>
+          <CardTitle>Selección de Alumno</CardTitle>
+          <CardDescription>El análisis cruzará datos de todas las materias en las que está inscrito.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row items-center gap-4">
           <Select onValueChange={setSelectedStudentId} disabled={areStudentsLoading}>
             <SelectTrigger className="w-full sm:w-[320px]">
-              <SelectValue placeholder={areStudentsLoading ? 'Cargando estudiantes...' : 'Selecciona un estudiante...'} />
+              <SelectValue placeholder={areStudentsLoading ? 'Cargando lista...' : 'Selecciona un alumno...'} />
             </SelectTrigger>
             <SelectContent>
               {students?.map(student => (
@@ -148,18 +153,18 @@ export default function AnalyticsPage() {
           </Select>
           <Button 
             onClick={handleAnalyze} 
-            disabled={!selectedStudentId || isAnalyzing || isAttendanceLoading || areSubmissionsLoading}
+            disabled={!selectedStudentId || isAnalyzing}
             className="w-full sm:w-auto"
           >
             {isAnalyzing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Analizando...
+                Procesando Big Data...
               </>
             ) : (
               <>
                 <BarChart className="mr-2 h-4 w-4" />
-                Analizar Riesgo
+                Generar Reporte IA
               </>
             )}
           </Button>
@@ -169,74 +174,111 @@ export default function AnalyticsPage() {
       {analysisError && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error en el análisis</AlertTitle>
+          <AlertTitle>Error en el proceso</AlertTitle>
           <AlertDescription>{analysisError}</AlertDescription>
         </Alert>
       )}
 
       {isAnalyzing && (
-        <Card className="bg-muted/50">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="font-semibold text-lg">Procesando datos del estudiante...</p>
-            <p className="text-sm text-muted-foreground mt-2">Evaluando asistencias, tendencias y riesgo de deserción</p>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center py-20 space-y-4">
+          <div className="relative">
+            <Loader2 className="h-16 w-16 animate-spin text-primary opacity-20" />
+            <ShieldAlert className="h-8 w-8 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+          </div>
+          <p className="font-semibold text-lg animate-pulse">Correlacionando asistencias con calificaciones...</p>
+          <div className="flex gap-2">
+            <Badge variant="outline" className="animate-bounce delay-75">Firestore</Badge>
+            <Badge variant="outline" className="animate-bounce delay-150">Genkit AI</Badge>
+            <Badge variant="outline" className="animate-bounce delay-300">Gemini 3.0</Badge>
+          </div>
+        </div>
       )}
 
-      {analysisResult && selectedStudent && (
-        <Card className="border-t-4" style={{ borderTopColor: 
-          analysisResult.alertLevel === 'Rojo' ? '#ef4444' :
-          analysisResult.alertLevel === 'Naranja' ? '#f97316' :
-          analysisResult.alertLevel === 'Amarillo' ? '#eab308' :
-          '#22c55e'
-        }}>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between flex-wrap gap-4">
-              <span>
-                Reporte de Riesgo para {selectedStudent.firstName} {selectedStudent.lastName}
-              </span>
-              <div className="flex gap-2">
-                <Badge variant={getRiskVariant(analysisResult.riskLevel)}>
-                  Riesgo Académico: {analysisResult.riskLevel}
-                </Badge>
-                <Badge variant={getAlertVariant(analysisResult.alertLevel)}>
-                  Alerta: {analysisResult.alertLevel}
-                </Badge>
+      {analysisResult && studentSelected && (
+        <Card className={`border-l-8 ${getAlertStyles(analysisResult.alertLevel).border}`}>
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-start gap-4">
+              <div>
+                <CardTitle className="text-2xl">
+                  Reporte de Situación: {studentSelected.firstName} {studentSelected.lastName}
+                </CardTitle>
+                <CardDescription className="text-base mt-1">
+                  Probabilidad de deserción: <span className="font-bold underline">{analysisResult.riskOfDropout}</span>
+                </CardDescription>
               </div>
-            </CardTitle>
-            <CardDescription>
-              Riesgo de deserción estimado: <strong>{analysisResult.riskOfDropout}</strong>
-            </CardDescription>
+              <div className="flex flex-col items-end gap-2">
+                <Badge className="text-sm px-3 py-1" variant={analysisResult.riskLevel === 'Alto' ? 'destructive' : 'secondary'}>
+                  Riesgo {analysisResult.riskLevel}
+                </Badge>
+                <div className={`flex items-center gap-1 text-sm font-bold ${getAlertStyles(analysisResult.alertLevel).text}`}>
+                  {getAlertStyles(analysisResult.alertLevel).icon}
+                  Alerta {analysisResult.alertLevel}
+                </div>
+              </div>
+            </div>
           </CardHeader>
 
-          <CardContent className="space-y-6">
-            <div>
-              <h3 className="font-semibold flex items-center gap-2 mb-2">
-                <User className="h-4 w-4" /> Resumen del análisis
+          <CardContent className="space-y-8 pt-4">
+            <div className="grid gap-6 md:grid-cols-3">
+                <Card className="bg-muted/30">
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <BarChart className="h-8 w-8 text-blue-500" />
+                        <div>
+                            <p className="text-xs text-muted-foreground uppercase font-bold">Asistencias</p>
+                            <p className="text-sm font-medium">Analizadas</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-muted/30">
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <ClipboardList className="h-8 w-8 text-green-500" />
+                        <div>
+                            <p className="text-xs text-muted-foreground uppercase font-bold">Tareas</p>
+                            <p className="text-sm font-medium">Calificadas</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-muted/30">
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <GraduationCap className="h-8 w-8 text-purple-500" />
+                        <div>
+                            <p className="text-xs text-muted-foreground uppercase font-bold">Exámenes</p>
+                            <p className="text-sm font-medium">Procesados</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="bg-muted/50 p-6 rounded-xl border">
+              <h3 className="font-bold flex items-center gap-2 mb-4 text-lg">
+                <User className="h-5 w-5 text-primary" /> Diagnóstico de la IA
               </h3>
-              <p className="text-sm bg-muted p-4 rounded-md whitespace-pre-wrap">
+              <p className="text-base leading-relaxed text-foreground/90 whitespace-pre-wrap">
                 {analysisResult.summary}
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold flex items-center gap-2 mb-2">
-                <Lightbulb className="h-4 w-4" /> Recomendaciones de apoyo
+              <h3 className="font-bold flex items-center gap-2 mb-4 text-lg">
+                <Lightbulb className="h-5 w-5 text-amber-500" /> Plan de Acción Recomendado
               </h3>
-              <ul className="list-disc pl-6 space-y-2 text-sm">
+              <div className="grid gap-3">
                 {analysisResult.supportRecommendations.map((rec, index) => (
-                  <li key={index} className="text-muted-foreground">{rec}</li>
+                  <div key={index} className="flex items-start gap-3 p-3 bg-background border rounded-lg shadow-sm">
+                    <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                      {index + 1}
+                    </div>
+                    <p className="text-sm">{rec}</p>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
 
-            <Alert variant="default" className="bg-amber-50 border-amber-200">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Importante</AlertTitle>
-              <AlertDescription>
-                Este análisis es una estimación preliminar realizada por IA. Recomendamos una evaluación humana completa, 
-                contacto directo con el estudiante y revisión de datos adicionales.
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertTriangle className="h-4 w-4 text-blue-600" />
+              <AlertTitle className="text-blue-800">Nota del Sistema</AlertTitle>
+              <AlertDescription className="text-blue-700">
+                Este análisis ha sido generado cruzando datos históricos de asistencia, notas de tareas y el desempeño en los últimos exámenes.
               </AlertDescription>
             </Alert>
           </CardContent>

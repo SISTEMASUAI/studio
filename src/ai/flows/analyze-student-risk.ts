@@ -20,36 +20,43 @@ const AssignmentSubmissionSchema = z.object({
   grade: z.number().optional(),
   assignmentId: z.string(),
   submittedAt: z.string(),
+  courseId: z.string().optional(),
 });
 
-// Input schema
+const QuizResultSchema = z.object({
+  score: z.number(),
+  quizId: z.string(),
+  completionDate: z.string(),
+  courseId: z.string(),
+});
+
+// Input schema extendido
 const AnalyzeStudentRiskInputSchema = z.object({
   student: UserProfileSchema,
   attendance: z.array(AttendanceRecordSchema),
   submissions: z.array(AssignmentSubmissionSchema),
+  quizzes: z.array(QuizResultSchema),
 });
 
 export type AnalyzeStudentRiskInput = z.infer<typeof AnalyzeStudentRiskInputSchema>;
 
-// Schema de salida extendido y alineado con el prompt
+// Schema de salida
 const AnalyzeStudentRiskOutputSchema = z.object({
   riskLevel: z.enum(['Bajo', 'Medio', 'Alto']).describe('Nivel de riesgo académico general'),
   riskOfDropout: z.enum(['Muy bajo', 'Bajo', 'Moderado', 'Alto', 'Muy alto']).describe('Probabilidad estimada de deserción'),
-  summary: z.string().describe('Resumen en 3-5 oraciones explicando patrones y riesgo'),
-  supportRecommendations: z.array(z.string()).describe('2-4 recomendaciones concretas y accionables'),
-  alertLevel: z.enum(['Verde', 'Amarillo', 'Naranja', 'Rojo']).describe('Nivel de alerta visual para el tutor/docente'),
+  summary: z.string().describe('Resumen de 3 a 5 oraciones explicando patrones de asistencia y notas'),
+  supportRecommendations: z.array(z.string()).describe('Recomendaciones concretas para el tutor'),
+  alertLevel: z.enum(['Verde', 'Amarillo', 'Naranja', 'Rojo']).describe('Color de alerta visual'),
 });
 
 export type AnalyzeStudentRiskOutput = z.infer<typeof AnalyzeStudentRiskOutputSchema>;
 
-// Función exportada
 export async function analyzeStudentRisk(
   input: AnalyzeStudentRiskInput
 ): Promise<AnalyzeStudentRiskOutput> {
   return analyzeStudentRiskFlow(input);
 }
 
-// Flujo principal
 const analyzeStudentRiskFlow = ai.defineFlow(
   {
     name: 'analyzeStudentRiskFlow',
@@ -59,66 +66,31 @@ const analyzeStudentRiskFlow = ai.defineFlow(
   async (input) => {
     const response = await ai.generate({
       prompt: `
-Eres un experto en retención estudiantil en universidades peruanas. Tu misión es analizar el perfil académico de un estudiante y determinar su riesgo real de deserción (decertar) durante el semestre.
+Eres un experto en retención estudiantil universitaria. Tu misión es analizar el rendimiento de un estudiante y predecir su riesgo de deserción.
 
-Analiza cuidadosamente los siguientes datos del estudiante:
+DATOS DEL ESTUDIANTE:
+- Perfil: ${JSON.stringify(input.student)}
+- Asistencias: ${JSON.stringify(input.attendance)}
+- Tareas Entregadas: ${JSON.stringify(input.submissions)}
+- Exámenes realizados: ${JSON.stringify(input.quizzes)}
 
-PERFIL:
-${JSON.stringify(input.student, null, 2)}
+CRITERIOS DE ANÁLISIS (Escala 0-20):
+1. Rendimiento Académico: Notas de tareas y exámenes. Un promedio por debajo de 11 es crítico.
+2. Compromiso: Falta de entregas de tareas o inasistencias superiores al 30%.
+3. Tendencia: ¿Las notas están bajando en las últimas semanas? ¿Hay ausencias consecutivas recientes?
 
-ASISTENCIAS (registros por curso y fecha):
-${JSON.stringify(input.attendance, null, 2)}
+TAREAS:
+- Evalúa la correlación entre la asistencia y las notas (¿faltar a clase está afectando sus exámenes?).
+- Identifica si el riesgo es puramente académico (malas notas) o de compromiso (faltas/no entregas).
+- Determina el nivel de alerta (Rojo para abandono inminente, Naranja para riesgo alto, Amarillo preventivo, Verde estable).
 
-ENTREGAS DE TAREAS / CALIFICACIONES:
-${JSON.stringify(input.submissions, null, 2)}
-
-CRITERIOS DE EVALUACIÓN DE RIESGO DE DESERCIÓN (escala peruana típica 0-20):
-- ALTO RIESGO DE DESERCIÓN (probabilidad > 60%):
-  • Más del 30% de ausencias injustificadas
-  • Promedio de asistencias < 60% en algún curso clave
-  • Varias notas por debajo de 11
-  • Tendencia clara de empeoramiento (asistencia y/o notas bajando)
-  • Ausencias consecutivas recientes (últimas 3-4 semanas)
-
-- RIESGO MEDIO (probabilidad 30-60%):
-  • 15-30% de ausencias
-  • Notas entre 11-13 en promedio
-  • Algunas ausencias consecutivas o tardanzas frecuentes
-  • Mejora o empeoramiento leve reciente
-
-- BAJO RIESGO (<30%):
-  • Asistencia > 85%
-  • Notas consistentes ≥14
-  • Sin patrones preocupantes
-
-TAREAS DEL ANÁLISIS:
-1. Calcula porcentajes reales de asistencia por curso y en general
-2. Identifica tendencias (¿está empeorando la asistencia o las notas?)
-3. Correlaciona asistencia con rendimiento académico
-4. Determina nivel de riesgo con justificación clara y objetiva
-
-Devuelve **SOLO** el siguiente JSON, sin ningún texto adicional fuera del objeto:
-{
-  "riskLevel": "Alto" | "Medio" | "Bajo",
-  "riskOfDropout": "Muy alto" | "Alto" | "Moderado" | "Bajo" | "Muy bajo",
-  "summary": "Resumen en 3-5 oraciones explicando los patrones detectados y el riesgo de deserción",
-  "supportRecommendations": [
-    "Recomendación 1 concreta y accionable",
-    "Recomendación 2...",
-    "Recomendación 3... (máximo 4)"
-  ],
-  "alertLevel": "Rojo" | "Naranja" | "Amarillo" | "Verde"
-}
+Devuelve un JSON con: riskLevel, riskOfDropout, summary, supportRecommendations y alertLevel.
       `,
       output: { schema: AnalyzeStudentRiskOutputSchema },
     });
 
     const output = response.output;
-
-    if (!output) {
-      throw new Error("No se recibió una respuesta válida del modelo.");
-    }
-
+    if (!output) throw new Error("No se recibió una respuesta válida del modelo.");
     return output as AnalyzeStudentRiskOutput;
   }
 );

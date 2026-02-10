@@ -52,6 +52,7 @@ import { Skeleton } from './ui/skeleton';
 const navItems = [
   { href: '/intranet', icon: Newspaper, label: 'Nuxtu', roles: ['student', 'professor', 'admin'] },
   { href: '/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin'] },
+  { href: '/programas', icon: GraduationCap, label: 'Programas', roles: ['admin'] },
   { href: '/cursos', icon: BookCopy, label: 'Cursos', roles: ['student', 'professor', 'admin'] },
   { href: '/app/modulos', icon: ListTree, label: 'Módulos', roles: ['admin'] },
   { href: '/alumnos', icon: Users, label: 'Alumnos', roles: ['admin'] },
@@ -64,7 +65,6 @@ const navItems = [
   { href: '/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo', roles: ['student', 'professor', 'admin'] },
   { href: '/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin'] },
   { href: '/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin'] },
-  { href: '/programas', icon: GraduationCap, label: 'Programas', roles: ['admin'] },
   { href: '/tutor-ia', icon: Wand2, label: 'Tutor IA', roles: ['professor', 'admin'] },
   { href: '/app/analitica', icon: ShieldAlert, label: 'Analítica IA', roles: ['admin'] },
   { href: '/configuracion', icon: Settings, label: 'Configuración', roles: ['admin'] },

@@ -1,12 +1,26 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useStorage, addDocumentNonBlocking } from '@/firebase';
-import { collection, query, orderBy, DocumentData } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useStorage, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, query, orderBy, DocumentData, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Megaphone, Rss, PlusCircle, Loader2, Image as ImageIcon, Video, Send, Play, X, Upload, Link as LinkIcon } from 'lucide-react';
+import { 
+  FileText, 
+  Megaphone, 
+  Rss, 
+  PlusCircle, 
+  Loader2, 
+  Image as ImageIcon, 
+  Video, 
+  Send, 
+  X, 
+  Upload, 
+  Link as LinkIcon,
+  Trash2,
+  MoreVertical
+} from 'lucide-react';
 import Summarizer from '@/components/intranet/Summarizer';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -21,6 +35,12 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Post extends DocumentData {
   id: string;
@@ -125,6 +145,12 @@ export default function IntranetPage() {
     setVideoFile(null);
     setImagePreview(null);
     form.reset();
+  };
+
+  const handleDeletePost = (postId: string) => {
+    if (!firestore) return;
+    deleteDocumentNonBlocking(doc(firestore, 'intranet_posts', postId));
+    toast({ title: "Publicación eliminada", description: "El post ha sido removido del portal." });
   };
 
   async function onSubmit(values: z.infer<typeof PostSchema>) {
@@ -319,15 +345,25 @@ export default function IntranetPage() {
                 <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
             ) : announcements.length > 0 ? (
                 announcements.map((item) => (
-                    <Alert key={item.id} className="bg-primary/5 border-primary/20">
+                    <Alert key={item.id} className="bg-primary/5 border-primary/20 relative group">
                         <Megaphone className="h-4 w-4 text-primary" />
-                        <AlertTitle className="font-headline font-bold text-primary">{item.title}</AlertTitle>
+                        <AlertTitle className="font-headline font-bold text-primary pr-8">{item.title}</AlertTitle>
                         <AlertDescription className="mt-1">
                             {item.content}
                             <div className="text-[10px] text-muted-foreground mt-2">
                                 {new Date(item.createdAt).toLocaleDateString()}
                             </div>
                         </AlertDescription>
+                        {isAdmin && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeletePost(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                     </Alert>
                 ))
             ) : (
@@ -341,20 +377,46 @@ export default function IntranetPage() {
           <div className="grid gap-6 md:grid-cols-2">
             {newsItems.length > 0 ? (
                 newsItems.map((item) => (
-                    <Card key={item.id} className="overflow-hidden transition-all hover:shadow-lg border-muted flex flex-col">
-                        {item.videoUrl ? (
-                            <VideoPlayer url={item.videoUrl} />
-                        ) : item.imageUrl ? (
-                            <div className="relative h-48 w-full">
-                                <Image 
-                                    src={item.imageUrl} 
-                                    alt={item.title} 
-                                    fill 
-                                    className="object-cover" 
-                                    data-ai-hint="campus news"
-                                />
+                    <Card key={item.id} className="overflow-hidden transition-all hover:shadow-lg border-muted flex flex-col group">
+                        <div className="relative">
+                          {item.videoUrl ? (
+                              <VideoPlayer url={item.videoUrl} />
+                          ) : item.imageUrl ? (
+                              <div className="relative h-48 w-full">
+                                  <Image 
+                                      src={item.imageUrl} 
+                                      alt={item.title} 
+                                      fill 
+                                      className="object-cover" 
+                                      data-ai-hint="campus news"
+                                  />
+                              </div>
+                          ) : (
+                            <div className="h-48 w-full bg-accent flex items-center justify-center">
+                              <ImageIcon className="h-8 w-8 text-muted-foreground" />
                             </div>
-                        ) : null}
+                          )}
+                          {isAdmin && (
+                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="secondary" size="icon" className="h-8 w-8 rounded-full shadow-md">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem 
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => handleDeletePost(item.id)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Eliminar Post
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          )}
+                        </div>
                         <CardHeader className="pb-2">
                             <CardTitle className="font-headline text-lg line-clamp-2">{item.title}</CardTitle>
                             <p className="text-[10px] text-muted-foreground">{new Date(item.createdAt).toLocaleDateString()}</p>

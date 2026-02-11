@@ -135,6 +135,16 @@
           "type": "string",
           "description": "The main content of the intranet post."
         },
+        "type": {
+          "type": "string",
+          "enum": ["announcement", "news"],
+          "description": "Category of the post."
+        },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Image URL for news items."
+        },
         "createdAt": {
           "type": "string",
           "description": "The date and time the post was created.",
@@ -145,7 +155,7 @@
           "description": "AI-generated summary of the intranet post."
         }
       },
-      "required": ["postId", "authorId", "title", "content", "createdAt"]
+      "required": ["authorId", "title", "content", "createdAt", "type"]
     },
     "VirtualClassroomCourse": {
       "title": "VirtualClassroomCourse",

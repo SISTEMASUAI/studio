@@ -6,13 +6,12 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBl
 import { collection, query, orderBy, DocumentData } from 'firebase/firestore';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Megaphone, Rss, PlusCircle, Loader2, Image as ImageIcon, Send } from 'lucide-react';
+import { FileText, Megaphone, Rss, PlusCircle, Loader2, Image as ImageIcon, Video, Send, Play } from 'lucide-react';
 import Summarizer from '@/components/intranet/Summarizer';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
@@ -27,6 +26,7 @@ interface Post extends DocumentData {
   content: string;
   type: 'announcement' | 'news';
   imageUrl?: string;
+  videoUrl?: string;
   createdAt: string;
   authorId: string;
 }
@@ -36,6 +36,7 @@ const PostSchema = z.object({
   content: z.string().min(10, "El contenido debe tener al menos 10 caracteres."),
   type: z.enum(['announcement', 'news']),
   imageUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
+  videoUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
 });
 
 const resources = [
@@ -43,6 +44,38 @@ const resources = [
     { title: 'Guía de Soporte TI', type: 'PDF' },
     { title: 'Reglamento Académico', type: 'PDF' },
 ]
+
+function VideoPlayer({ url }: { url: string }) {
+  // Detectar si es YouTube
+  const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+  
+  if (isYouTube) {
+    let videoId = '';
+    if (url.includes('v=')) {
+      videoId = url.split('v=')[1].split('&')[0];
+    } else if (url.includes('youtu.be/')) {
+      videoId = url.split('youtu.be/')[1];
+    }
+    
+    return (
+      <div className="relative aspect-video w-full rounded-md overflow-hidden bg-black">
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}`}
+          className="absolute inset-0 w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        ></iframe>
+      </div>
+    );
+  }
+
+  // Por defecto usar video nativo
+  return (
+    <div className="relative aspect-video w-full rounded-md overflow-hidden bg-black">
+      <video src={url} controls className="w-full h-full object-contain" />
+    </div>
+  );
+}
 
 export default function IntranetPage() {
   const { profile, user } = useUser();
@@ -61,7 +94,7 @@ export default function IntranetPage() {
 
   const form = useForm<z.infer<typeof PostSchema>>({
     resolver: zodResolver(PostSchema),
-    defaultValues: { title: '', content: '', type: 'news', imageUrl: '' },
+    defaultValues: { title: '', content: '', type: 'news', imageUrl: '', videoUrl: '' },
   });
 
   async function onSubmit(values: z.infer<typeof PostSchema>) {
@@ -105,7 +138,7 @@ export default function IntranetPage() {
                                     <DialogTitle>Crear Publicación</DialogTitle>
                                     <DialogDescription>Publica noticias o anuncios para toda la comunidad.</DialogDescription>
                                 </DialogHeader>
-                                <div className="py-4 space-y-4">
+                                <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                                     <FormField control={form.control} name="type" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Tipo de Publicación</FormLabel>
@@ -113,7 +146,7 @@ export default function IntranetPage() {
                                                 <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                 <SelectContent>
                                                     <SelectItem value="announcement">Anuncio (Alerta)</SelectItem>
-                                                    <SelectItem value="news">Noticia (Imagen + Texto)</SelectItem>
+                                                    <SelectItem value="news">Noticia (Imagen/Video + Texto)</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -134,18 +167,32 @@ export default function IntranetPage() {
                                         </FormItem>
                                     )} />
                                     {form.watch('type') === 'news' && (
-                                        <FormField control={form.control} name="imageUrl" render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>URL de la Imagen</FormLabel>
-                                                <FormControl>
-                                                    <div className="flex gap-2">
-                                                        <Input placeholder="https://ejemplo.com/foto.jpg" {...field} />
-                                                        <Button type="button" variant="outline" size="icon" title="Sube imágenes a un servidor externo y pega el link aquí."><ImageIcon className="h-4 w-4"/></Button>
-                                                    </div>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )} />
+                                        <>
+                                            <FormField control={form.control} name="imageUrl" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>URL de la Imagen (Opcional)</FormLabel>
+                                                    <FormControl>
+                                                        <div className="flex gap-2">
+                                                            <Input placeholder="https://ejemplo.com/foto.jpg" {...field} />
+                                                            <Button type="button" variant="outline" size="icon"><ImageIcon className="h-4 w-4"/></Button>
+                                                        </div>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                            <FormField control={form.control} name="videoUrl" render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>URL del Video (YouTube o enlace directo)</FormLabel>
+                                                    <FormControl>
+                                                        <div className="flex gap-2">
+                                                            <Input placeholder="https://www.youtube.com/watch?v=..." {...field} />
+                                                            <Button type="button" variant="outline" size="icon"><Video className="h-4 w-4"/></Button>
+                                                        </div>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                        </>
                                     )}
                                 </div>
                                 <DialogFooter>
@@ -191,8 +238,10 @@ export default function IntranetPage() {
           <div className="grid gap-6 md:grid-cols-2">
             {newsItems.length > 0 ? (
                 newsItems.map((item) => (
-                    <Card key={item.id} className="overflow-hidden transition-all hover:shadow-lg border-muted">
-                        {item.imageUrl && (
+                    <Card key={item.id} className="overflow-hidden transition-all hover:shadow-lg border-muted flex flex-col">
+                        {item.videoUrl ? (
+                            <VideoPlayer url={item.videoUrl} />
+                        ) : item.imageUrl ? (
                             <div className="relative h-48 w-full">
                                 <Image 
                                     src={item.imageUrl} 
@@ -202,12 +251,12 @@ export default function IntranetPage() {
                                     data-ai-hint="campus news"
                                 />
                             </div>
-                        )}
+                        ) : null}
                         <CardHeader className="pb-2">
                             <CardTitle className="font-headline text-lg line-clamp-2">{item.title}</CardTitle>
                             <p className="text-[10px] text-muted-foreground">{new Date(item.createdAt).toLocaleDateString()}</p>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="flex-grow">
                             <p className="text-sm text-muted-foreground line-clamp-3">{item.content}</p>
                         </CardContent>
                     </Card>

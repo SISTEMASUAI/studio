@@ -145,6 +145,11 @@
           "format": "uri",
           "description": "Image URL for news items."
         },
+        "videoUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "Video URL for news items (YouTube or direct link)."
+        },
         "createdAt": {
           "type": "string",
           "description": "The date and time the post was created.",

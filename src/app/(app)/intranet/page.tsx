@@ -1,12 +1,12 @@
-
 'use client';
 
-import { useState } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useState, useRef } from 'react';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useStorage, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, orderBy, DocumentData } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Megaphone, Rss, PlusCircle, Loader2, Image as ImageIcon, Video, Send, Play } from 'lucide-react';
+import { FileText, Megaphone, Rss, PlusCircle, Loader2, Image as ImageIcon, Video, Send, Play, X, Upload, Link as LinkIcon } from 'lucide-react';
 import Summarizer from '@/components/intranet/Summarizer';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -14,11 +14,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
 
 interface Post extends DocumentData {
   id: string;
@@ -35,8 +37,7 @@ const PostSchema = z.object({
   title: z.string().min(5, "El título debe tener al menos 5 caracteres."),
   content: z.string().min(10, "El contenido debe tener al menos 10 caracteres."),
   type: z.enum(['announcement', 'news']),
-  imageUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
-  videoUrl: z.string().url("Debe ser una URL válida.").optional().or(z.literal('')),
+  videoUrl: z.string().optional(),
 });
 
 const resources = [
@@ -46,7 +47,6 @@ const resources = [
 ]
 
 function VideoPlayer({ url }: { url: string }) {
-  // Detectar si es YouTube
   const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
   
   if (isYouTube) {
@@ -69,7 +69,6 @@ function VideoPlayer({ url }: { url: string }) {
     );
   }
 
-  // Por defecto usar video nativo
   return (
     <div className="relative aspect-video w-full rounded-md overflow-hidden bg-black">
       <video src={url} controls className="w-full h-full object-contain" />
@@ -80,8 +79,17 @@ function VideoPlayer({ url }: { url: string }) {
 export default function IntranetPage() {
   const { profile, user } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
   const { toast } = useToast();
+  
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoMethod, setVideoMethod] = useState<'upload' | 'link'>('upload');
+  
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const postsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -94,24 +102,66 @@ export default function IntranetPage() {
 
   const form = useForm<z.infer<typeof PostSchema>>({
     resolver: zodResolver(PostSchema),
-    defaultValues: { title: '', content: '', type: 'news', imageUrl: '', videoUrl: '' },
+    defaultValues: { title: '', content: '', type: 'news', videoUrl: '' },
   });
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setVideoFile(file);
+  };
+
+  const clearFiles = () => {
+    setImageFile(null);
+    setVideoFile(null);
+    setImagePreview(null);
+    form.reset();
+  };
+
   async function onSubmit(values: z.infer<typeof PostSchema>) {
-    if (!firestore || !user) return;
+    if (!firestore || !user || !storage) return;
+    
     try {
+      let imageUrl = '';
+      let videoUrl = values.videoUrl || '';
+
+      if (imageFile) {
+        const imageRef = ref(storage, `intranet/images/${Date.now()}_${imageFile.name}`);
+        const snapshot = await uploadBytes(imageRef, imageFile);
+        imageUrl = await getDownloadURL(snapshot.ref);
+      }
+
+      if (videoMethod === 'upload' && videoFile) {
+        const videoRef = ref(storage, `intranet/videos/${Date.now()}_${videoFile.name}`);
+        const snapshot = await uploadBytes(videoRef, videoFile);
+        videoUrl = await getDownloadURL(snapshot.ref);
+      }
+
       const postData = {
         ...values,
+        imageUrl,
+        videoUrl,
         authorId: user.uid,
         createdAt: new Date().toISOString(),
       };
+
       await addDocumentNonBlocking(collection(firestore, 'intranet_posts'), postData);
+      
       toast({ title: "Publicación Exitosa", description: "El contenido ha sido publicado en el portal." });
-      form.reset();
+      clearFiles();
       setIsCreateOpen(false);
     } catch (error) {
       console.error("Error creating post:", error);
-      toast({ variant: 'destructive', title: "Error", description: "No se pudo publicar el contenido." });
+      toast({ variant: 'destructive', title: "Error", description: "No se pudo publicar el contenido. Revisa tu conexión." });
     }
   }
 
@@ -123,29 +173,29 @@ export default function IntranetPage() {
       <div className="lg:col-span-2 space-y-8">
         <section className="flex justify-between items-start">
             <div>
-                <h1 className="text-3xl font-bold font-headline">Portal Nuxtu</h1>
-                <p className="text-muted-foreground">Tu centro de comunicación para todo el campus.</p>
+                <h1 className="text-3xl font-bold font-headline text-primary">Portal Nuxtu</h1>
+                <p className="text-muted-foreground">Centro de noticias y comunicaciones oficiales.</p>
             </div>
             {isAdmin && (
-                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if(!open) clearFiles(); }}>
                     <DialogTrigger asChild>
                         <Button><PlusCircle className="mr-2"/> Nuevo Post</Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-xl">
+                    <DialogContent className="sm:max-w-2xl">
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)}>
                                 <DialogHeader>
                                     <DialogTitle>Crear Publicación</DialogTitle>
-                                    <DialogDescription>Publica noticias o anuncios para toda la comunidad.</DialogDescription>
+                                    <DialogDescription>Sube archivos multimedia directamente desde tu equipo.</DialogDescription>
                                 </DialogHeader>
-                                <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                                <div className="py-4 space-y-6 max-h-[75vh] overflow-y-auto pr-2">
                                     <FormField control={form.control} name="type" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Tipo de Publicación</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="announcement">Anuncio (Alerta)</SelectItem>
+                                                    <SelectItem value="announcement">Anuncio (Alerta de texto)</SelectItem>
                                                     <SelectItem value="news">Noticia (Imagen/Video + Texto)</SelectItem>
                                                 </SelectContent>
                                             </Select>
@@ -155,51 +205,104 @@ export default function IntranetPage() {
                                     <FormField control={form.control} name="title" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Título</FormLabel>
-                                            <FormControl><Input placeholder="Título llamativo..." {...field} /></FormControl>
+                                            <FormControl><Input placeholder="Escribe un título impactante..." {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
                                     <FormField control={form.control} name="content" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Contenido</FormLabel>
-                                            <FormControl><Textarea placeholder="Escribe el cuerpo de la publicación..." className="min-h-[120px]" {...field} /></FormControl>
+                                            <FormControl><Textarea placeholder="Desarrolla la noticia aquí..." className="min-h-[120px]" {...field} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
+
                                     {form.watch('type') === 'news' && (
-                                        <>
-                                            <FormField control={form.control} name="imageUrl" render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>URL de la Imagen (Opcional)</FormLabel>
-                                                    <FormControl>
-                                                        <div className="flex gap-2">
-                                                            <Input placeholder="https://ejemplo.com/foto.jpg" {...field} />
-                                                            <Button type="button" variant="outline" size="icon"><ImageIcon className="h-4 w-4"/></Button>
+                                        <div className="space-y-6 border-t pt-4">
+                                            <div className="space-y-3">
+                                                <Label className="flex items-center gap-2"><ImageIcon className="h-4 w-4"/> Imagen de Portada</Label>
+                                                <div className="flex items-center gap-4">
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="outline" 
+                                                        onClick={() => imageInputRef.current?.click()}
+                                                        className="w-full h-24 border-dashed flex flex-col gap-2"
+                                                    >
+                                                        <Upload className="h-6 w-6 opacity-50" />
+                                                        <span>{imageFile ? 'Cambiar Imagen' : 'Seleccionar Imagen'}</span>
+                                                    </Button>
+                                                    <input 
+                                                        ref={imageInputRef} 
+                                                        type="file" 
+                                                        accept="image/*" 
+                                                        className="hidden" 
+                                                        onChange={handleImageChange} 
+                                                    />
+                                                    {imagePreview && (
+                                                        <div className="relative h-24 w-32 rounded-md overflow-hidden border">
+                                                            <Image src={imagePreview} alt="Preview" fill className="object-cover" />
+                                                            <button 
+                                                                onClick={() => { setImageFile(null); setImagePreview(null); }}
+                                                                className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5"
+                                                            >
+                                                                <X className="h-3 w-3" />
+                                                            </button>
                                                         </div>
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )} />
-                                            <FormField control={form.control} name="videoUrl" render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>URL del Video (YouTube o enlace directo)</FormLabel>
-                                                    <FormControl>
-                                                        <div className="flex gap-2">
-                                                            <Input placeholder="https://www.youtube.com/watch?v=..." {...field} />
-                                                            <Button type="button" variant="outline" size="icon"><Video className="h-4 w-4"/></Button>
-                                                        </div>
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )} />
-                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <Label className="flex items-center gap-2"><Video className="h-4 w-4"/> Video del Post (Opcional)</Label>
+                                                <Tabs value={videoMethod} onValueChange={(v) => setVideoMethod(v as any)}>
+                                                    <TabsList className="grid w-full grid-cols-2">
+                                                        <TabsTrigger value="upload"><Upload className="h-3 w-3 mr-2"/>Subir Archivo</TabsTrigger>
+                                                        <TabsTrigger value="link"><LinkIcon className="h-3 w-3 mr-2"/>Link YouTube</TabsTrigger>
+                                                    </TabsList>
+                                                    <TabsContent value="upload" className="pt-2">
+                                                        <Button 
+                                                            type="button" 
+                                                            variant="outline" 
+                                                            onClick={() => videoInputRef.current?.click()}
+                                                            className="w-full h-12 border-dashed"
+                                                        >
+                                                            {videoFile ? `Seleccionado: ${videoFile.name}` : 'Seleccionar video (.mp4, .mov)'}
+                                                        </Button>
+                                                        <input 
+                                                            ref={videoInputRef} 
+                                                            type="file" 
+                                                            accept="video/*" 
+                                                            className="hidden" 
+                                                            onChange={handleVideoChange} 
+                                                        />
+                                                    </TabsContent>
+                                                    <TabsContent value="link" className="pt-2">
+                                                        <FormField control={form.control} name="videoUrl" render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormControl><Input placeholder="Pegar URL de YouTube..." {...field} /></FormControl>
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )} />
+                                                    </TabsContent>
+                                                </Tabs>
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
                                 <DialogFooter>
                                     <Button variant="outline" type="button" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
                                     <Button type="submit" disabled={form.formState.isSubmitting}>
-                                        {form.formState.isSubmitting ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
-                                        Publicar ahora
+                                        {form.formState.isSubmitting ? (
+                                            <>
+                                                <Loader2 className="mr-2 animate-spin h-4 w-4" />
+                                                Subiendo archivos...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Send className="mr-2 h-4 w-4" />
+                                                Publicar ahora
+                                            </>
+                                        )}
                                     </Button>
                                 </DialogFooter>
                             </form>

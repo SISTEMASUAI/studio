@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
+import { useUser, useCollection, useMemoFirebase, useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -47,10 +47,47 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { collection, query, orderBy, DocumentData } from 'firebase/firestore';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from '@/components/ui/textarea';
+import { collection, query, orderBy, DocumentData, doc } from 'firebase/firestore';
 import { useState, useEffect } from 'react';
 import { matchJobs } from '@/ai/flows/match-jobs-flow';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useToast } from '@/hooks/use-toast';
+
+const JobOfferSchema = z.object({
+  title: z.string().min(5, "El título debe tener al menos 5 caracteres."),
+  company: z.string().min(2, "El nombre de la empresa es requerido."),
+  location: z.string().min(2, "La ubicación es requerida."),
+  type: z.enum(["Full-time", "Part-time", "Internship"]),
+  description: z.string().min(20, "La descripción debe ser más detallada."),
+});
 
 interface JobOffer extends DocumentData {
   id: string;
@@ -283,11 +320,76 @@ function JobBoardView() {
 
 function AdminJobBoardView() {
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<JobOffer | null>(null);
+
   const jobsQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'job_offers'), orderBy('postedAt', 'desc')) : null),
     [firestore]
   );
-  const { data: jobs } = useCollection<JobOffer>(jobsQuery);
+  const { data: jobs, isLoading } = useCollection<JobOffer>(jobsQuery);
+
+  const form = useForm<z.infer<typeof JobOfferSchema>>({
+    resolver: zodResolver(JobOfferSchema),
+    defaultValues: {
+      title: "",
+      company: "",
+      location: "",
+      type: "Full-time",
+      description: "",
+    },
+  });
+
+  const editForm = useForm<z.infer<typeof JobOfferSchema>>({
+    resolver: zodResolver(JobOfferSchema),
+  });
+
+  const handleCreate = async (values: z.infer<typeof JobOfferSchema>) => {
+    if (!firestore) return;
+    try {
+      await addDocumentNonBlocking(collection(firestore, "job_offers"), {
+        ...values,
+        postedAt: new Date().toISOString(),
+      });
+      toast({ title: "Oferta publicada", description: "La oportunidad laboral ya es visible para los alumnos." });
+      form.reset();
+      setIsCreateOpen(false);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "No se pudo crear la oferta." });
+    }
+  };
+
+  const handleEdit = async (values: z.infer<typeof JobOfferSchema>) => {
+    if (!firestore || !selectedJob) return;
+    try {
+      await updateDocumentNonBlocking(doc(firestore, "job_offers", selectedJob.id), values);
+      toast({ title: "Oferta actualizada", description: "Los cambios han sido guardados." });
+      setIsEditOpen(false);
+      setSelectedJob(null);
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "No se pudieron guardar los cambios." });
+    }
+  };
+
+  const handleDelete = (jobId: string) => {
+    if (!firestore) return;
+    deleteDocumentNonBlocking(doc(firestore, "job_offers", jobId));
+    toast({ title: "Oferta eliminada", description: "La vacante ha sido removida del sistema." });
+  };
+
+  const openEdit = (job: JobOffer) => {
+    setSelectedJob(job);
+    editForm.reset({
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      type: job.type as any,
+      description: job.description,
+    });
+    setIsEditOpen(true);
+  };
 
   return (
     <div className="space-y-8">
@@ -303,7 +405,55 @@ function AdminJobBoardView() {
               </CardDescription>
             </div>
             <div className="flex gap-2 w-full sm:w-auto">
-                <Button className="shadow-md font-bold"><PlusCircle className="mr-2 h-4 w-4" /> Nueva Oferta</Button>
+                <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="shadow-md font-bold"><PlusCircle className="mr-2 h-4 w-4" /> Nueva Oferta</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-2xl">
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(handleCreate)}>
+                        <DialogHeader>
+                          <DialogTitle>Publicar Nueva Vacante</DialogTitle>
+                          <DialogDescription>Completa los detalles del puesto para los estudiantes.</DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                          <FormField control={form.control} name="title" render={({ field }) => (
+                            <FormItem><FormLabel>Título del Puesto</FormLabel><FormControl><Input placeholder="Ej: Practicante de Ingeniería" {...field} /></FormControl><FormMessage /></FormItem>
+                          )} />
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField control={form.control} name="company" render={({ field }) => (
+                              <FormItem><FormLabel>Empresa</FormLabel><FormControl><Input placeholder="Nombre de la empresa" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={form.control} name="location" render={({ field }) => (
+                              <FormItem><FormLabel>Ubicación</FormLabel><FormControl><Input placeholder="Ej: Lima, Perú (Híbrido)" {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                          </div>
+                          <FormField control={form.control} name="type" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Tipo de Jornada</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Full-time">Tiempo Completo</SelectItem>
+                                  <SelectItem value="Part-time">Medio Tiempo</SelectItem>
+                                  <SelectItem value="Internship">Pasantía / Prácticas</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                          <FormField control={form.control} name="description" render={({ field }) => (
+                            <FormItem><FormLabel>Descripción y Requisitos</FormLabel><FormControl><Textarea className="min-h-[120px]" placeholder="Detalla las responsabilidades y habilidades requeridas..." {...field} /></FormControl><FormMessage /></FormItem>
+                          )} />
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" type="button" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
+                          <Button type="submit">Publicar Oferta</Button>
+                        </DialogFooter>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
                 <Button variant="outline" className="bg-background"><BarChart className="mr-2 h-4 w-4" /> Stats</Button>
             </div>
           </div>
@@ -319,31 +469,85 @@ function AdminJobBoardView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {jobs?.map(offer => (
-                  <TableRow key={offer.id}>
-                    <TableCell>
-                      <div className="font-bold">{offer.title}</div>
-                      <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{offer.type}</div>
-                    </TableCell>
-                    <TableCell className="font-medium">{offer.company}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{new Date(offer.postedAt).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal/></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem><Edit className="mr-2 h-4 w-4"/> Editar Oferta</DropdownMenuItem>
-                          <DropdownMenuItem><Search className="mr-2 h-4 w-4"/> Ver Postulantes</DropdownMenuItem>
-                          <DropdownMenuSeparator/>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10"><Trash2 className="mr-2 h-4 w-4"/> Eliminar</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={4} className="text-center py-10"><Loader2 className="animate-spin mx-auto" /></TableCell></TableRow>
+                ) : jobs && jobs.length > 0 ? (
+                  jobs.map(offer => (
+                    <TableRow key={offer.id}>
+                      <TableCell>
+                        <div className="font-bold">{offer.title}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{offer.type}</div>
+                      </TableCell>
+                      <TableCell className="font-medium">{offer.company}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{new Date(offer.postedAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreHorizontal/></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => openEdit(offer)}><Edit className="mr-2 h-4 w-4"/> Editar Oferta</DropdownMenuItem>
+                            <DropdownMenuItem disabled><Search className="mr-2 h-4 w-4"/> Ver Postulantes</DropdownMenuItem>
+                            <DropdownMenuSeparator/>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDelete(offer.id)}><Trash2 className="mr-2 h-4 w-4"/> Eliminar</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow><TableCell colSpan={4} className="text-center py-10 text-muted-foreground">No hay ofertas registradas.</TableCell></TableRow>
+                )}
               </TableBody>
             </Table>
         </CardContent>
       </Card>
+
+      {/* Dialogo de Edición */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(handleEdit)}>
+              <DialogHeader>
+                <DialogTitle>Editar Vacante</DialogTitle>
+                <DialogDescription>Modifica los detalles de la oferta laboral.</DialogDescription>
+              </DialogHeader>
+              <div className="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                <FormField control={editForm.control} name="title" render={({ field }) => (
+                  <FormItem><FormLabel>Título del Puesto</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={editForm.control} name="company" render={({ field }) => (
+                    <FormItem><FormLabel>Empresa</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={editForm.control} name="location" render={({ field }) => (
+                    <FormItem><FormLabel>Ubicación</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
+                <FormField control={editForm.control} name="type" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de Jornada</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="Full-time">Tiempo Completo</SelectItem>
+                        <SelectItem value="Part-time">Medio Tiempo</SelectItem>
+                        <SelectItem value="Internship">Pasantía / Prácticas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={editForm.control} name="description" render={({ field }) => (
+                  <FormItem><FormLabel>Descripción y Requisitos</FormLabel><FormControl><Textarea className="min-h-[120px]" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
+                <Button type="submit">Guardar Cambios</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -371,9 +575,9 @@ export default function JobBoardPage() {
           </h1>
         </div>
         <p className="text-muted-foreground text-lg font-medium pl-1">
-          {profile?.role === 'student'
-            ? 'Tu próximo paso profesional comienza aquí.'
-            : 'Gestiona las oportunidades de carrera para la comunidad.'}
+          {profile?.role === 'admin'
+            ? 'Gestiona las oportunidades de carrera para la comunidad.'
+            : 'Tu próximo paso profesional comienza aquí.'}
         </p>
       </header>
 

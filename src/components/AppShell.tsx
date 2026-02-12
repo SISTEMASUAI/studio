@@ -1,3 +1,4 @@
+
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -22,6 +23,7 @@ import {
   ListTree,
   Wand2,
   ShieldAlert,
+  FileText,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -54,6 +56,7 @@ const navItems = [
   { href: '/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin'] },
   { href: '/programas', icon: GraduationCap, label: 'Programas', roles: ['admin'] },
   { href: '/cursos', icon: BookCopy, label: 'Cursos', roles: ['student', 'professor', 'admin'] },
+  { href: '/curriculum', icon: FileText, label: 'Mi Currículum', roles: ['student'] },
   { href: '/app/modulos', icon: ListTree, label: 'Módulos', roles: ['admin'] },
   { href: '/alumnos', icon: Users, label: 'Alumnos', roles: ['admin'] },
   { href: '/asistencia', icon: UserCheck, label: 'Asistencia', roles: ['professor', 'admin'] },

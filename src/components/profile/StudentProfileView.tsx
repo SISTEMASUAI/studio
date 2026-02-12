@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useFirestore, updateDocumentNonBlocking } from '@/firebase';
@@ -72,8 +71,12 @@ export default function StudentProfileView() {
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid sm:grid-cols-2 gap-6">
                   <FormItem>
-                    <FormLabel className="flex items-center gap-2"><Mail className="h-4 w-4" /> Email Institucional</Label>
-                    <Input value={profile.email} disabled className="bg-muted" />
+                    <FormLabel className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" /> Email Institucional
+                    </FormLabel>
+                    <FormControl>
+                      <Input value={profile.email} disabled className="bg-muted" />
+                    </FormControl>
                   </FormItem>
                   
                   <FormField

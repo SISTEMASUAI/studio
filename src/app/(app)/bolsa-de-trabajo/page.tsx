@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useUser, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
@@ -11,6 +10,14 @@ import {
   CardTitle,
   CardFooter,
 } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Briefcase,
   Search,
@@ -41,7 +48,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { collection, query, orderBy, DocumentData } from 'firebase/firestore';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { matchJobs } from '@/ai/flows/match-jobs-flow';
 import Link from 'next/link';
 

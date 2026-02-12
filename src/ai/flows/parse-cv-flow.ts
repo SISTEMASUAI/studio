@@ -40,7 +40,7 @@ const parseCVFlow = ai.defineFlow(
   },
   async input => {
     const response = await ai.generate({
-      model: 'googleai/gemini-1.5-flash-latest',
+      model: 'googleai/gemini-1.5-flash',
       prompt: [
         { media: { url: input.pdfDataUri, contentType: 'application/pdf' } },
         { text: `You are an expert recruiter and career coach.

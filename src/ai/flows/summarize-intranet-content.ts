@@ -33,7 +33,7 @@ const summarizeIntranetContentFlow = ai.defineFlow(
   },
   async (input) => {
     const response = await ai.generate({
-      model: 'googleai/gemini-1.5-flash-latest',
+      model: 'googleai/gemini-1.5-flash',
       prompt: `
 Eres un asistente experto en resumir información interna de una universidad.
 

@@ -7,7 +7,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Upload, Loader2, Download, AlertCircle, CheckCircle2, Sparkles, Save } from 'lucide-react';
+import { FileText, Upload, Loader2, Download, AlertCircle, CheckCircle2, Sparkles, Save, GraduationCap, Briefcase } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
@@ -150,9 +150,9 @@ export default function CurriculumPage() {
       });
     } catch (error) {
       toast({
-        variant: 'destructive',
-        title: 'Error al guardar',
-        description: 'Hubo un problema al guardar tus datos.',
+        variant: "destructive",
+        title: "Error al guardar",
+        description: "Hubo un problema al guardar tus datos.",
       });
     }
   };
@@ -170,47 +170,60 @@ export default function CurriculumPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20">
-      <section>
-        <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
-          <FileText className="text-primary" />
-          Mi Perfil Profesional con IA
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Sube tu CV para que la IA autocomplete tu perfil. Podrás editar los campos manualmente después.
-        </p>
+    <div className="max-w-6xl mx-auto space-y-8 pb-20 px-4">
+      <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
+            <FileText className="text-primary" />
+            Perfil Profesional Inteligente
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Optimiza tu perfil con nuestra IA para destacar en la bolsa de trabajo.
+          </p>
+        </div>
+        <div className="flex gap-2">
+           {profile?.cvUrl && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={profile.cvUrl} target="_blank" rel="noopener noreferrer">
+                    <Download className="mr-2 h-4 w-4" /> Ver PDF actual
+                  </a>
+                </Button>
+              )}
+        </div>
       </section>
 
-      <div className="grid gap-8 lg:grid-cols-3">
+      <div className="grid gap-8 lg:grid-cols-4">
+        {/* Sidebar de subida */}
         <div className="lg:col-span-1 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Archivo CV (PDF)</CardTitle>
-              <CardDescription>Sube tu documento para análisis.</CardDescription>
+          <Card className="border-primary/10 shadow-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg">Tu Archivo CV</CardTitle>
+              <CardDescription>Formatos aceptados: PDF</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="group relative cursor-pointer border-2 border-dashed rounded-xl p-8 transition-colors hover:border-primary/50 hover:bg-primary/5 flex flex-col items-center text-center gap-3"
+                className="group relative cursor-pointer border-2 border-dashed rounded-xl p-6 transition-all hover:border-primary/50 hover:bg-primary/5 flex flex-col items-center text-center gap-3"
               >
                 {isUploading || isAnalyzing ? (
                   <>
                     <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                    <p className="text-sm font-medium animate-pulse">
-                      {isUploading ? 'Subiendo archivo...' : 'IA Analizando CV...'}
+                    <p className="text-xs font-medium animate-pulse">
+                      {isUploading ? 'Subiendo...' : 'IA Analizando...'}
                     </p>
                   </>
                 ) : profile?.cvUrl ? (
                   <>
-                    <CheckCircle2 className="h-10 w-10 text-green-500" />
-                    <p className="text-sm font-medium text-green-600">CV Cargado</p>
-                    <p className="text-xs text-muted-foreground">Haz clic para reemplazar</p>
+                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
+                      <CheckCircle2 className="h-6 w-6 text-green-600" />
+                    </div>
+                    <p className="text-xs font-semibold text-green-700">Archivo en la nube</p>
+                    <p className="text-[10px] text-muted-foreground px-2">Haz clic para reemplazar tu CV</p>
                   </>
                 ) : (
                   <>
                     <Upload className="h-10 w-10 text-muted-foreground group-hover:text-primary transition-colors" />
-                    <p className="text-sm font-medium">Subir PDF</p>
-                    <p className="text-xs text-muted-foreground">Máximo 5MB</p>
+                    <p className="text-xs font-medium">Sube tu PDF aquí</p>
                   </>
                 )}
                 <input
@@ -223,96 +236,63 @@ export default function CurriculumPage() {
                 />
               </div>
 
-              {profile?.cvUrl && (
-                <Button variant="outline" className="w-full" asChild>
-                  <a href={profile.cvUrl} target="_blank" rel="noopener noreferrer">
-                    <Download className="mr-2 h-4 w-4" /> Descargar mi PDF
-                  </a>
-                </Button>
-              )}
-
-              <Alert className="bg-primary/5 border-primary/20">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <AlertTitle className="text-xs font-bold text-primary uppercase tracking-wider">Tip IA</AlertTitle>
-                <AlertDescription className="text-xs leading-relaxed">
-                  Nuestra IA extrae experiencia, habilidades y educación para facilitar tu postulación a ofertas.
-                </AlertDescription>
-              </Alert>
+              <div className="bg-primary/5 rounded-lg p-4 border border-primary/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-xs font-bold text-primary uppercase">Asistente IA</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Al subir tu CV, Gemini extraerá automáticamente tu experiencia para ahorrarte tiempo.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Perfil Extraído
-              </CardTitle>
-              <CardDescription>
-                Revisa y completa los campos. Lo que no detecte la IA, complétalo manualmente.
-              </CardDescription>
+        {/* Formulario Principal */}
+        <div className="lg:col-span-3">
+          <Card className="shadow-md">
+            <CardHeader className="border-b bg-muted/30">
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                    Información Profesional
+                  </CardTitle>
+                  <CardDescription>
+                    Revisa y ajusta los datos que la IA ha detectado.
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSaveProfile)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="professionalTitle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Título Profesional / Headline</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ej: Desarrollador Web Full Stack | Estudiante de Software" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="summary"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Resumen Profesional</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Breve descripción de quién eres y tus objetivos..." 
-                            className="min-h-[100px]" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="skills"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Habilidades (separadas por comas)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="React, Node.js, Inglés Avanzado, Liderazgo..." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid md:grid-cols-2 gap-6">
+                <form onSubmit={form.handleSubmit(onSaveProfile)} className="space-y-8">
+                  <div className="grid gap-6">
                     <FormField
                       control={form.control}
-                      name="experience"
+                      name="professionalTitle"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Experiencia Laboral</FormLabel>
+                          <FormLabel className="text-base font-bold">Título / Headline</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Ej: Desarrollador Full Stack | Estudiante de Ingeniería" className="h-12 text-lg shadow-sm" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="summary"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-base font-bold">Resumen Ejecutivo</FormLabel>
                           <FormControl>
                             <Textarea 
-                              placeholder="Resume tu experiencia..." 
-                              className="min-h-[150px]" 
+                              placeholder="Breve descripción de tu perfil profesional..." 
+                              className="min-h-[120px] text-base leading-relaxed resize-y shadow-sm" 
                               {...field} 
                             />
                           </FormControl>
@@ -323,26 +303,70 @@ export default function CurriculumPage() {
 
                     <FormField
                       control={form.control}
-                      name="education"
+                      name="skills"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Educación</FormLabel>
+                          <FormLabel className="text-base font-bold">Habilidades clave</FormLabel>
                           <FormControl>
-                            <Textarea 
-                              placeholder="Resumen de estudios..." 
-                              className="min-h-[150px]" 
-                              {...field} 
-                            />
+                            <Input placeholder="Java, SQL, Liderazgo, Agile..." className="h-11 shadow-sm" {...field} />
                           </FormControl>
+                          <FormDescription className="text-xs">Separa tus habilidades con comas.</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
+
+                    <div className="space-y-8 pt-4">
+                      <FormField
+                        control={form.control}
+                        name="experience"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base font-bold flex items-center gap-2">
+                              <Briefcase className="h-4 w-4 text-primary" />
+                              Trayectoria Laboral
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Detalla tus roles anteriores..." 
+                                className="min-h-[200px] text-sm leading-relaxed shadow-sm font-sans" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="education"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-base font-bold flex items-center gap-2">
+                              <GraduationCap className="h-4 w-4 text-primary" />
+                              Formación Académica
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Títulos, cursos y certificaciones..." 
+                                className="min-h-[180px] text-sm leading-relaxed shadow-sm font-sans" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                   </div>
 
-                  <div className="pt-4 border-t flex justify-end">
-                    <Button type="submit" size="lg" className="px-8 shadow-lg">
-                      <Save className="mr-2 h-4 w-4" />
+                  <div className="pt-6 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <p className="text-xs text-muted-foreground italic">
+                      Última actualización: {profile?.cvLastUpdated ? new Date(profile.cvLastUpdated).toLocaleString() : 'Nunca'}
+                    </p>
+                    <Button type="submit" size="lg" className="w-full sm:w-auto px-10 shadow-lg transition-transform active:scale-95">
+                      <Save className="mr-2 h-5 w-5" />
                       Guardar Perfil Profesional
                     </Button>
                   </div>

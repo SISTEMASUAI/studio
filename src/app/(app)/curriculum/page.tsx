@@ -1,15 +1,31 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useUser, useFirestore, useStorage, updateDocumentNonBlocking } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Upload, Loader2, Download, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { FileText, Upload, Loader2, Download, AlertCircle, CheckCircle2, Sparkles, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { parseCV, ParseCVOutput } from '@/ai/flows/parse-cv-flow';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+const CurriculumSchema = z.object({
+  professionalTitle: z.string().min(2, "El título es requerido."),
+  summary: z.string().min(10, "El resumen debe ser más extenso."),
+  skills: z.string().describe("Habilidades separadas por comas"),
+  experience: z.string(),
+  education: z.string(),
+});
 
 export default function CurriculumPage() {
   const { profile, user } = useUser();
@@ -17,7 +33,65 @@ export default function CurriculumPage() {
   const storage = useStorage();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const form = useForm<z.infer<typeof CurriculumSchema>>({
+    resolver: zodResolver(CurriculumSchema),
+    defaultValues: {
+      professionalTitle: '',
+      summary: '',
+      skills: '',
+      experience: '',
+      education: '',
+    },
+  });
+
+  useEffect(() => {
+    if (profile) {
+      form.reset({
+        professionalTitle: profile.professionalTitle || '',
+        summary: profile.summary || '',
+        skills: profile.skills?.join(', ') || '',
+        experience: profile.experience || '',
+        education: profile.education || '',
+      });
+    }
+  }, [profile, form]);
+
+  const handleFileAnalysis = async (file: File) => {
+    setIsAnalyzing(true);
+    try {
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+      const dataUri = await base64Promise;
+
+      const aiResult = await parseCV({ pdfDataUri: dataUri });
+      
+      form.setValue('professionalTitle', aiResult.professionalTitle);
+      form.setValue('summary', aiResult.summary);
+      form.setValue('skills', aiResult.skills.join(', '));
+      form.setValue('experience', aiResult.experience);
+      form.setValue('education', aiResult.education);
+
+      toast({
+        title: "¡Análisis completado!",
+        description: "Hemos extraído la información de tu CV. Por favor, revísala.",
+      });
+    } catch (error) {
+      console.error('AI Analysis failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error de análisis',
+        description: 'No pudimos analizar el PDF automáticamente, pero aún puedes completar los campos manualmente.',
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -34,29 +108,52 @@ export default function CurriculumPage() {
 
     setIsUploading(true);
     try {
+      // 1. Upload to Storage
       const storageRef = ref(storage, `users/${user.uid}/curriculum/cv_${user.uid}.pdf`);
       const snapshot = await uploadBytes(storageRef, file);
       const downloadUrl = await getDownloadURL(snapshot.ref);
 
+      // 2. Save file URL to profile
       const userDocRef = doc(firestore, 'users', user.uid);
       await updateDocumentNonBlocking(userDocRef, {
         cvUrl: downloadUrl,
         cvLastUpdated: new Date().toISOString(),
       });
 
-      toast({
-        title: '¡Currículum actualizado!',
-        description: 'Tu CV ha sido subido correctamente.',
-      });
+      // 3. Trigger AI Analysis
+      await handleFileAnalysis(file);
+
     } catch (error) {
       console.error('Upload failed:', error);
       toast({
         variant: 'destructive',
         title: 'Error al subir',
-        description: 'No se pudo completar la subida. Inténtalo de nuevo.',
+        description: 'No se pudo completar la subida.',
       });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const onSaveProfile = async (values: z.infer<typeof CurriculumSchema>) => {
+    if (!firestore || !user) return;
+    try {
+      const skillsArray = values.skills.split(',').map(s => s.trim()).filter(s => s !== '');
+      const userDocRef = doc(firestore, 'users', user.uid);
+      await updateDocumentNonBlocking(userDocRef, {
+        ...values,
+        skills: skillsArray,
+      });
+      toast({
+        title: "Currículum guardado",
+        description: "Tu perfil profesional ha sido actualizado.",
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error al guardar',
+        description: 'Hubo un problema al guardar tus datos.',
+      });
     }
   };
 
@@ -73,89 +170,188 @@ export default function CurriculumPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8 pb-20">
       <section>
         <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
           <FileText className="text-primary" />
-          Mi Currículum Profesional
+          Mi Perfil Profesional con IA
         </h1>
         <p className="text-muted-foreground mt-2">
-          Mantén tu perfil profesional actualizado para que las empresas puedan encontrarte en la Bolsa de Trabajo.
+          Sube tu CV para que la IA autocomplete tu perfil. Podrás editar los campos manualmente después.
         </p>
       </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Gestionar Currículum (CV)</CardTitle>
-          <CardDescription>
-            Sube tu currículum en formato PDF. Tamaño máximo: 5MB.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {profile?.cvUrl ? (
-            <div className="flex flex-col sm:flex-row items-center gap-4 p-6 border-2 border-dashed rounded-xl bg-primary/5">
-              <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
-                <FileText className="h-8 w-8 text-primary" />
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-1 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Archivo CV (PDF)</CardTitle>
+              <CardDescription>Sube tu documento para análisis.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="group relative cursor-pointer border-2 border-dashed rounded-xl p-8 transition-colors hover:border-primary/50 hover:bg-primary/5 flex flex-col items-center text-center gap-3"
+              >
+                {isUploading || isAnalyzing ? (
+                  <>
+                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                    <p className="text-sm font-medium animate-pulse">
+                      {isUploading ? 'Subiendo archivo...' : 'IA Analizando CV...'}
+                    </p>
+                  </>
+                ) : profile?.cvUrl ? (
+                  <>
+                    <CheckCircle2 className="h-10 w-10 text-green-500" />
+                    <p className="text-sm font-medium text-green-600">CV Cargado</p>
+                    <p className="text-xs text-muted-foreground">Haz clic para reemplazar</p>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-10 w-10 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <p className="text-sm font-medium">Subir PDF</p>
+                    <p className="text-xs text-muted-foreground">Máximo 5MB</p>
+                  </>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={handleUpload}
+                  disabled={isUploading || isAnalyzing}
+                />
               </div>
-              <div className="flex-grow text-center sm:text-left">
-                <h3 className="font-bold text-lg">Currículum Actual</h3>
-                <p className="text-sm text-muted-foreground">
-                  Última actualización: {profile.cvLastUpdated ? new Date(profile.cvLastUpdated).toLocaleDateString() : 'Desconocida'}
-                </p>
-              </div>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <Button variant="outline" asChild className="flex-1 sm:flex-none">
+
+              {profile?.cvUrl && (
+                <Button variant="outline" className="w-full" asChild>
                   <a href={profile.cvUrl} target="_blank" rel="noopener noreferrer">
-                    <Download className="mr-2 h-4 w-4" /> Ver CV
+                    <Download className="mr-2 h-4 w-4" /> Descargar mi PDF
                   </a>
                 </Button>
-                <Button 
-                  onClick={() => fileInputRef.current?.click()} 
-                  disabled={isUploading}
-                  className="flex-1 sm:flex-none"
-                >
-                  {isUploading ? <Loader2 className="animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                  Reemplazar
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-12 border-2 border-dashed rounded-xl space-y-4">
-              <div className="mx-auto h-16 w-16 bg-muted rounded-full flex items-center justify-center">
-                <Upload className="h-8 w-8 text-muted-foreground" />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">Aún no has subido tu currículum</h3>
-                <p className="text-sm text-muted-foreground">Sube tu archivo PDF para empezar a postular.</p>
-              </div>
-              <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                {isUploading ? <Loader2 className="animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                Subir CV (PDF)
-              </Button>
-            </div>
-          )}
+              )}
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf"
-            className="hidden"
-            onChange={handleUpload}
-          />
+              <Alert className="bg-primary/5 border-primary/20">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <AlertTitle className="text-xs font-bold text-primary uppercase tracking-wider">Tip IA</AlertTitle>
+                <AlertDescription className="text-xs leading-relaxed">
+                  Nuestra IA extrae experiencia, habilidades y educación para facilitar tu postulación a ofertas.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
+        </div>
 
-          <Alert>
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
-            <AlertTitle>Recomendaciones para tu CV</AlertTitle>
-            <AlertDescription className="text-sm">
-              <ul className="list-disc pl-5 mt-2 space-y-1">
-                <li>Usa un formato estándar y legible.</li>
-                <li>Incluye tus habilidades técnicas y proyectos realizados en clase.</li>
-                <li>Mantén tu información de contacto actualizada.</li>
-              </ul>
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Perfil Extraído
+              </CardTitle>
+              <CardDescription>
+                Revisa y completa los campos. Lo que no detecte la IA, complétalo manualmente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSaveProfile)} className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="professionalTitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Título Profesional / Headline</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ej: Desarrollador Web Full Stack | Estudiante de Software" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="summary"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Resumen Profesional</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Breve descripción de quién eres y tus objetivos..." 
+                            className="min-h-[100px]" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="skills"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Habilidades (separadas por comas)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="React, Node.js, Inglés Avanzado, Liderazgo..." {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="experience"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Experiencia Laboral</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Resume tu experiencia..." 
+                              className="min-h-[150px]" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="education"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Educación</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              placeholder="Resumen de estudios..." 
+                              className="min-h-[150px]" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="pt-4 border-t flex justify-end">
+                    <Button type="submit" size="lg" className="px-8 shadow-lg">
+                      <Save className="mr-2 h-4 w-4" />
+                      Guardar Perfil Profesional
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -50,6 +50,27 @@
             "format": "uri",
             "description": "URL to the user's CV/Resume file."
         },
+        "professionalTitle": {
+          "type": "string",
+          "description": "Professional title or headline extracted from CV."
+        },
+        "summary": {
+          "type": "string",
+          "description": "Professional summary or bio extracted from CV."
+        },
+        "skills": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of technical and soft skills."
+        },
+        "experience": {
+          "type": "string",
+          "description": "Formatted work experience history."
+        },
+        "education": {
+          "type": "string",
+          "description": "Formatted education history."
+        },
         "bio": {
           "type": "string",
           "description": "A short professional biography, mainly for professors."

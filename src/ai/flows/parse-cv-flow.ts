@@ -14,7 +14,7 @@ const ParseCVInputSchema = z.object({
   pdfDataUri: z
     .string()
     .describe(
-      "A PDF file of a CV, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:application/pdf;base64,<encoded_data>'."
+      "A photo of a plant, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type ParseCVInput = z.infer<typeof ParseCVInputSchema>;
@@ -40,7 +40,6 @@ const parseCVFlow = ai.defineFlow(
   },
   async input => {
     const response = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
       prompt: [
         { media: { url: input.pdfDataUri, contentType: 'application/pdf' } },
         { text: `You are an expert recruiter and career coach.

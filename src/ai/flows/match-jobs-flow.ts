@@ -45,7 +45,6 @@ const matchJobsFlow = ai.defineFlow(
   },
   async (input) => {
     const response = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
       prompt: `You are an expert career counselor.
 Analyze the following user profile and match it with the provided job offers.
 

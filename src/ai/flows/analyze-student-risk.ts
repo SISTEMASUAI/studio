@@ -79,7 +79,6 @@ const analyzeStudentRiskFlow = ai.defineFlow(
       : 'N/A';
 
     const response = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
       config: {
         temperature: 0.3,
         maxOutputTokens: 1500,

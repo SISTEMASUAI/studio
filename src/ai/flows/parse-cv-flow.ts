@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview CV parsing AI agent.
@@ -41,6 +40,7 @@ const parseCVFlow = ai.defineFlow(
   },
   async input => {
     const response = await ai.generate({
+      model: 'googleai/gemini-1.5-flash-latest',
       prompt: [
         { media: { url: input.pdfDataUri, contentType: 'application/pdf' } },
         { text: `You are an expert recruiter and career coach.

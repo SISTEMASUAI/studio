@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -17,6 +18,16 @@ interface UserProfile {
   lastName: string;
   profilePicture: string;
   programId?: string;
+  birthDate?: string;
+  address?: string;
+  phone?: string;
+  professionalTitle?: string;
+  summary?: string;
+  skills?: string[];
+  experience?: string;
+  education?: string;
+  cvUrl?: string;
+  cvLastUpdated?: string;
 }
 
 

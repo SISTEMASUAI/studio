@@ -37,6 +37,11 @@
           "description": "URL of the user's profile picture.",
           "format": "uri"
         },
+        "birthDate": {
+          "type": "string",
+          "format": "date",
+          "description": "The user's date of birth."
+        },
         "address": {
             "type": "string",
             "description": "The user's physical address."

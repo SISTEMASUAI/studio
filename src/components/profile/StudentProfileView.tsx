@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useFirestore, updateDocumentNonBlocking } from '@/firebase';
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User as UserIcon, Mail, Phone, Home, Loader2, Save } from 'lucide-react';
+import { User as UserIcon, Mail, Phone, Home, Loader2, Save, CalendarIcon } from 'lucide-react';
 import ProfileHeader from './ProfileHeader';
 import SecuritySettings from './SecuritySettings';
 import { useForm } from 'react-hook-form';
@@ -14,10 +15,12 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
+import { useEffect } from 'react';
 
 const ProfileSchema = z.object({
   phone: z.string().min(9, "El teléfono debe tener al menos 9 dígitos."),
   address: z.string().min(5, "Por favor, ingresa una dirección válida."),
+  birthDate: z.string().optional(),
 });
 
 export default function StudentProfileView() {
@@ -30,8 +33,19 @@ export default function StudentProfileView() {
     defaultValues: {
       phone: profile?.phone || '',
       address: profile?.address || '',
+      birthDate: profile?.birthDate || '',
     },
   });
+
+  useEffect(() => {
+    if (profile) {
+      form.reset({
+        phone: profile.phone || '',
+        address: profile.address || '',
+        birthDate: profile.birthDate || '',
+      });
+    }
+  }, [profile, form]);
 
   if (!profile) return null;
 
@@ -87,6 +101,20 @@ export default function StudentProfileView() {
                         <FormLabel className="flex items-center gap-2"><Phone className="h-4 w-4" /> Teléfono</FormLabel>
                         <FormControl>
                           <Input placeholder="Ej: 987654321" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="birthDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2"><CalendarIcon className="h-4 w-4" /> Fecha de Nacimiento</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -40,15 +40,15 @@ export default function EditUserDialog({ isOpen, onOpenChange, user }: EditUserD
   const storage = useStorage();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
-  const [previewImage, setPreviewImage] = useState(user.profilePicture);
+  const [previewImage, setPreviewImage] = useState(user?.profilePicture);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof UserSchema>>({
     resolver: zodResolver(UserSchema),
     defaultValues: {
-      phone: user.phone || '',
-      address: user.address || '',
-      birthDate: user.birthDate || '',
+      phone: user?.phone || '',
+      address: user?.address || '',
+      birthDate: user?.birthDate || '',
     },
   });
 
@@ -65,7 +65,7 @@ export default function EditUserDialog({ isOpen, onOpenChange, user }: EditUserD
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !firestore || !storage) return;
+    if (!file || !firestore || !storage || !user) return;
 
     setIsUploading(true);
     try {
@@ -97,9 +97,16 @@ export default function EditUserDialog({ isOpen, onOpenChange, user }: EditUserD
     }
   }
 
+  if (!user) return null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl p-0 overflow-hidden border-none shadow-2xl">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Editar Perfil de Usuario</DialogTitle>
+          <DialogDescription>Modifica los datos personales y de contacto del usuario seleccionado.</DialogDescription>
+        </DialogHeader>
+        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <div className="bg-primary h-24 relative">

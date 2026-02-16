@@ -1,4 +1,3 @@
-
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -24,6 +23,7 @@ import {
   Wand2,
   ShieldAlert,
   FileText,
+  UserCog,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -57,7 +57,7 @@ const navItems = [
   { href: '/programas', icon: GraduationCap, label: 'Programas', roles: ['admin'] },
   { href: '/cursos', icon: BookCopy, label: 'Cursos', roles: ['student', 'professor', 'admin'] },
   { href: '/app/modulos', icon: ListTree, label: 'Módulos', roles: ['admin'] },
-  { href: '/alumnos', icon: Users, label: 'Alumnos', roles: ['admin'] },
+  { href: '/admin/usuarios', icon: UserCog, label: 'Gestión de Usuarios', roles: ['admin'] },
   { href: '/asistencia', icon: UserCheck, label: 'Asistencia', roles: ['professor', 'admin'] },
   { href: '/grades', icon: GraduationCap, label: 'Calificaciones', roles: ['student', 'professor', 'admin'] },
   { href: '/matricula', icon: ClipboardList, label: 'Matrícula', roles: ['student', 'professor', 'admin'] },
@@ -205,7 +205,6 @@ function UserMenu() {
           <User className="w-4 h-4 mr-2" />
           Perfil
         </DropdownMenuItem>
-        <DropdownMenuItem disabled>Configuración</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="w-4 h-4 mr-2" />

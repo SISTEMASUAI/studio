@@ -4,13 +4,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions to simplify rule logic
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
     }
 
     function getProfile() {
@@ -29,117 +25,31 @@ service cloud.firestore {
       return isSignedIn() && hasProfile() && getProfile().role in roles;
     }
 
-    function isInstructor(courseId) {
-      return get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
-    }
-
     // User Profiles
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isOwner(userId) || isRole('admin');
-
-      match /financialInfo/{infoId} {
-        allow read, write: if isOwner(userId) || isRole('admin');
-      }
-
-      match /scholarships/{scholarshipId} {
-        allow read, write: if isOwner(userId) || isRole('admin');
-      }
-
-      match /job_applications/{applicationId} {
-        allow read, write: if isOwner(userId) || isRole('admin');
-      }
+      allow write: if isSignedIn() && (request.auth.uid == userId || isRole('admin'));
     }
 
-    // Academic Structure
-    match /programs/{programId} {
-      allow read: if isSignedIn();
-      allow write: if isRole('admin');
-    }
-    
-    match /faculties/{facultyId} {
+    // Wellness Resources & Config
+    match /wellness_resources/{resourceId} {
       allow read: if isSignedIn();
       allow write: if isRole('admin');
     }
 
-    // Intranet
-    match /intranet_posts/{postId} {
+    match /wellness_service_config/{serviceId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && (request.resource.data.authorId == request.auth.uid || isRole('admin'));
-      allow update, delete: if isSignedIn() && (resource.data.authorId == request.auth.uid || isRole('admin'));
+      allow write: if isRole('admin');
     }
 
-    // Courses & Virtual Classroom
-    match /courses/{courseId} {
-      allow read: if isSignedIn();
-      allow create: if isOneOfRoles(['admin', 'professor']);
-      allow update, delete: if isSignedIn() && (resource.data.instructorId == request.auth.uid || isRole('admin'));
-
-      match /assignments/{assignmentId} {
-        allow read: if isSignedIn();
-        allow write: if isInstructor(courseId) || isRole('admin');
-      }
-
-      match /modules/{moduleId} {
-        allow read: if isSignedIn();
-        allow write: if isInstructor(courseId) || isRole('admin');
-
-        match /sessions/{sessionId} {
-            allow read: if isSignedIn();
-            allow write: if isInstructor(courseId) || isRole('admin');
-        }
-      }
-      
-      match /submissions/{submissionId} {
-        allow read: if isSignedIn() && (isInstructor(courseId) || isRole('admin') || isOwner(resource.data.studentId));
-        allow create: if isSignedIn() && isOwner(request.resource.data.studentId);
-        allow update: if isSignedIn() && (isInstructor(courseId) || isRole('admin'));
-        allow delete: if isSignedIn() && isOwner(resource.data.studentId);
-      }
-
-      match /materials/{materialId} {
-        allow read: if isSignedIn();
-        allow write: if isInstructor(courseId) || isRole('admin');
-      }
-
-      match /quizResults/{resultId} {
-        allow read: if isSignedIn() && (isInstructor(courseId) || isRole('admin') || isOwner(resource.data.userId));
-        allow write: if isRole('admin') || isInstructor(courseId);
-      }
-    }
-
-    // Enrollments
-    match /enrollments/{enrollmentId} {
-      allow read: if isSignedIn() && (isOneOfRoles(['admin', 'professor']) || resource.data.studentId == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
-      allow update, delete: if isRole('admin');
-    }
-    
-    // Administrative Requests (Trámites)
-    match /tramites/{tramiteId} {
-      allow read: if isSignedIn() && (isOwner(resource.data.applicantId) || isRole('admin'));
+    // Wellness Appointments
+    match /wellness_services/{serviceId} {
+      allow read: if isSignedIn() && (isRole('admin') || isRole('staff') || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn();
-      allow update: if isRole('admin');
-
-      match /updates/{updateId} {
-        allow read: if isSignedIn() && (isOwner(get(/databases/$(database)/documents/tramites/$(tramiteId)).data.applicantId) || isRole('admin'));
-        allow write: if isRole('admin');
-      }
+      allow update, delete: if isSignedIn() && (isRole('admin') || isRole('staff') || resource.data.userId == request.auth.uid);
     }
 
-    // Financial
-    match /payments/{paymentId} {
-      allow read: if isRole('admin') || (isSignedIn() && resource.data.studentId == request.auth.uid);
-      allow write: if isRole('admin');
-    }
-
-    // Jobs
-    match /job_offers/{offerId} {
-      allow read: if isSignedIn();
-      allow write: if isRole('admin');
-    }
-
-    // Events & Activities
+    // Events
     match /events/{eventId} {
       allow read: if isSignedIn();
       allow write: if isOneOfRoles(['admin', 'professor']);
@@ -147,21 +57,12 @@ service cloud.firestore {
 
     match /activity_enrollments/{enrollmentId} {
       allow read: if isSignedIn();
-      allow create, delete: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow create, delete: if isSignedIn() && request.auth.uid == request.resource.data.userId;
     }
-
-    // Wellness Services
-    match /wellness_services/{serviceId} {
-      allow read: if isSignedIn() && (isRole('admin') || resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isRole('admin');
-      allow delete: if isSignedIn() && (isRole('admin') || resource.data.userId == request.auth.uid);
-    }
-
-    // Attendance
-    match /attendance/{attendanceId} {
-      allow read: if isSignedIn() && (isOwner(resource.data.studentId) || isOneOfRoles(['admin', 'professor']));
-      allow write: if isOneOfRoles(['admin', 'professor']);
+    
+    // Generic match for remaining structures if needed
+    match /{document=**} {
+      allow read, write: if isRole('admin');
     }
   }
 }

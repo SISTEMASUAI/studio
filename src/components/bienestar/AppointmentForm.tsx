@@ -4,7 +4,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useUser, useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -15,8 +15,8 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Send } from 'lucide-react';
 
 const AppointmentSchema = z.object({
-  serviceType: z.enum(['orientation', 'tutoring']),
-  reason: z.string().min(10, "Explica brevemente el motivo para poder asignarte el mejor especialista."),
+  serviceId: z.string().min(1, "Selecciona un tipo de servicio."),
+  reason: z.string().min(10, "Explica brevemente el motivo."),
   preferredTime: z.string().optional(),
 });
 
@@ -25,21 +25,35 @@ export default function AppointmentForm() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  // Cargar configuración de servicios dinámicamente
+  const configQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'wellness_service_config') : null),
+    [firestore]
+  );
+  const { data: services, isLoading } = useCollection(configQuery);
+
   const form = useForm<z.infer<typeof AppointmentSchema>>({
     resolver: zodResolver(AppointmentSchema),
-    defaultValues: { serviceType: 'orientation', reason: '' },
+    defaultValues: { serviceId: '', reason: '' },
   });
 
   async function onSubmit(values: z.infer<typeof AppointmentSchema>) {
-    if (!firestore || !user) return;
+    if (!firestore || !user || !services) return;
+    
+    const selectedService = services.find(s => s.id === values.serviceId);
+    if (!selectedService) return;
+
     try {
       await addDocumentNonBlocking(collection(firestore, 'wellness_services'), {
-        ...values,
         userId: user.uid,
+        serviceName: selectedService.name,
+        assignedStaffId: selectedService.staffId,
+        reason: values.reason,
+        preferredTime: values.preferredTime || '',
         status: 'requested',
         requestedAt: new Date().toISOString(),
       });
-      toast({ title: "Solicitud enviada", description: "Un especialista se pondrá en contacto contigo pronto." });
+      toast({ title: "Solicitud enviada", description: `Tu mensaje llegará a ${selectedService.staffName || 'un especialista'}.` });
       form.reset();
     } catch (e) {
       toast({ variant: 'destructive', title: "Error", description: "No se pudo procesar tu solicitud." });
@@ -50,14 +64,19 @@ export default function AppointmentForm() {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid sm:grid-cols-2 gap-6">
-          <FormField control={form.control} name="serviceType" render={({ field }) => (
+          <FormField control={form.control} name="serviceId" render={({ field }) => (
             <FormItem>
               <FormLabel>Tipo de Servicio</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isLoading ? "Cargando..." : "Selecciona un servicio"} />
+                  </SelectTrigger>
+                </FormControl>
                 <SelectContent>
-                  <SelectItem value="orientation">Orientación Psicológica</SelectItem>
-                  <SelectItem value="tutoring">Tutoría Académica</SelectItem>
+                  {services?.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -74,11 +93,11 @@ export default function AppointmentForm() {
         <FormField control={form.control} name="reason" render={({ field }) => (
           <FormItem>
             <FormLabel>Motivo de la Consulta</FormLabel>
-            <FormControl><Textarea className="min-h-[100px]" placeholder="Escribe aquí..." {...field} /></FormControl>
+            <FormControl><Textarea className="min-h-[100px]" placeholder="Escribe aquí tu situación..." {...field} /></FormControl>
             <FormMessage />
           </FormItem>
         )} />
-        <Button type="submit" disabled={form.formState.isSubmitting} className="w-full sm:w-auto px-10 shadow-lg">
+        <Button type="submit" disabled={form.formState.isSubmitting || isLoading} className="w-full sm:w-auto px-10 shadow-lg">
           {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
           Enviar Solicitud
         </Button>

@@ -22,7 +22,7 @@
         "role": {
           "type": "string",
           "description": "Role of the user in the system.",
-          "enum": ["student", "professor", "admin"]
+          "enum": ["student", "professor", "admin", "staff"]
         },
         "firstName": {
           "type": "string",
@@ -96,478 +96,29 @@
       },
       "required": ["uid", "email", "role", "firstName", "lastName", "dni"]
     },
-    "UniversityProgram": {
-      "title": "UniversityProgram",
+    "WellnessResource": {
+      "title": "WellnessResource",
       "type": "object",
-      "description": "Represents a university academic program or career.",
-      "properties": {
-        "programId": {
-          "type": "string",
-          "description": "Unique identifier for the program (e.g., 'soft-eng')."
-        },
-        "name": {
-          "type": "string",
-          "description": "The full name of the program (e.g., 'Ingeniería de Software')."
-        },
-        "facultyId": {
-          "type": "string",
-          "description": "The ID of the faculty this program belongs to."
-        },
-        "totalCredits": {
-          "type": "number",
-          "description": "Total number of credits required to complete the program."
-        },
-        "totalCycles": {
-          "type": "number",
-          "description": "Total number of cycles (semesters/terms) in the program."
-        }
-      },
-      "required": ["programId", "name", "facultyId", "totalCredits", "totalCycles"]
-    },
-    "Faculty": {
-      "title": "Faculty",
-      "type": "object",
-      "description": "Represents a faculty or school within the university.",
-      "properties": {
-        "facultyId": {
-          "type": "string",
-          "description": "Unique identifier for the faculty."
-        },
-        "name": {
-          "type": "string",
-          "description": "The full name of the faculty (e.g., 'Facultad de Ingeniería')."
-        }
-      },
-      "required": ["facultyId", "name"]
-    },
-    "IntranetPost": {
-      "title": "IntranetPost",
-      "type": "object",
-      "description": "Represents a post on the intranet portal, like news or announcements.",
-      "properties": {
-        "postId": {
-          "type": "string",
-          "description": "Unique identifier for the intranet post."
-        },
-        "authorId": {
-          "type": "string",
-          "description": "The UID of the user who created the post."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the intranet post."
-        },
-        "content": {
-          "type": "string",
-          "description": "The main content of the intranet post."
-        },
-        "type": {
-          "type": "string",
-          "enum": ["announcement", "news"],
-          "description": "Category of the post."
-        },
-        "imageUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "Image URL for news items."
-        },
-        "videoUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "Video URL for news items (YouTube or direct link)."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "The date and time the post was created.",
-          "format": "date-time"
-        },
-        "summary": {
-          "type": "string",
-          "description": "AI-generated summary of the intranet post."
-        }
-      },
-      "required": ["authorId", "title", "content", "createdAt", "type"]
-    },
-    "VirtualClassroomCourse": {
-      "title": "VirtualClassroomCourse",
-      "type": "object",
-      "description": "Represents a course within the virtual classroom.",
-      "properties": {
-        "courseId": {
-          "type": "string",
-          "description": "Unique identifier for the course."
-        },
-        "programId": {
-          "type": "string",
-          "description": "The ID of the program this course belongs to."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the course."
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of the course."
-        },
-        "instructorId": {
-          "type": "string",
-          "description": "The UID of the instructor for the course."
-        },
-        "objectives": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "List of learning objectives for the course."
-        },
-        "methodology": {
-            "type": "string",
-            "description": "Teaching methodology used in the course."
-        },
-        "syllabusUrl": {
-            "type": "string",
-            "format": "uri",
-            "description": "URL to the course syllabus document."
-        },
-        "level": {
-            "type": "string",
-            "description": "The academic level of the course (e.g., 'Beginner', 'Advanced')."
-        },
-        "department": {
-            "type": "string",
-            "description": "The department offering the course."
-        },
-        "prerequisites": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "List of course IDs that are prerequisites for this course."
-        },
-        "mode": {
-          "type": "string",
-          "enum": ["Presencial", "Online", "Híbrido"],
-          "description": "The delivery mode of the course."
-        },
-        "virtualRoomUrl": {
-          "type": "string",
-          "format": "uri",
-          "description": "Link to the virtual classroom if mode is Online or Hybrid."
-        },
-        "cycle": {
-          "type": "number",
-          "description": "The academic cycle or semester number this course belongs to."
-        },
-        "capacity": {
-            "type": "number",
-            "description": "The total number of students that can enroll in the course."
-        },
-        "enrolled": {
-            "type": "number",
-            "description": "The current number of students enrolled in the course."
-        },
-        "status": {
-            "type": "string",
-            "enum": ["active", "inactive"],
-            "description": "The current status of the course."
-        },
-        "semesterStartDate": {
-            "type": "string",
-            "format": "date",
-            "description": "The start date of the semester for this course."
-        },
-        "semesterEndDate": {
-            "type": "string",
-            "format": "date",
-            "description": "The end date of the semester for this course."
-        },
-        "schedule": {
-            "type": "array",
-            "description": "The weekly schedule for the course.",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "title": { "type": "string" },
-                    "day": { "type": "string", "enum": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"] },
-                    "startTime": { "type": "string", "format": "time" },
-                    "endTime": { "type": "string", "format": "time" },
-                    "classroom": { "type": "string" }
-                },
-                "required": ["title", "day", "startTime", "endTime"]
-            }
-        }
-      },
-      "required": ["courseId", "name", "description", "instructorId", "mode", "programId", "status"]
-    },
-    "CourseModule": {
-      "title": "CourseModule",
-      "type": "object",
-      "description": "Represents a week or module within a course.",
-      "properties": {
-        "moduleId": {
-          "type": "string",
-          "description": "Unique identifier for the module."
-        },
-        "courseId": {
-          "type": "string",
-          "description": "The ID of the course this module belongs to."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the module (e.g., 'Semana 1: Introducción')."
-        },
-        "weekNumber": {
-          "type": "number",
-          "description": "The sequential number of the week or module."
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief description of the module's content."
-        }
-      },
-      "required": ["moduleId", "courseId", "title", "weekNumber"]
-    },
-    "CourseModuleSession": {
-        "title": "CourseModuleSession",
-        "description": "Represents a single scheduled class session within a course module (week).",
-        "type": "object",
-        "properties": {
-            "sessionId": { "type": "string", "description": "Unique identifier for the session." },
-            "moduleId": { "type": "string", "description": "ID of the parent module." },
-            "courseId": { "type": "string", "description": "ID of the parent course." },
-            "title": { "type": "string", "description": "The title of the session (e.g., 'Teoría', 'Práctica')." },
-            "date": { "type": "string", "format": "date", "description": "The specific date of the class session." },
-            "startTime": { "type": "string", "format": "time" },
-            "endTime": { "type": "string", "format": "time" },
-            "classroom": { "type": "string" }
-        },
-        "required": ["sessionId", "moduleId", "courseId", "title", "date", "startTime", "endTime"]
-    },
-    "CourseMaterial": {
-      "title": "CourseMaterial",
-      "type": "object",
-      "description": "Represents a learning material or resource associated with a course.",
+      "description": "Informational resources for students.",
       "properties": {
         "id": { "type": "string" },
-        "courseId": { "type": "string" },
-        "moduleId": { "type": "string" },
         "title": { "type": "string" },
-        "description": { "type": "string" },
-        "type": { "type": "string", "enum": ["document", "video", "link", "other"] },
         "url": { "type": "string", "format": "uri" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "createdBy": { "type": "string" }
+        "category": { "type": "string" }
       },
-      "required": ["id", "courseId", "title", "url", "type"]
+      "required": ["title", "url"]
     },
-    "CourseAssignment": {
-      "title": "CourseAssignment",
+    "WellnessServiceType": {
+      "title": "WellnessServiceType",
       "type": "object",
-      "description": "Represents an assignment within a course.",
+      "description": "Types of wellness services available and their assigned staff.",
       "properties": {
-        "assignmentId": {
-          "type": "string",
-          "description": "Unique identifier for the assignment."
-        },
-        "courseId": {
-          "type": "string",
-          "description": "The ID of the course this assignment belongs to."
-        },
-        "moduleId": {
-          "type": "string",
-          "description": "The ID of the module this assignment belongs to."
-        },
-        "title": {
-          "type": "string",
-          "description": "The title of the assignment."
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of the assignment."
-        },
-        "dueDate": {
-          "type": "string",
-          "description": "The date and time the assignment is due.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "name": { "type": "string", "description": "Example: Psychological Orientation" },
+        "staffId": { "type": "string", "description": "UID of the staff member responsible for this service." },
+        "staffName": { "type": "string" }
       },
-      "required": ["assignmentId", "courseId", "title", "description", "dueDate"]
-    },
-    "AssignmentSubmission": {
-      "title": "AssignmentSubmission",
-      "type": "object",
-      "description": "Represents a student's submission for an assignment.",
-      "properties": {
-        "submissionId": {
-          "type": "string",
-          "description": "Unique identifier for the submission."
-        },
-        "assignmentId": {
-          "type": "string",
-          "description": "The ID of the assignment this submission is for."
-        },
-        "studentId": {
-          "type": "string",
-          "description": "The UID of the student who made the submission."
-        },
-        "courseId": {
-          "type": "string",
-          "description": "The ID of the course this submission belongs to."
-        },
-        "submittedAt": {
-          "type": "string",
-          "description": "Date and time the assignment was submitted.",
-          "format": "date-time"
-        },
-        "fileUrl": {
-          "type": "string",
-          "description": "URL of the submitted file.",
-          "format": "uri"
-        },
-        "grade": {
-          "type": "number",
-          "description": "The grade received for the submission."
-        },
-        "feedback": {
-          "type": "string",
-          "description": "Feedback or comments from the instructor."
-        }
-      },
-      "required": ["submissionId", "assignmentId", "studentId", "courseId", "submittedAt"]
-    },
-    "QuizResult": {
-      "title": "QuizResult",
-      "type": "object",
-      "description": "Represents a student's result for a quiz/exam.",
-      "properties": {
-        "completionDate": { "type": "string", "format": "date-time" },
-        "courseId": { "type": "string" },
-        "quizId": { "type": "string" },
-        "score": { "type": "number" },
-        "status": { "type": "string" },
-        "userId": { "type": "string" },
-        "answers": {
-          "type": "array",
-          "items": { "type": "object" }
-        }
-      },
-      "required": ["completionDate", "courseId", "quizId", "score", "userId"]
-    },
-    "TramiteRequest": {
-      "title": "TramiteRequest",
-      "description": "Represents a single administrative request made by a user.",
-      "type": "object",
-      "properties": {
-        "requestId": { "type": "string", "description": "Unique identifier for the request." },
-        "applicantId": { "type": "string", "description": "UID of the user who initiated the request." },
-        "requestType": { "type": "string", "description": "The type of request (e.g., 'Certificado de Notas')." },
-        "status": { "type": "string", "enum": ["Enviado", "En Proceso", "Aprobado", "Rechazado", "Completado"] },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" },
-        "generatedDocumentUrl": { "type": "string", "format": "uri", "description": "URL to a document generated as part of the request." }
-      },
-      "required": ["requestId", "applicantId", "requestType", "status", "createdAt", "updatedAt"]
-    },
-    "TramiteUpdate": {
-      "title": "TramiteUpdate",
-      "description": "Represents an update or comment in the history of a request.",
-      "type": "object",
-      "properties": {
-        "updateId": { "type": "string", "description": "Unique identifier for the update." },
-        "authorId": { "type": "string", "description": "UID of the admin who made the update." },
-        "timestamp": { "type": "string", "format": "date-time" },
-        "comment": { "type": "string", "description": "Internal comment or note about the update." },
-        "statusChange": { "type": "string", "description": "Describes a status change, e.g., 'De \"En Proceso\" a \"Aprobado\"'." }
-      },
-      "required": ["updateId", "authorId", "timestamp", "comment"]
-    },
-     "FinancialInfo": {
-      "title": "FinancialInfo",
-      "description": "Stores a student's overall financial information.",
-      "type": "object",
-      "properties": {
-        "balance": { "type": "number", "description": "Current account balance." },
-        "lastUpdated": { "type": "string", "format": "date-time" }
-      },
-      "required": ["balance", "lastUpdated"]
-    },
-    "Payment": {
-      "title": "Payment",
-      "description": "Represents a single payment transaction.",
-      "type": "object",
-      "properties": {
-        "paymentId": { "type": "string" },
-        "studentId": { "type": "string" },
-        "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" },
-        "concept": { "type": "string", "description": "Description of the payment (e.g., 'Tuition Fee - September')." },
-        "status": { "type": "string", "enum": ["Pending", "Completed", "Failed"] }
-      },
-      "required": ["paymentId", "studentId", "amount", "date", "concept", "status"]
-    },
-    "Scholarship": {
-      "title": "Scholarship",
-      "description": "Represents a scholarship applied to a student's account.",
-      "type": "object",
-      "properties": {
-        "scholarshipId": { "type": "string" },
-        "name": { "type": "string", "description": "Name of the scholarship." },
-        "amount": { "type": "number" },
-        "appliedDate": { "type": "string", "format": "date-time" }
-      },
-      "required": ["scholarshipId", "name", "amount", "appliedDate"]
-    },
-    "JobOffer": {
-      "title": "JobOffer",
-      "description": "Represents a job or internship offer.",
-      "type": "object",
-      "properties": {
-        "offerId": { "type": "string" },
-        "title": { "type": "string" },
-        "company": { "type": "string" },
-        "description": { "type": "string" },
-        "location": { "type": "string" },
-        "type": { "type": "string", "enum": ["Full-time", "Part-time", "Internship"] },
-        "postedAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["offerId", "title", "company", "description", "postedAt"]
-    },
-    "JobApplication": {
-      "title": "JobApplication",
-      "description": "Represents a student's application to a job offer.",
-      "type": "object",
-      "properties": {
-        "applicationId": { "type": "string" },
-        "jobOfferId": { "type": "string" },
-        "studentId": { "type": "string" },
-        "appliedAt": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["Applied", "In Review", "Interviewing", "Offered", "Rejected"] }
-      },
-      "required": ["applicationId", "jobOfferId", "studentId", "appliedAt", "status"]
-    },
-    "ExtracurricularEvent": {
-      "title": "ExtracurricularEvent",
-      "description": "Represents an extracurricular event or activity.",
-      "type": "object",
-      "properties": {
-        "eventId": { "type": "string" },
-        "name": { "type": "string" },
-        "description": { "type": "string" },
-        "date": { "type": "string", "format": "date-time" },
-        "category": { "type": "string" },
-        "organizerId": { "type": "string", "description": "UID of the professor or admin who created the event." },
-        "location": { "type": "string" },
-        "imageUrl": { "type": "string" }
-      },
-      "required": ["eventId", "name", "description", "date", "organizerId"]
-    },
-    "ActivityEnrollment": {
-      "title": "ActivityEnrollment",
-      "description": "Represents a student's enrollment in an activity.",
-      "type": "object",
-      "properties": {
-        "enrollmentId": { "type": "string" },
-        "eventId": { "type": "string" },
-        "userId": { "type": "string" },
-        "enrolledAt": { "type": "string", "format": "date-time" }
-      },
-      "required": ["enrollmentId", "eventId", "userId", "enrolledAt"]
+      "required": ["name", "staffId"]
     },
     "WellnessAppointment": {
       "title": "WellnessAppointment",
@@ -576,47 +127,13 @@
       "properties": {
         "serviceId": { "type": "string" },
         "userId": { "type": "string", "description": "UID of the user requesting the service." },
-        "serviceType": { "type": "string", "enum": ["orientation", "tutoring"] },
+        "serviceName": { "type": "string" },
+        "assignedStaffId": { "type": "string", "description": "UID of the person assigned to handle this." },
         "status": { "type": "string", "enum": ["requested", "scheduled", "completed", "canceled"] },
         "requestedAt": { "type": "string", "format": "date-time" },
-        "scheduledAt": { "type": "string", "format": "date-time" },
-        "tutorId": { "type": "string", "description": "UID of the assigned tutor/counselor." },
         "reason": { "type": "string" }
       },
-      "required": ["serviceId", "userId", "serviceType", "status", "requestedAt"]
-    },
-    "AttendanceRecord": {
-      "title": "AttendanceRecord",
-      "description": "Represents a single attendance record for a student in a course.",
-      "type": "object",
-      "properties": {
-        "attendanceId": { "type": "string", "description": "Unique identifier for the attendance record." },
-        "studentId": { "type": "string", "description": "UID of the student." },
-        "courseId": { "type": "string", "description": "ID of the course." },
-        "date": { "type": "string", "format": "date-time", "description": "The date of the class." },
-        "status": { "type": "string", "enum": ["presente", "ausente", "tarde", "justificado"] },
-        "notes": { "type": "string", "description": "Optional notes, e.g., for a justification." }
-      },
-      "required": ["attendanceId", "studentId", "courseId", "date", "status"]
-    },
-    "Enrollment": {
-      "title": "Enrollment",
-      "description": "Represents a student's enrollment in a specific course section for a semester.",
-      "type": "object",
-      "properties": {
-        "enrollmentId": { "type": "string", "description": "Unique identifier for the enrollment record." },
-        "studentId": { "type": "string", "description": "The UID of the student." },
-        "courseId": { "type": "string", "description": "The ID of the course." },
-        "courseCode": { "type": "string", "description": "The code of the course (e.g., CS101)." },
-        "courseName": { "type": "string", "description": "The name of the course." },
-        "courseImage": { "type": "string", "format": "uri", "description": "URL of the course's promotional image." },
-        "professorId": { "type": "string", "description": "The UID of the professor teaching the course." },
-        "professorName": { "type": "string", "description": "The full name of the professor." },
-        "professorProfilePicture": { "type": "string", "format": "uri", "description": "URL of the professor's profile picture." },
-        "semester": { "type": "string", "description": "The semester of enrollment (e.g., '2024-2')." },
-        "year": { "type": "number", "description": "The year of enrollment." }
-      },
-      "required": ["enrollmentId", "studentId", "courseId", "courseName", "professorId", "semester", "year"]
+      "required": ["userId", "serviceName", "status", "requestedAt"]
     }
   },
   "auth": {
@@ -626,117 +143,17 @@
   },
   "firestore": {
     "structure": {
-      "/users/{userId}": {
-        "schema": {
-          "$ref": "#/entities/UserProfile"
-        },
-        "description": "Stores public user profile information, accessible by other authenticated users. The document ID must match the user's UID."
+      "/wellness_resources/{resourceId}": {
+        "schema": { "$ref": "#/entities/WellnessResource" },
+        "description": "Stores resources for support section."
       },
-       "/users/{userId}/financialInfo/{infoId}": {
-        "schema": { "$ref": "#/entities/FinancialInfo" },
-        "description": "Stores the financial summary for a student. Only accessible by the student and admins."
-      },
-      "/users/{userId}/scholarships/{scholarshipId}": {
-        "schema": { "$ref": "#/entities/Scholarship" },
-        "description": "Stores scholarships awarded to a student. Accessible by the student and admins."
-      },
-      "/users/{userId}/job_applications/{applicationId}": {
-        "schema": { "$ref": "#/entities/JobApplication" },
-        "description": "Stores job applications for a student. Only the student and admins can access."
-      },
-       "/programs/{programId}": {
-        "schema": { "$ref": "#/entities/UniversityProgram" },
-        "description": "Stores the academic programs (careers) offered by the university."
-      },
-      "/faculties/{facultyId}": {
-        "schema": { "$ref": "#/entities/Faculty" },
-        "description": "Stores the faculties (schools) of the university."
-      },
-      "/intranet_posts/{postId}": {
-        "schema": {
-          "$ref": "#/entities/IntranetPost"
-        },
-        "description": "Stores intranet posts. Publicly readable by any authenticated user, but writable only by the author."
-      },
-      "/courses/{courseId}": {
-        "schema": {
-          "$ref": "#/entities/VirtualClassroomCourse"
-        },
-        "description": "Stores course information. Readable by any authenticated user, but writable only by the instructor."
-      },
-       "/courses/{courseId}/modules/{moduleId}": {
-        "schema": {
-          "$ref": "#/entities/CourseModule"
-        },
-        "description": "Stores the thematic weeks or modules for a specific course. Writable by instructors."
-      },
-      "/courses/{courseId}/materials/{materialId}": {
-        "schema": {
-          "$ref": "#/entities/CourseMaterial"
-        },
-        "description": "Stores learning materials and resources for a course."
-      },
-      "/courses/{courseId}/modules/{moduleId}/sessions/{sessionId}": {
-        "schema": {
-            "$ref": "#/entities/CourseModuleSession"
-        },
-        "description": "Stores the individual, dated class sessions for a specific week/module."
-      },
-      "/enrollments/{enrollmentId}": {
-        "schema": {
-            "$ref": "#/entities/Enrollment"
-        },
-        "description": "Stores student enrollment records. Students can only read their own enrollments. Admins can read all."
-      },
-      "/courses/{courseId}/assignments/{assignmentId}": {
-        "schema": {
-          "$ref": "#/entities/CourseAssignment"
-        },
-        "description": "Stores assignments for a course. Readable by authenticated users, writable only by the course instructor."
-      },
-      "/courses/{courseId}/submissions/{submissionId}": {
-        "schema": {
-          "$ref": "#/entities/AssignmentSubmission"
-        },
-        "description": "Stores student submissions for assignments within a course. Students can read/write their own. Instructors can read/update all submissions for their course."
-      },
-      "/courses/{courseId}/quizResults/{resultId}": {
-        "schema": {
-          "$ref": "#/entities/QuizResult"
-        },
-        "description": "Stores student results for quizzes/exams within a course."
-      },
-      "/tramites/{tramiteId}": {
-        "schema": { "$ref": "#/entities/TramiteRequest" },
-        "description": "Stores individual administrative requests. Readable by the applicant and admins. Writable only by admins."
-      },
-      "/tramites/{tramiteId}/updates/{updateId}": {
-        "schema": { "$ref": "#/entities/TramiteUpdate" },
-        "description": "Stores the history of updates and comments for a specific administrative request. Readable by applicant and admins, writable by admins."
-      },
-       "/payments/{paymentId}": {
-        "schema": { "$ref": "#/entities/Payment" },
-        "description": "Stores all payment transactions. Admins can read all. Students can only read their own."
-      },
-      "/job_offers/{offerId}": {
-        "schema": { "$ref": "#/entities/JobOffer" },
-        "description": "Stores job and internship offers. Readable by all authenticated users, writable only by admins."
-      },
-      "/events/{eventId}": {
-        "schema": { "$ref": "#/entities/ExtracurricularEvent" },
-        "description": "Stores extracurricular activities and events. Readable by all, writable by admins and professors."
-      },
-      "/activity_enrollments/{enrollmentId}": {
-        "schema": { "$ref": "#/entities/ActivityEnrollment" },
-        "description": "Stores enrollments for activities."
+      "/wellness_service_config/{serviceId}": {
+        "schema": { "$ref": "#/entities/WellnessServiceType" },
+        "description": "Configuration of available services and assigned personnel."
       },
       "/wellness_services/{serviceId}": {
         "schema": { "$ref": "#/entities/WellnessAppointment" },
-        "description": "Stores appointments for wellness services. Readable by the user and admins."
-      },
-      "/attendance/{attendanceId}": {
-        "schema": { "$ref": "#/entities/AttendanceRecord" },
-        "description": "Stores individual attendance records. Writable by professors and admins. Students can read their own records (indirectly via course pages)."
+        "description": "Stores appointments for wellness services."
       }
     }
   }

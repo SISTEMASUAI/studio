@@ -2,16 +2,16 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle2, XCircle, AlertCircle, Calendar } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, AlertCircle, Calendar, User } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface Appointment {
   id: string;
-  serviceType: 'orientation' | 'tutoring';
+  serviceName: string;
   status: 'requested' | 'scheduled' | 'completed' | 'canceled';
   requestedAt: string;
-  scheduledAt?: string;
   reason: string;
+  staffName?: string;
 }
 
 export default function AppointmentList({ appointments, isAdminView = false }: { appointments: Appointment[], isAdminView?: boolean }) {
@@ -28,35 +28,35 @@ export default function AppointmentList({ appointments, isAdminView = false }: {
 
   if (appointments.length === 0) {
     return (
-      <div className="text-center py-10 text-muted-foreground italic">
+      <div className="text-center py-10 text-muted-foreground italic border-2 border-dashed rounded-lg">
         <p>No hay registros para mostrar.</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Servicio</TableHead>
-            <TableHead>Fecha Solicitud</TableHead>
+            <TableHead>Fecha</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead className={isAdminView ? "" : "text-right"}>Acción</TableHead>
+            <TableHead className="text-right">Detalles</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {appointments.map((apt) => (
             <TableRow key={apt.id}>
               <TableCell className="font-medium">
-                {apt.serviceType === 'orientation' ? 'Orientación Psicológica' : 'Tutoría Académica'}
+                {apt.serviceName}
               </TableCell>
-              <TableCell className="text-xs text-muted-foreground">
+              <TableCell className="text-xs whitespace-nowrap">
                 {new Date(apt.requestedAt).toLocaleDateString()}
               </TableCell>
               <TableCell>{getStatusBadge(apt.status)}</TableCell>
-              <TableCell className={isAdminView ? "" : "text-right"}>
-                <div className="text-xs text-muted-foreground line-clamp-1 italic max-w-[150px]">
+              <TableCell className="text-right">
+                <div className="text-[10px] text-muted-foreground line-clamp-1 italic max-w-[120px] ml-auto">
                   {apt.reason}
                 </div>
               </TableCell>

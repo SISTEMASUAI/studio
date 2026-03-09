@@ -22,8 +22,8 @@ export default function ActivitiesPage() {
   );
   const { data: events, isLoading } = useCollection(eventsQuery);
 
-  const canCreate = profile?.role === 'admin' || profile?.role === 'professor';
-  const isAdmin = profile?.role === 'admin';
+  const canCreate = profile?.role === 'admin' || profile?.role === 'professor' || profile?.role === 'staff';
+  const isAdminOrStaff = profile?.role === 'admin' || profile?.role === 'staff';
 
   return (
     <div className="space-y-8">
@@ -43,7 +43,7 @@ export default function ActivitiesPage() {
               isOpen={isCreateOpen} 
               onOpenChange={setIsCreateOpen} 
             />
-            {isAdmin && (
+            {isAdminOrStaff && (
               <Button variant="outline">
                 <BarChart className="mr-2" /> Estadísticas
               </Button>
@@ -60,7 +60,7 @@ export default function ActivitiesPage() {
         <ActivityList events={events || []} />
       )}
 
-      {isAdmin && (
+      {isAdminOrStaff && (
          <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><Users /> Resumen de Participación</CardTitle>
@@ -68,7 +68,7 @@ export default function ActivitiesPage() {
             </CardHeader>
             <CardContent>
                 <p className="text-sm text-muted-foreground italic text-center py-10">
-                  Funcionalidad de analítica institucional en desarrollo.
+                  Funcionalidad de analítica de participación en desarrollo.
                 </p>
             </CardContent>
          </Card> 

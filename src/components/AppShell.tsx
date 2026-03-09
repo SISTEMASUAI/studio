@@ -1,3 +1,4 @@
+
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -52,8 +53,8 @@ import { useEffect } from 'react';
 import { Skeleton } from './ui/skeleton';
 
 const navItems = [
-  { href: '/intranet', icon: Newspaper, label: 'Nuxtu', roles: ['student', 'professor', 'admin'] },
-  { href: '/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin'] },
+  { href: '/intranet', icon: Newspaper, label: 'Nuxtu', roles: ['student', 'professor', 'admin', 'staff'] },
+  { href: '/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin', 'staff'] },
   { href: '/programas', icon: GraduationCap, label: 'Programas', roles: ['admin'] },
   { href: '/cursos', icon: BookCopy, label: 'Cursos', roles: ['student', 'professor', 'admin'] },
   { href: '/app/modulos', icon: ListTree, label: 'Módulos', roles: ['admin'] },
@@ -62,12 +63,12 @@ const navItems = [
   { href: '/grades', icon: GraduationCap, label: 'Calificaciones', roles: ['student', 'professor', 'admin'] },
   { href: '/matricula', icon: ClipboardList, label: 'Matrícula', roles: ['student', 'professor', 'admin'] },
   { href: '/plan-de-estudios', icon: BookMarked, label: 'Plan de Estudios', roles: ['student', 'professor', 'admin'] },
-  { href: '/tramites', icon: FileClock, label: 'Trámites', roles: ['student', 'professor', 'admin'] },
+  { href: '/tramites', icon: FileClock, label: 'Trámites', roles: ['student', 'professor', 'admin', 'staff'] },
   { href: '/pagos', icon: Landmark, label: 'Pagos', roles: ['student', 'professor', 'admin'] },
-  { href: '/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo', roles: ['student', 'professor', 'admin'] },
+  { href: '/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo', roles: ['student', 'professor', 'admin', 'staff'] },
   { href: '/curriculum', icon: FileText, label: 'Mi Currículum', roles: ['student'] },
-  { href: '/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin'] },
-  { href: '/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin'] },
+  { href: '/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin', 'staff'] },
+  { href: '/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin', 'staff'] },
   { href: '/tutor-ia', icon: Wand2, label: 'Tutor IA', roles: ['professor', 'admin'] },
   { href: '/app/analitica', icon: ShieldAlert, label: 'Analítica IA', roles: ['admin'] },
   { href: '/configuracion', icon: Settings, label: 'Configuración', roles: ['admin'] },

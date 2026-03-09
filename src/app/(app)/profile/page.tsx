@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser } from '@/firebase';
@@ -5,12 +6,13 @@ import { Loader2 } from 'lucide-react';
 import StudentProfileView from '@/components/profile/StudentProfileView';
 import ProfessorProfileView from '@/components/profile/ProfessorProfileView';
 import AdminProfileView from '@/components/profile/AdminProfileView';
+import StaffProfileView from '@/components/profile/StaffProfileView';
 
 export default function ProfilePage() {
-  const { profile } = useUser();
+  const { profile, isUserLoading } = useUser();
 
   const renderContent = () => {
-    if (!profile) {
+    if (isUserLoading || !profile) {
       return (
         <div className="flex justify-center items-center h-full">
           <Loader2 className="w-8 h-8 animate-spin" />
@@ -25,6 +27,8 @@ export default function ProfilePage() {
             return <ProfessorProfileView />;
         case 'admin':
             return <AdminProfileView />;
+        case 'staff':
+            return <StaffProfileView />;
         default:
              return <StudentProfileView />;
     }

@@ -2,8 +2,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, useAuth } from '@/firebase';
 import { collection, query, DocumentData, doc } from 'firebase/firestore';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +18,7 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { UserCog, Search, MoreHorizontal, Mail, Loader2, Edit, UserPlus, UserX, UserCheck } from 'lucide-react';
+import { UserCog, Search, MoreHorizontal, Mail, Loader2, Edit, UserPlus, UserX, UserCheck, KeyRound } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +63,7 @@ const getStatusBadge = (status?: string) => {
 
 export default function UserManagementView() {
   const firestore = useFirestore();
+  const auth = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -85,6 +87,23 @@ export default function UserManagementView() {
   const handleEditUser = (user: UserProfile) => {
     setSelectedUser(user);
     setIsEditDialogOpen(true);
+  };
+
+  const handleResetPassword = async (email: string) => {
+    if (!auth) return;
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: "Correo enviado",
+        description: `Se ha enviado un enlace de recuperación a ${email}.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo enviar el correo de recuperación.",
+      });
+    }
   };
 
   const toggleUserStatus = async (user: UserProfile) => {
@@ -196,6 +215,10 @@ export default function UserManagementView() {
                             <DropdownMenuItem onClick={() => handleEditUser(user)} className="rounded-lg h-10 cursor-pointer">
                               <Edit className="mr-3 h-4 w-4 text-neutral-500" />
                               <span className="font-medium">Editar Perfil</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleResetPassword(user.email)} className="rounded-lg h-10 cursor-pointer">
+                              <KeyRound className="mr-3 h-4 w-4 text-neutral-500" />
+                              <span className="font-medium">Restablecer Contraseña</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 

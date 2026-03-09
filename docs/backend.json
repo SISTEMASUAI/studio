@@ -24,6 +24,11 @@
           "description": "Role of the user in the system.",
           "enum": ["student", "professor", "admin", "staff"]
         },
+        "status": {
+          "type": "string",
+          "description": "Account status.",
+          "enum": ["active", "inactive"]
+        },
         "firstName": {
           "type": "string",
           "description": "The first name of the user."
@@ -103,7 +108,7 @@
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
-        "url": { "type": "string", "format": "uri" },
+        "url": { "type": "string", format: "uri" },
         "category": { "type": "string" }
       },
       "required": ["title", "url"]
@@ -114,8 +119,8 @@
       "description": "Types of wellness services available and their assigned staff.",
       "properties": {
         "id": { "type": "string" },
-        "name": { "type": "string", "description": "Example: Psychological Orientation" },
-        "staffId": { "type": "string", "description": "UID of the staff member responsible for this service." },
+        "name": { "type": "string", description: "Example: Psychological Orientation" },
+        "staffId": { "type": "string", description: "UID of the staff member responsible for this service." },
         "staffName": { "type": "string" }
       },
       "required": ["name", "staffId"]
@@ -126,9 +131,9 @@
       "type": "object",
       "properties": {
         "serviceId": { "type": "string" },
-        "userId": { "type": "string", "description": "UID of the user requesting the service." },
+        "userId": { "type": "string", description: "UID of the user requesting the service." },
         "serviceName": { "type": "string" },
-        "assignedStaffId": { "type": "string", "description": "UID of the person assigned to handle this." },
+        "assignedStaffId": { "type": "string", description: "UID of the person assigned to handle this." },
         "status": { "type": "string", "enum": ["requested", "scheduled", "completed", "canceled"] },
         "requestedAt": { "type": "string", "format": "date-time" },
         "reason": { "type": "string" }

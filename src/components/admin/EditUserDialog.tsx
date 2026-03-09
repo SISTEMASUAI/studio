@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -21,12 +22,15 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Camera, Loader2, Save, X } from 'lucide-react';
 
 const UserSchema = z.object({
-  phone: z.string().min(9, "El teléfono debe tener al menos 9 dígitos."),
-  address: z.string().min(5, "Por favor, ingresa una dirección válida."),
+  phone: z.string().optional(),
+  address: z.string().optional(),
   birthDate: z.string().optional(),
+  role: z.enum(['student', 'professor', 'admin', 'staff']),
+  status: z.enum(['active', 'inactive']),
 });
 
 interface EditUserDialogProps {
@@ -49,6 +53,8 @@ export default function EditUserDialog({ isOpen, onOpenChange, user }: EditUserD
       phone: user?.phone || '',
       address: user?.address || '',
       birthDate: user?.birthDate || '',
+      role: user?.role || 'student',
+      status: user?.status || 'active',
     },
   });
 
@@ -58,6 +64,8 @@ export default function EditUserDialog({ isOpen, onOpenChange, user }: EditUserD
         phone: user.phone || '',
         address: user.address || '',
         birthDate: user.birthDate || '',
+        role: user.role,
+        status: user.status || 'active',
       });
       setPreviewImage(user.profilePicture);
     }
@@ -145,6 +153,53 @@ export default function EditUserDialog({ isOpen, onOpenChange, user }: EditUserD
               </div>
 
               <div className="space-y-6">
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-bold">Rol Institucional</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar rol" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="student">Estudiante</SelectItem>
+                            <SelectItem value="professor">Docente</SelectItem>
+                            <SelectItem value="staff">Personal (Staff)</SelectItem>
+                            <SelectItem value="admin">Administrador</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-bold">Estado de Cuenta</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Estado" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Activo</SelectItem>
+                            <SelectItem value="inactive">Suspendido / Inactivo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <div className="grid sm:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}

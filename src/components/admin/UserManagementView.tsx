@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, DocumentData } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { collection, query, DocumentData, doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,14 +17,17 @@ import {
 } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { UserCog, Search, MoreHorizontal, Mail, User as UserIcon, Loader2, Edit } from 'lucide-react';
+import { UserCog, Search, MoreHorizontal, Mail, Loader2, Edit, UserPlus, UserX, UserCheck } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 import EditUserDialog from './EditUserDialog';
+import CreateUserDialog from './CreateUserDialog';
 
 interface UserProfile extends DocumentData {
   id: string;
@@ -32,6 +36,7 @@ interface UserProfile extends DocumentData {
   lastName: string;
   email: string;
   role: string;
+  status?: 'active' | 'inactive';
   profilePicture: string;
   phone?: string;
   address?: string;
@@ -43,15 +48,25 @@ const getRoleBadge = (role: string) => {
     case 'admin': return <Badge variant="default" className="bg-primary hover:bg-primary/90 text-white rounded-full px-4">Admin</Badge>;
     case 'professor': return <Badge variant="secondary" className="bg-neutral-200 text-neutral-800 rounded-full px-4">Docente</Badge>;
     case 'student': return <Badge variant="outline" className="bg-white border-neutral-300 text-neutral-800 rounded-full px-4">Estudiante</Badge>;
+    case 'staff': return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 rounded-full px-4">Staff</Badge>;
     default: return <Badge variant="outline" className="rounded-full px-4">{role}</Badge>;
   }
 };
 
+const getStatusBadge = (status?: string) => {
+  if (status === 'inactive') {
+    return <Badge variant="destructive" className="rounded-full px-3">Inactivo</Badge>;
+  }
+  return <Badge variant="default" className="bg-green-500 hover:bg-green-600 rounded-full px-3">Activo</Badge>;
+};
+
 export default function UserManagementView() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const usersQuery = useMemoFirebase(() => 
     firestore ? query(collection(firestore, 'users')) : null,
@@ -72,21 +87,38 @@ export default function UserManagementView() {
     setIsEditDialogOpen(true);
   };
 
+  const toggleUserStatus = async (user: UserProfile) => {
+    if (!firestore) return;
+    const newStatus = user.status === 'inactive' ? 'active' : 'inactive';
+    try {
+      const userDocRef = doc(firestore, 'users', user.uid);
+      updateDocumentNonBlocking(userDocRef, { status: newStatus });
+      toast({ 
+        title: newStatus === 'active' ? "Usuario activado" : "Usuario desactivado",
+        description: `El estado de ${user.firstName} ha sido actualizado.` 
+      });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Error", description: "No se pudo cambiar el estado." });
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <Card className="border-none shadow-none bg-transparent">
-        <CardHeader className="p-0 pb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <UserCog className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-3xl font-bold font-headline text-primary">Administración de Usuarios</CardTitle>
-              <CardDescription className="text-lg">Visualiza y gestiona los accesos y perfiles de toda la institución.</CardDescription>
-            </div>
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <UserCog className="h-6 w-6 text-primary" />
           </div>
-        </CardHeader>
-      </Card>
+          <div>
+            <CardTitle className="text-3xl font-bold font-headline text-primary">Administración de Usuarios</CardTitle>
+            <CardDescription className="text-lg">Visualiza y gestiona los accesos y perfiles de toda la institución.</CardDescription>
+          </div>
+        </div>
+        <Button onClick={() => setIsCreateDialogOpen(true)} className="shadow-lg font-bold gap-2">
+          <UserPlus className="h-5 w-5" />
+          Crear Usuario
+        </Button>
+      </header>
 
       <Card className="border shadow-sm">
         <CardContent className="pt-6 space-y-6">
@@ -113,19 +145,20 @@ export default function UserManagementView() {
                   <TableHead className="w-[300px] py-4">Usuario</TableHead>
                   <TableHead className="py-4">Email</TableHead>
                   <TableHead className="py-4">Rol</TableHead>
+                  <TableHead className="py-4">Estado</TableHead>
                   <TableHead className="text-right py-4">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-64 text-center">
+                    <TableCell colSpan={5} className="h-64 text-center">
                       <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary opacity-20" />
                     </TableCell>
                   </TableRow>
                 ) : filteredUsers.length > 0 ? (
                   filteredUsers.map((user, index) => (
-                    <TableRow key={user.id} className="hover:bg-neutral-50/50 transition-colors border-b last:border-0 h-20">
+                    <TableRow key={user.id} className={`hover:bg-neutral-50/50 transition-colors border-b last:border-0 h-20 ${user.status === 'inactive' ? 'opacity-60 bg-neutral-50' : ''}`}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
@@ -149,6 +182,9 @@ export default function UserManagementView() {
                       <TableCell>
                         {getRoleBadge(user.role)}
                       </TableCell>
+                      <TableCell>
+                        {getStatusBadge(user.status)}
+                      </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -161,9 +197,16 @@ export default function UserManagementView() {
                               <Edit className="mr-3 h-4 w-4 text-neutral-500" />
                               <span className="font-medium">Editar Perfil</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-lg h-10 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/5">
-                              <UserIcon className="mr-3 h-4 w-4" />
-                              <span className="font-medium">Suspender Usuario</span>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => toggleUserStatus(user)} 
+                              className={`rounded-lg h-10 cursor-pointer font-medium ${user.status === 'inactive' ? 'text-green-600 focus:text-green-600' : 'text-destructive focus:text-destructive'}`}
+                            >
+                              {user.status === 'inactive' ? (
+                                <><UserCheck className="mr-3 h-4 w-4" /> Activar Usuario</>
+                              ) : (
+                                <><UserX className="mr-3 h-4 w-4" /> Desactivar Usuario</>
+                              )}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -172,7 +215,7 @@ export default function UserManagementView() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-64 text-center text-muted-foreground italic">
+                    <TableCell colSpan={5} className="h-64 text-center text-muted-foreground italic">
                       No se encontraron usuarios que coincidan con la búsqueda.
                     </TableCell>
                   </TableRow>
@@ -190,6 +233,11 @@ export default function UserManagementView() {
           user={selectedUser} 
         />
       )}
+
+      <CreateUserDialog 
+        isOpen={isCreateDialogOpen} 
+        onOpenChange={setIsCreateDialogOpen} 
+      />
     </div>
   );
 }

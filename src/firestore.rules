@@ -13,43 +13,45 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
+    function getProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasProfile() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     function isRole(role) {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+      return isSignedIn() && hasProfile() && getProfile().role == role;
     }
     
     function isOneOfRoles(roles) {
-      let userRole = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
-      return userRole in roles;
+      return isSignedIn() && hasProfile() && getProfile().role in roles;
     }
 
     function isInstructor(courseId) {
       return get(/databases/$(database)/documents/courses/$(courseId)).data.instructorId == request.auth.uid;
     }
 
-    // User Profiles: Readable by any authenticated user, but only writable by the owner.
+    // User Profiles
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isOwner(userId);
+      allow write: if isOwner(userId) || isRole('admin');
 
-      // Financial Info: Accessible only by the student and admins.
       match /financialInfo/{infoId} {
         allow read, write: if isOwner(userId) || isRole('admin');
       }
 
-      // Scholarships: Accessible by the student and admins.
       match /scholarships/{scholarshipId} {
         allow read, write: if isOwner(userId) || isRole('admin');
       }
 
-      // Job Applications: Accessible only by the student and admins.
       match /job_applications/{applicationId} {
-        allow read: if isOwner(userId) || isRole('admin');
-        // Students can create/update their own applications. Admins can update any.
-        allow write: if isOwner(userId) || isRole('admin');
+        allow read, write: if isOwner(userId) || isRole('admin');
       }
     }
 
-    // University Programs & Faculties: Readable by any signed-in user, writable by admins.
+    // Academic Structure
     match /programs/{programId} {
       allow read: if isSignedIn();
       allow write: if isRole('admin');
@@ -60,95 +62,103 @@ service cloud.firestore {
       allow write: if isRole('admin');
     }
 
-    // Intranet Posts: Readable by all, writable only by the author or admins.
+    // Intranet
     match /intranet_posts/{postId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (request.resource.data.authorId == request.auth.uid || isRole('admin'));
       allow update, delete: if isSignedIn() && (resource.data.authorId == request.auth.uid || isRole('admin'));
     }
 
-    // Courses: Readable by all, but only the instructor or admin can manage them.
+    // Courses & Virtual Classroom
     match /courses/{courseId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && (request.resource.data.instructorId == request.auth.uid || isRole('admin'));
+      allow create: if isOneOfRoles(['admin', 'professor']);
       allow update, delete: if isSignedIn() && (resource.data.instructorId == request.auth.uid || isRole('admin'));
 
-      // Assignments nested under courses
       match /assignments/{assignmentId} {
         allow read: if isSignedIn();
-        allow create: if isInstructor(courseId) || isRole('admin');
-        allow update, delete: if isInstructor(courseId) || isRole('admin');
+        allow write: if isInstructor(courseId) || isRole('admin');
       }
 
-      // Modules (weeks) nested under courses
       match /modules/{moduleId} {
         allow read: if isSignedIn();
-        allow create, update, delete: if isInstructor(courseId) || isRole('admin');
+        allow write: if isInstructor(courseId) || isRole('admin');
 
-        // Sessions nested under modules
         match /sessions/{sessionId} {
             allow read: if isSignedIn();
             allow write: if isInstructor(courseId) || isRole('admin');
         }
       }
+      
+      match /submissions/{submissionId} {
+        allow read: if isSignedIn() && (isInstructor(courseId) || isRole('admin') || isOwner(resource.data.studentId));
+        allow create: if isSignedIn() && isOwner(request.resource.data.studentId);
+        allow update: if isSignedIn() && (isInstructor(courseId) || isRole('admin'));
+        allow delete: if isSignedIn() && isOwner(resource.data.studentId);
+      }
+
+      match /materials/{materialId} {
+        allow read: if isSignedIn();
+        allow write: if isInstructor(courseId) || isRole('admin');
+      }
+
+      match /quizResults/{resultId} {
+        allow read: if isSignedIn() && (isInstructor(courseId) || isRole('admin') || isOwner(resource.data.userId));
+        allow write: if isRole('admin') || isInstructor(courseId);
+      }
     }
 
-    // Enrollments: Students can read their own. Admins/Professors can read all.
-    // Students can create their own enrollment. Only Admins can update/delete.
+    // Enrollments
     match /enrollments/{enrollmentId} {
-      allow read: if isOneOfRoles(['admin', 'professor']) || (isSignedIn() && resource.data.studentId == request.auth.uid);
+      allow read: if isSignedIn() && (isOneOfRoles(['admin', 'professor']) || resource.data.studentId == request.auth.uid);
       allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
       allow update, delete: if isRole('admin');
     }
     
-    // Submissions for assignments
-    match /assignments/{assignmentId}/submissions/{submissionId} {
-        allow read: if isSignedIn() && (isOwner(resource.data.studentId) || isInstructor(get(/databases/$(database)/documents/assignments/$(assignmentId)).data.courseId) || isRole('admin'));
-        allow create: if isSignedIn() && isOwner(request.resource.data.studentId);
-        allow update: if isSignedIn() && (isOwner(resource.data.studentId) || isInstructor(get(/databases/$(database)/documents/assignments/$(assignmentId)).data.courseId));
-        allow delete: if isSignedIn() && isOwner(resource.data.studentId);
-    }
-
     // Administrative Requests (Trámites)
     match /tramites/{tramiteId} {
       allow read: if isSignedIn() && (isOwner(resource.data.applicantId) || isRole('admin'));
-      allow create: if isSignedIn(); // Any signed-in user can create a request
-      allow update: if isRole('admin'); // Only admins can update the status/details
+      allow create: if isSignedIn();
+      allow update: if isRole('admin');
 
-      // Updates/History for a request
       match /updates/{updateId} {
         allow read: if isSignedIn() && (isOwner(get(/databases/$(database)/documents/tramites/$(tramiteId)).data.applicantId) || isRole('admin'));
-        allow create: if isRole('admin'); // Only admins can add comments/updates
-        allow update, delete: if isRole('admin');
+        allow write: if isRole('admin');
       }
     }
 
-    // Payments: Admins can read all. Students can only read their own payments.
+    // Financial
     match /payments/{paymentId} {
       allow read: if isRole('admin') || (isSignedIn() && resource.data.studentId == request.auth.uid);
-      allow write: if isRole('admin'); // Only admins can create/update payments
+      allow write: if isRole('admin');
     }
 
-    // Job Offers: Readable by all authenticated users, writable only by admins.
+    // Jobs
     match /job_offers/{offerId} {
       allow read: if isSignedIn();
       allow write: if isRole('admin');
     }
 
-    // Extracurricular Events: Readable by all, writable by admins and professors.
+    // Events & Activities
     match /events/{eventId} {
       allow read: if isSignedIn();
       allow write: if isOneOfRoles(['admin', 'professor']);
     }
 
-    // Wellness Services: Readable by the user and admins. Writable by the user who owns it and admins.
-    match /wellness_services/{serviceId} {
-      allow read: if isSignedIn() && (isOwner(resource.data.userId) || isRole('admin'));
-      allow write: if isSignedIn() && (isOwner(request.resource.data.userId) || isRole('admin'));
+    match /activity_enrollments/{enrollmentId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isSignedIn() && isOwner(request.resource.data.userId);
     }
 
-    // Attendance Records: Writable by professors and admins. Students can read their own records (indirectly).
-    // The rule allows direct read for owner/admin/professor for now.
+    // Wellness Services
+    match /wellness_services/{serviceId} {
+      allow read: if isSignedIn() && (isRole('admin') || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isRole('admin');
+      allow delete: if isSignedIn() && (isRole('admin') || resource.data.userId == request.auth.uid);
+    }
+
+    // Attendance
     match /attendance/{attendanceId} {
       allow read: if isSignedIn() && (isOwner(resource.data.studentId) || isOneOfRoles(['admin', 'professor']));
       allow write: if isOneOfRoles(['admin', 'professor']);

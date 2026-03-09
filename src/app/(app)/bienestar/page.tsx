@@ -38,6 +38,7 @@ export default function WellnessPage() {
 
   const isAdmin = profile?.role === 'admin';
   const isStaff = profile?.role === 'staff';
+  const isStudent = profile?.role === 'student';
 
   // 3. Cargar solicitudes para Admin o Staff
   const staffAppointmentsQuery = useMemoFirebase(
@@ -59,6 +60,9 @@ export default function WellnessPage() {
     );
   }
 
+  // Determinar pestaña por defecto según rol
+  const defaultTab = (isAdmin || isStaff) ? "management" : "appointments";
+
   return (
     <div className="space-y-8">
       <section>
@@ -79,7 +83,7 @@ export default function WellnessPage() {
         </Alert>
       )}
 
-      <Tabs defaultValue="appointments" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 md:w-auto md:inline-grid">
           <TabsTrigger value="appointments">Mis Citas</TabsTrigger>
           {(isAdmin || isStaff) && <TabsTrigger value="management">Gestión Institucional</TabsTrigger>}
@@ -88,15 +92,17 @@ export default function WellnessPage() {
         <TabsContent value="appointments" className="space-y-8 pt-4">
           <div className="grid gap-8 lg:grid-cols-3">
             <div className="lg:col-span-2 space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><CalendarIcon className="text-primary" /> Solicitar una Cita</CardTitle>
-                  <CardDescription>Explica tu motivo para asignarte al especialista correcto.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <AppointmentForm />
-                </CardContent>
-              </Card>
+              {isStudent && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><CalendarIcon className="text-primary" /> Solicitar una Cita</CardTitle>
+                    <CardDescription>Explica tu motivo para asignarte al especialista correcto.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AppointmentForm />
+                  </CardContent>
+                </Card>
+              )}
 
               <Card>
                 <CardHeader>

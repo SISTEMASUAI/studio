@@ -1,14 +1,14 @@
-
 'use client';
 
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { HeartPulse, History, Users, BarChart, CalendarIcon, LifeBuoy } from 'lucide-react';
+import { HeartPulse, History, Users, BarChart, CalendarIcon, LifeBuoy, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import AppointmentForm from '@/components/bienestar/AppointmentForm';
 import AppointmentList from '@/components/bienestar/AppointmentList';
 import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const resources = [
   { title: 'Guía de Manejo de Estrés', url: '#' },
@@ -17,7 +17,7 @@ const resources = [
 ];
 
 export default function WellnessPage() {
-  const { profile, user } = useUser();
+  const { profile, user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
   const userAppointmentsQuery = useMemoFirebase(
@@ -26,20 +26,28 @@ export default function WellnessPage() {
       where('userId', '==', user.uid),
       orderBy('requestedAt', 'desc')
     ) : null),
-    [firestore, user]
+    [firestore, user?.uid]
   );
-  const { data: myAppointments, isLoading: isMyHistoryLoading } = useCollection(userAppointmentsQuery);
+  const { data: myAppointments, isLoading: isMyHistoryLoading, error: myError } = useCollection(userAppointmentsQuery);
+
+  const isAdmin = profile?.role === 'admin';
 
   const adminAppointmentsQuery = useMemoFirebase(
-    () => (firestore && profile?.role === 'admin' ? query(
+    () => (firestore && isAdmin ? query(
       collection(firestore, 'wellness_services'), 
       orderBy('requestedAt', 'desc')
     ) : null),
-    [firestore, profile]
+    [firestore, isAdmin]
   );
-  const { data: allAppointments, isLoading: isAdminLoading } = useCollection(adminAppointmentsQuery);
+  const { data: allAppointments, isLoading: isAdminLoading, error: adminError } = useCollection(adminAppointmentsQuery);
 
-  const isAdmin = profile?.role === 'admin';
+  if (isUserLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -52,6 +60,20 @@ export default function WellnessPage() {
           Atención psicológica, tutorías académicas y recursos de salud para tu bienestar integral.
         </p>
       </section>
+
+      {/* Alerta si hay error de base de datos (como falta de índices) */}
+      {(myError || (isAdmin && adminError)) && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error de consulta</AlertTitle>
+          <AlertDescription>
+            {myError?.message || adminError?.message}
+            <p className="mt-2 text-xs opacity-70">
+              Nota: Si el error menciona que "la consulta requiere un índice", haz clic en el enlace que aparece en la consola del navegador para crearlo.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-8">
@@ -120,7 +142,7 @@ export default function WellnessPage() {
         <Card>
           <CardHeader>
             <CardTitle>Cola de Atención Institucional</CardTitle>
-            <CardDescription>Todas las solicitudes de bienestar ordenadas por urgencia.</CardDescription>
+            <CardDescription>Todas las solicitudes de bienestar ordenadas por fecha.</CardDescription>
           </CardHeader>
           <CardContent>
             <AppointmentList appointments={allAppointments} isAdminView />

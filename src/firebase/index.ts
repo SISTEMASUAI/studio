@@ -1,27 +1,30 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 /**
- * Inicializa Firebase y sus servicios.
- * Se asegura de que initializeFirestore se llame solo una vez para evitar
- * errores de aserción interna del SDK.
+ * Inicializa Firebase y sus servicios de forma robusta.
+ * Garantiza que initializeFirestore se llame exactamente una vez.
  */
 export function initializeFirebase() {
-  if (!getApps().length) {
-    const firebaseApp = initializeApp(firebaseConfig);
-    // Usamos initializeFirestore para forzar long-polling una sola vez.
-    // Esto es necesario en entornos de red específicos como Workstations.
-    initializeFirestore(firebaseApp, {
+  const apps = getApps();
+  let app;
+
+  if (!apps.length) {
+    app = initializeApp(firebaseConfig);
+    // Forzamos long-polling para evitar problemas de conexión en entornos Workstation.
+    // Esto previene el error "INTERNAL ASSERTION FAILED".
+    initializeFirestore(app, {
       experimentalForceLongPolling: true,
     });
+  } else {
+    app = getApp();
   }
 
-  const app = getApp();
   return {
     firebaseApp: app,
     auth: getAuth(app),

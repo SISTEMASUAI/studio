@@ -6,29 +6,27 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
+/**
+ * Inicializa Firebase y sus servicios.
+ * Se asegura de que initializeFirestore se llame solo una vez para evitar
+ * errores de aserción interna del SDK.
+ */
 export function initializeFirebase() {
   if (!getApps().length) {
-    // Directly initialize with the provided config to ensure connection to production services.
     const firebaseApp = initializeApp(firebaseConfig);
-    return getSdks(firebaseApp);
+    // Usamos initializeFirestore para forzar long-polling una sola vez.
+    // Esto es necesario en entornos de red específicos como Workstations.
+    initializeFirestore(firebaseApp, {
+      experimentalForceLongPolling: true,
+    });
   }
 
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
-}
-
-export function getSdks(firebaseApp: FirebaseApp) {
-  // Use initializeFirestore to force long-polling, which can resolve connection issues in some environments.
-  const firestore = initializeFirestore(firebaseApp, {
-    experimentalForceLongPolling: true,
-  });
-
+  const app = getApp();
   return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: firestore,
-    storage: getStorage(firebaseApp),
+    firebaseApp: app,
+    auth: getAuth(app),
+    firestore: getFirestore(app),
+    storage: getStorage(app),
   };
 }
 

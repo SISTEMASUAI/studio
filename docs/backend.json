@@ -550,9 +550,24 @@
         "name": { "type": "string" },
         "description": { "type": "string" },
         "date": { "type": "string", "format": "date-time" },
-        "organizerId": { "type": "string", "description": "UID of the professor or admin who created the event." }
+        "category": { "type": "string" },
+        "organizerId": { "type": "string", "description": "UID of the professor or admin who created the event." },
+        "location": { "type": "string" },
+        "imageUrl": { "type": "string" }
       },
       "required": ["eventId", "name", "description", "date", "organizerId"]
+    },
+    "ActivityEnrollment": {
+      "title": "ActivityEnrollment",
+      "description": "Represents a student's enrollment in an activity.",
+      "type": "object",
+      "properties": {
+        "enrollmentId": { "type": "string" },
+        "eventId": { "type": "string" },
+        "userId": { "type": "string" },
+        "enrolledAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["enrollmentId", "eventId", "userId", "enrolledAt"]
     },
     "WellnessAppointment": {
       "title": "WellnessAppointment",
@@ -563,10 +578,12 @@
         "userId": { "type": "string", "description": "UID of the user requesting the service." },
         "serviceType": { "type": "string", "enum": ["orientation", "tutoring"] },
         "status": { "type": "string", "enum": ["requested", "scheduled", "completed", "canceled"] },
+        "requestedAt": { "type": "string", "format": "date-time" },
         "scheduledAt": { "type": "string", "format": "date-time" },
-        "tutorId": { "type": "string", "description": "UID of the assigned tutor/counselor." }
+        "tutorId": { "type": "string", "description": "UID of the assigned tutor/counselor." },
+        "reason": { "type": "string" }
       },
-      "required": ["serviceId", "userId", "serviceType", "status"]
+      "required": ["serviceId", "userId", "serviceType", "status", "requestedAt"]
     },
     "AttendanceRecord": {
       "title": "AttendanceRecord",
@@ -708,6 +725,10 @@
       "/events/{eventId}": {
         "schema": { "$ref": "#/entities/ExtracurricularEvent" },
         "description": "Stores extracurricular activities and events. Readable by all, writable by admins and professors."
+      },
+      "/activity_enrollments/{enrollmentId}": {
+        "schema": { "$ref": "#/entities/ActivityEnrollment" },
+        "description": "Stores enrollments for activities."
       },
       "/wellness_services/{serviceId}": {
         "schema": { "$ref": "#/entities/WellnessAppointment" },

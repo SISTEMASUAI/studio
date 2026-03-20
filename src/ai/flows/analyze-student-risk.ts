@@ -3,7 +3,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 
-// Schemas básicos
+// Schemas básicos----
 const UserProfileSchema = z.object({
   uid: z.string(),
   firstName: z.string(),

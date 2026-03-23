@@ -1,3 +1,4 @@
+
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -19,6 +20,11 @@ import {
   UserCheck,
   Settings,
   Users,
+  ListTree,
+  Wand2,
+  ShieldAlert,
+  FileText,
+  UserCog,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -47,20 +53,24 @@ import { useEffect } from 'react';
 import { Skeleton } from './ui/skeleton';
 
 const navItems = [
-  { href: '/intranet', icon: Newspaper, label: 'Nuxtu', roles: ['student', 'professor', 'admin'] },
-  { href: '/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin'] },
+  { href: '/intranet', icon: Newspaper, label: 'Nuxtu', roles: ['student', 'professor', 'admin', 'staff'] },
+  { href: '/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin', 'staff'] },
+  { href: '/programas', icon: GraduationCap, label: 'Programas', roles: ['admin'] },
   { href: '/cursos', icon: BookCopy, label: 'Cursos', roles: ['student', 'professor', 'admin'] },
-  { href: '/alumnos', icon: Users, label: 'Alumnos', roles: ['admin'] },
+  { href: '/app/modulos', icon: ListTree, label: 'Módulos', roles: ['admin'] },
+  { href: '/admin/usuarios', icon: UserCog, label: 'Gestión de Usuarios', roles: ['admin'] },
   { href: '/asistencia', icon: UserCheck, label: 'Asistencia', roles: ['professor', 'admin'] },
   { href: '/grades', icon: GraduationCap, label: 'Calificaciones', roles: ['student', 'professor', 'admin'] },
   { href: '/matricula', icon: ClipboardList, label: 'Matrícula', roles: ['student', 'professor', 'admin'] },
   { href: '/plan-de-estudios', icon: BookMarked, label: 'Plan de Estudios', roles: ['student', 'professor', 'admin'] },
-  { href: '/tramites', icon: FileClock, label: 'Trámites', roles: ['student', 'professor', 'admin'] },
+  { href: '/tramites', icon: FileClock, label: 'Trámites', roles: ['student', 'professor', 'admin', 'staff'] },
   { href: '/pagos', icon: Landmark, label: 'Pagos', roles: ['student', 'professor', 'admin'] },
-  { href: '/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo', roles: ['student', 'professor', 'admin'] },
-  { href: '/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin'] },
-  { href: '/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin'] },
-  { href: '/programas', icon: GraduationCap, label: 'Programas', roles: ['admin'] },
+  { href: '/bolsa-de-trabajo', icon: Briefcase, label: 'Bolsa de Trabajo', roles: ['student', 'professor', 'admin', 'staff'] },
+  { href: '/curriculum', icon: FileText, label: 'Mi Currículum', roles: ['student'] },
+  { href: '/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin', 'staff'] },
+  { href: '/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin', 'staff'] },
+  { href: '/tutor-ia', icon: Wand2, label: 'Tutor IA', roles: ['professor', 'admin'] },
+  { href: '/app/analitica', icon: ShieldAlert, label: 'Analítica IA', roles: ['admin'] },
   { href: '/configuracion', icon: Settings, label: 'Configuración', roles: ['admin'] },
 ];
 
@@ -125,9 +135,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-          <SidebarMenuButton onClick={handleLogout} tooltip="Log Out">
+          <SidebarMenuButton onClick={handleLogout} tooltip="Cerrar Sesión">
             <LogOut />
-            <span>Log Out</span>
+            <span>Cerrar Sesión</span>
           </SidebarMenuButton>
         </SidebarFooter>
       </Sidebar>
@@ -194,13 +204,12 @@ function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => router.push('/profile')}>
           <User className="w-4 h-4 mr-2" />
-          Profile
+          Perfil
         </DropdownMenuItem>
-        <DropdownMenuItem disabled>Settings</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="w-4 h-4 mr-2" />
-          Log out
+          Cerrar Sesión
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -21,12 +21,12 @@ interface AttendanceRecord {
     id: string;
     studentId: string;
     courseId: string;
-    date: string;
+    sessionId: string;
     sessionTitle: string;
+    date: string;
     status: 'presente' | 'ausente' | 'tarde' | 'justificado';
     notes?: string;
 }
-
 
 export default function CourseAttendance({ attendance }: { attendance: AttendanceRecord[]}) {
     const attendancePolicy = 85;
@@ -35,32 +35,51 @@ export default function CourseAttendance({ attendance }: { attendance: Attendanc
     const lateCount = attendance.filter(a => a.status === 'tarde').length;
     const absentCount = attendance.filter(a => a.status === 'ausente').length;
     
-    // As per policy, tardies might count as half-absences or similar, but for now, we count them as attended for the percentage.
-    const validAttendance = presentCount + lateCount;
-    const attendancePercentage = totalClasses > 0 ? Math.round((validAttendance / totalClasses) * 100) : 100;
-    
-    const justifiableAbsences = attendance.filter(a => a.status === 'ausente' || a.status === 'tarde');
+    // As per policy, tardies might count partially. Let's assume 2 lates = 1 absence for calculation, or simply count them separately.
+    // For % calculation, let's consider present and justified as full attendance.
+    const attendancePercentage = totalClasses > 0 ? Math.round(((presentCount + lateCount) / totalClasses) * 100) : 100;
 
     const getProgressColor = (percentage: number) => {
-        if (percentage >= 85) return 'bg-green-500';
+        if (percentage >= attendancePolicy) return 'bg-green-500';
         if (percentage >= 70) return 'bg-yellow-500';
         return 'bg-red-500';
+    };
+
+    const getStatusBadge = (status: AttendanceRecord['status']) => {
+        switch (status) {
+          case 'presente':
+            return <Badge variant="default" className="bg-green-100 text-green-800">Presente</Badge>;
+          case 'tarde':
+            return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Tarde</Badge>;
+          case 'ausente':
+            return <Badge variant="destructive">Ausente</Badge>;
+          case 'justificado':
+            return <Badge variant="outline">Justificado</Badge>;
+          default:
+            return <Badge>{status}</Badge>;
+        }
       };
+
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><UserCheck/> Mi Asistencia</CardTitle>
-                <CardDescription>Resumen y detalle de tu asistencia en el curso.</CardDescription>
+                <CardDescription>Resumen de tu asistencia y detalle de cada clase.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div>
-                    <p className="text-sm font-medium mb-2">Resumen de Asistencia</p>
+                    <p className="text-sm font-medium mb-2">Resumen de Asistencia General</p>
                     <div className="space-y-2">
-                        <Progress value={attendancePercentage} className="h-2 [&>div]:bg-green-500" indicatorClassName={getProgressColor(attendancePercentage)} />
+                        <Progress value={attendancePercentage} className="h-2" indicatorClassName={getProgressColor(attendancePercentage)} />
                         <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>{validAttendance} de {totalClasses} clases asistidas</span>
-                            <span>{attendancePercentage}%</span>
+                            <span>Total de clases: {totalClasses}</span>
+                            <span>{attendancePercentage}% de Asistencia</span>
+                        </div>
+                        <div className="flex justify-around text-xs pt-2">
+                            <span><span className="font-bold">{presentCount}</span> Presente</span>
+                            <span><span className="font-bold">{lateCount}</span> Tarde</span>
+                            <span><span className="font-bold">{absentCount}</span> Ausente</span>
                         </div>
                         {attendancePercentage < attendancePolicy && (
                             <p className="text-xs text-destructive flex items-center gap-1"><AlertTriangle className="h-3 w-3"/> Mínimo requerido: {attendancePolicy}%</p>
@@ -69,7 +88,7 @@ export default function CourseAttendance({ attendance }: { attendance: Attendanc
                 </div>
 
                 <div>
-                    <h3 className="font-semibold mb-2 text-sm">Historial de Asistencia</h3>
+                    <h3 className="font-semibold mb-2 text-sm">Historial de Clases</h3>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -80,22 +99,17 @@ export default function CourseAttendance({ attendance }: { attendance: Attendanc
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {attendance && attendance.length > 0 ? attendance.map(record => (
+                            {attendance.length > 0 ? attendance.map(record => (
                                 <TableRow key={record.id}>
                                     <TableCell className="p-2">
                                         <p className="text-sm">{record.date}</p>
                                     </TableCell>
                                     <TableCell className="p-2 text-sm text-muted-foreground">{record.sessionTitle}</TableCell>
-                                    <TableCell className="p-2 text-sm capitalize">
-                                        <Badge variant={
-                                            record.status === 'presente' ? 'default' :
-                                            record.status === 'justificado' ? 'secondary' :
-                                            record.status === 'ausente' ? 'destructive' :
-                                            'secondary'
-                                        }>{record.status}</Badge>
-                                    </TableCell>
+                                     <TableCell className="p-2 text-sm capitalize">
+                                        {getStatusBadge(record.status)}
+                                     </TableCell>
                                     <TableCell className="p-2 text-right">
-                                        {(record.status === 'ausente' || record.status === 'tarde') && (
+                                        {(record.status === 'ausente' || record.status === 'tarde') ? (
                                             <Dialog>
                                                 <DialogTrigger asChild>
                                                     <Button variant="outline" size="sm">
@@ -144,6 +158,8 @@ export default function CourseAttendance({ attendance }: { attendance: Attendanc
                                                     </DialogFooter>
                                                 </DialogContent>
                                             </Dialog>
+                                        ) : (
+                                            <span className="text-xs text-muted-foreground">-</span>
                                         )}
                                     </TableCell>
                                 </TableRow>

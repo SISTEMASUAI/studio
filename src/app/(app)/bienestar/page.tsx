@@ -1,155 +1,181 @@
 
 'use client';
 
-import { useUser } from '@/firebase';
-import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  HeartPulse,
-  Calendar,
-  BookOpen,
-  LifeBuoy,
-  History,
-  Users,
-  BarChart,
-  UserCheck,
-} from 'lucide-react';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { HeartPulse, History, Users, CalendarIcon, LifeBuoy, AlertTriangle, PlusCircle, Trash2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import AppointmentForm from '@/components/bienestar/AppointmentForm';
+import AppointmentList from '@/components/bienestar/AppointmentList';
+import ResourceManagement from '@/components/bienestar/ResourceManagement';
+import ServiceManagement from '@/components/bienestar/ServiceManagement';
+import { collection, query, where, orderBy } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-
-const serviceHistory = [
-  {
-    id: 'WH-001',
-    service: 'Cita de Orientación Psicológica',
-    date: '2024-07-20',
-    status: 'Completado',
-  },
-  {
-    id: 'WH-002',
-    service: 'Tutoría Académica - Cálculo',
-    date: '2024-08-05',
-    status: 'Programada',
-  },
-];
-
-const availableResources = [
-    { title: 'Guía de Manejo de Estrés', url: '#' },
-    { title: 'Técnicas de Estudio Efectivas', url: '#' },
-    { title: 'Contacto de Emergencia 24/7', url: '#' },
-]
+import { Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function WellnessPage() {
-  const { profile } = useUser();
+  const { profile, user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  // 1. Cargar Recursos de Apoyo dinámicos
+  const resourcesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'wellness_resources') : null),
+    [firestore]
+  );
+  const { data: dbResources, isLoading: isLoadingResources } = useCollection(resourcesQuery);
+
+  // 2. Cargar Historial del Usuario
+  const userAppointmentsQuery = useMemoFirebase(
+    () => (firestore && user ? query(
+      collection(firestore, 'wellness_services'), 
+      where('userId', '==', user.uid),
+      orderBy('requestedAt', 'desc')
+    ) : null),
+    [firestore, user?.uid]
+  );
+  const { data: myAppointments, isLoading: isMyHistoryLoading, error: myError } = useCollection(userAppointmentsQuery);
 
   const isAdmin = profile?.role === 'admin';
-  const canRequestTutoring = profile?.role === 'student' || profile?.role === 'professor';
+  const isStaff = profile?.role === 'staff';
+  const isStudent = profile?.role === 'student';
+
+  // 3. Cargar solicitudes para Admin o Staff
+  const staffAppointmentsQuery = useMemoFirebase(
+    () => {
+      if (!firestore) return null;
+      if (isAdmin) return query(collection(firestore, 'wellness_services'), orderBy('requestedAt', 'desc'));
+      if (isStaff && user) return query(collection(firestore, 'wellness_services'), where('assignedStaffId', '==', user.uid), orderBy('requestedAt', 'desc'));
+      return null;
+    },
+    [firestore, isAdmin, isStaff, user?.uid]
+  );
+  const { data: staffAppointments, isLoading: isStaffLoading } = useCollection(staffAppointmentsQuery);
+
+  if (isUserLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Determinar pestaña por defecto según rol
+  const defaultTab = (isAdmin || isStaff) ? "management" : "appointments";
 
   return (
     <div className="space-y-8">
       <section>
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
-              <HeartPulse className="text-primary" />
-              Servicios de Bienestar
-            </h1>
-            <p className="text-muted-foreground">
-              Tu salud física y mental es nuestra prioridad.
-            </p>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold font-headline flex items-center gap-2">
+          <HeartPulse className="text-primary" />
+          Servicios de Bienestar
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Atención especializada y recursos para tu equilibrio emocional y académico.
+        </p>
       </section>
 
-      <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-        {/* Main Actions Column */}
-        <div className="lg:col-span-2 space-y-8">
-           <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Calendar /> Solicitar Cita</CardTitle>
-                <CardDescription>Agenda una sesión de orientación o tutoría.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col sm:flex-row gap-4">
-                <Button className="w-full">
-                    Solicitar Cita de Orientación
-                </Button>
-                {canRequestTutoring && (
-                    <Button variant="secondary" className="w-full">
-                        Solicitar Tutoría Académica
-                    </Button>
-                )}
-            </CardContent>
-           </Card>
-           <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2"><History /> Mi Historial de Servicios</CardTitle>
-                <CardDescription>Revisa tus citas pasadas y programadas.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ul className="space-y-4">
-                    {serviceHistory.map(item => (
-                        <li key={item.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 bg-accent/50 rounded-lg">
-                            <div>
-                                <p className="font-semibold">{item.service}</p>
-                                <p className="text-sm text-muted-foreground">Fecha: {item.date}</p>
-                            </div>
-                            <Badge variant={item.status === 'Completado' ? 'default' : 'secondary'}>{item.status}</Badge>
-                        </li>
-                    ))}
-                </ul>
-            </CardContent>
-           </Card>
-        </div>
+      {myError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error de conexión</AlertTitle>
+          <AlertDescription>{myError.message}</AlertDescription>
+        </Alert>
+      )}
 
-        {/* Aside Column */}
-        <aside className="space-y-8">
-            <Card>
+      <Tabs defaultValue={defaultTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 md:w-auto md:inline-grid">
+          <TabsTrigger value="appointments">Mis Citas</TabsTrigger>
+          {(isAdmin || isStaff) && <TabsTrigger value="management">Gestión Institucional</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="appointments" className="space-y-8 pt-4">
+          <div className="grid gap-8 lg:grid-cols-3">
+            <div className="lg:col-span-2 space-y-8">
+              {isStudent && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><CalendarIcon className="text-primary" /> Solicitar una Cita</CardTitle>
+                    <CardDescription>Explica tu motivo para asignarte al especialista correcto.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AppointmentForm />
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2"><LifeBuoy /> Recursos de Ayuda</CardTitle>
-                    <CardDescription>Material y contactos de soporte.</CardDescription>
+                  <CardTitle className="flex items-center gap-2"><History className="text-primary" /> Mi Historial de Atención</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <ul className="space-y-2">
-                        {availableResources.map((res, index) => (
-                            <li key={index}>
-                                <Button variant="link" className="p-0 h-auto font-normal">
-                                    {res.title}
-                                </Button>
-                            </li>
-                        ))}
-                    </ul>
+                  {isMyHistoryLoading ? (
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin opacity-20" /></div>
+                  ) : (
+                    <AppointmentList appointments={myAppointments || []} />
+                  )}
                 </CardContent>
-            </Card>
+              </Card>
+            </div>
 
-            {isAdmin && (
+            <aside className="space-y-8">
+              <Card className="border-primary/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg"><LifeBuoy className="text-primary" /> Recursos de Apoyo</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingResources ? (
+                    <Loader2 className="animate-spin h-4 w-4 opacity-20 mx-auto" />
+                  ) : dbResources && dbResources.length > 0 ? (
+                    <ul className="space-y-2">
+                      {dbResources.map((res) => (
+                        <li key={res.id}>
+                          <Button variant="link" className="p-0 h-auto font-normal text-muted-foreground hover:text-primary" asChild>
+                            <a href={res.url} target="_blank" rel="noopener noreferrer">{res.title}</a>
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">No hay recursos disponibles.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </aside>
+          </div>
+        </TabsContent>
+
+        {(isAdmin || isStaff) && (
+          <TabsContent value="management" className="space-y-8 pt-4">
+            <div className="grid gap-8 lg:grid-cols-2">
+              <div className="space-y-8">
                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2"><Users /> Gestión de Bienestar</CardTitle>
-                        <CardDescription>Panel para administrar citas, tutores y recursos.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex flex-col gap-2">
-                            <Button variant="outline"><UserCheck className="mr-2"/> Asignar Tutores</Button>
-                            <Button variant="outline"><BarChart className="mr-2"/> Ver Estadísticas</Button>
-                            <Button variant="outline"><Calendar className="mr-2"/> Gestionar Agenda</Button>
-                        </div>
-                        <Alert>
-                            <HeartPulse className="h-4 w-4" />
-                            <AlertTitle>En Desarrollo</AlertTitle>
-                            <AlertDescription>
-                                Las funcionalidades avanzadas para la gestión de bienestar estarán disponibles próximamente.
-                            </AlertDescription>
-                        </Alert>
-                    </CardContent>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="text-primary" /> 
+                      {isAdmin ? 'Cola de Atención Global' : 'Mis Citas Asignadas'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isStaffLoading ? (
+                      <div className="flex justify-center p-8"><Loader2 className="animate-spin opacity-20" /></div>
+                    ) : (
+                      <AppointmentList appointments={staffAppointments || []} isAdminView />
+                    )}
+                  </CardContent>
                 </Card>
-            )}
-        </aside>
-      </div>
+              </div>
+
+              {isAdmin && (
+                <div className="space-y-8">
+                  <ServiceManagement />
+                  <ResourceManagement />
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }

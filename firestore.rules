@@ -79,6 +79,26 @@ service cloud.firestore {
         allow create: if isInstructor(courseId) || isRole('admin');
         allow update, delete: if isInstructor(courseId) || isRole('admin');
       }
+
+      // Modules (weeks) nested under courses
+      match /modules/{moduleId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isInstructor(courseId) || isRole('admin');
+
+        // Sessions nested under modules
+        match /sessions/{sessionId} {
+            allow read: if isSignedIn();
+            allow write: if isInstructor(courseId) || isRole('admin');
+        }
+      }
+      
+      // Submissions nested under courses
+      match /submissions/{submissionId} {
+        allow read: if isInstructor(courseId) || isRole('admin') || isOwner(resource.data.studentId);
+        allow create: if isOwner(request.resource.data.studentId);
+        allow update: if isInstructor(courseId) || isRole('admin'); // Only prof/admin can grade
+        allow delete: if isOwner(resource.data.studentId);
+      }
     }
 
     // Enrollments: Students can read their own. Admins/Professors can read all.
@@ -89,14 +109,6 @@ service cloud.firestore {
       allow update, delete: if isRole('admin');
     }
     
-    // Submissions for assignments
-    match /assignments/{assignmentId}/submissions/{submissionId} {
-        allow read: if isSignedIn() && (isOwner(resource.data.studentId) || isInstructor(get(/databases/$(database)/documents/assignments/$(assignmentId)).data.courseId) || isRole('admin'));
-        allow create: if isSignedIn() && isOwner(request.resource.data.studentId);
-        allow update: if isSignedIn() && (isOwner(resource.data.studentId) || isInstructor(get(/databases/$(database)/documents/assignments/$(assignmentId)).data.courseId));
-        allow delete: if isSignedIn() && isOwner(resource.data.studentId);
-    }
-
     // Administrative Requests (Trámites)
     match /tramites/{tramiteId} {
       allow read: if isSignedIn() && (isOwner(resource.data.applicantId) || isRole('admin'));
@@ -129,10 +141,19 @@ service cloud.firestore {
       allow write: if isOneOfRoles(['admin', 'professor']);
     }
 
+    // Enrollments for activities
+    match /activity_enrollments/{enrollmentId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow delete: if isSignedIn() && isOwner(resource.data.userId);
+    }
+
     // Wellness Services: Readable by the user and admins. Writable by the user who owns it and admins.
     match /wellness_services/{serviceId} {
       allow read: if isSignedIn() && (isOwner(resource.data.userId) || isRole('admin'));
-      allow write: if isSignedIn() && (isOwner(request.resource.data.userId) || isRole('admin'));
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if isRole('admin');
+      allow delete: if isSignedIn() && (isOwner(resource.data.userId) || isRole('admin'));
     }
 
     // Attendance Records: Writable by professors and admins. Students can read their own records (indirectly).

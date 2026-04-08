@@ -115,7 +115,13 @@ export default function AnalyticsPage() {
       setAnalysisResult(result);
     } catch (error: any) {
       console.error("Análisis fallido:", error);
-      setAnalysisError(error.message || "Ocurrió un error al procesar los datos. Intenta nuevamente.");
+      let message = "Ocurrió un error al procesar los datos. Intenta nuevamente.";
+      
+      if (error.message?.includes('fetch failed')) {
+        message = "No se pudo conectar con el servidor de IA local (Ollama). Asegúrate de que Ollama esté ejecutándose y que hayas descargado el modelo con 'ollama pull llama3'.";
+      }
+      
+      setAnalysisError(message);
     } finally {
       setIsAnalyzing(false);
     }
@@ -209,7 +215,7 @@ export default function AnalyticsPage() {
           <div className="flex gap-2">
             <Badge variant="outline" className="animate-bounce delay-75">Firestore</Badge>
             <Badge variant="outline" className="animate-bounce delay-150">Genkit AI</Badge>
-            <Badge variant="outline" className="animate-bounce delay-300">Gemini 3.0</Badge>
+            <Badge variant="outline" className="animate-bounce delay-300">Ollama Local</Badge>
           </div>
         </div>
       )}

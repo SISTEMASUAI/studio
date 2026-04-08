@@ -57,7 +57,7 @@ const navItems = [
   { href: '/schedule', icon: Calendar, label: 'Horarios', roles: ['student', 'professor', 'admin', 'staff'] },
   { href: '/programas', icon: GraduationCap, label: 'Programas', roles: ['admin'] },
   { href: '/cursos', icon: BookCopy, label: 'Cursos', roles: ['student', 'professor', 'admin'] },
-  { href: '/app/modulos', icon: ListTree, label: 'Módulos', roles: ['admin'] },
+  { href: '/modulos', icon: ListTree, label: 'Módulos', roles: ['admin'] },
   { href: '/admin/usuarios', icon: UserCog, label: 'Gestión de Usuarios', roles: ['admin'] },
   { href: '/asistencia', icon: UserCheck, label: 'Asistencia', roles: ['professor', 'admin'] },
   { href: '/grades', icon: GraduationCap, label: 'Calificaciones', roles: ['student', 'professor', 'admin'] },
@@ -70,7 +70,7 @@ const navItems = [
   { href: '/actividades', icon: Activity, label: 'Actividades', roles: ['student', 'professor', 'admin', 'staff'] },
   { href: '/bienestar', icon: HeartPulse, label: 'Bienestar', roles: ['student', 'professor', 'admin', 'staff'] },
   { href: '/tutor-ia', icon: Wand2, label: 'Tutor IA', roles: ['professor', 'admin'] },
-  { href: '/app/analitica', icon: ShieldAlert, label: 'Analítica IA', roles: ['admin'] },
+  { href: '/analitica', icon: ShieldAlert, label: 'Analítica IA', roles: ['admin'] },
   { href: '/configuracion', icon: Settings, label: 'Configuración', roles: ['admin'] },
 ];
 

@@ -1,12 +1,9 @@
-'use client';
-
 import type { Metadata } from 'next';
 import { Poppins, PT_Sans } from 'next/font/google';
 import { Toaster } from "@/components/ui/toaster";
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import AppShell from '@/components/AppShell';
-import { usePathname } from 'next/navigation';
+import NavigationWrapper from '@/components/NavigationWrapper';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -20,21 +17,10 @@ const ptSans = PT_Sans({
   variable: '--font-body',
 });
 
-// export const metadata: Metadata = {
-//   title: 'Nuxtu',
-//   description: 'Portal unificado para intranet y aula virtual.',
-// };
-
-function AppShellOrChildren({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
-    const isAppPage = !['/', '/signup'].includes(pathname);
-
-    if (isAppPage) {
-        return <AppShell>{children}</AppShell>;
-    }
-    return <>{children}</>;
-}
-
+export const metadata: Metadata = {
+  title: 'Nuxtu',
+  description: 'Portal unificado para intranet y aula virtual.',
+};
 
 export default function RootLayout({
   children,
@@ -43,15 +29,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-       <head>
-        <title>Nuxtu</title>
-        <meta name="description" content="Portal unificado para intranet y aula virtual." />
-      </head>
       <body className={`${poppins.variable} ${ptSans.variable} font-body antialiased`}>
         <FirebaseClientProvider>
-          <AppShellOrChildren>
+          <NavigationWrapper>
             {children}
-          </AppShellOrChildren>
+          </NavigationWrapper>
         </FirebaseClientProvider>
         <Toaster />
       </body>

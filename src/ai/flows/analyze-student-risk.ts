@@ -61,7 +61,8 @@ const analyzeStudentRiskFlow = ai.defineFlow(
   {
     name: 'analyzeStudentRiskFlow',
     inputSchema: AnalyzeStudentRiskInputSchema,
-    outputSchema: AnalyzeStudentRiskOutputSchema,
+    // Note: outputSchema is omitted to prevent automatic Genkit validation errors with Ollama.
+    // We handle validation and normalization manually in the function body.
   },
   async (input) => {
     // Calcular métricas previas para enriquecer el prompt
@@ -79,6 +80,7 @@ const analyzeStudentRiskFlow = ai.defineFlow(
       : 'N/A';
 
     const response = await ai.generate({
+      model: 'ollama/llama3',
       config: {
         temperature: 0.3,
         maxOutputTokens: 1500,
@@ -145,17 +147,24 @@ Genera 3-5 recomendaciones **específicas y accionables** para el tutor, prioriz
 - Recursos de apoyo específicos (tutorías, orientación psicológica, etc.)
 - Plan de recuperación académica (si es necesario)
 
-Responde ÚNICAMENTE con el JSON estructurado solicitado.
+Responde ÚNICAMENTE con el JSON estructurado, sin texto adicional, sin markdown, en este formato exacto:
+{"riskLevel":"Bajo|Medio|Alto","riskOfDropout":"Muy bajo|Bajo|Moderado|Alto|Muy alto","summary":"...","supportRecommendations":["...","..."],"alertLevel":"Verde|Amarillo|Naranja|Rojo"}
       `,
-      output: { schema: AnalyzeStudentRiskOutputSchema },
     });
 
-    const output = response.output;
-    
-    if (!output) {
+    const rawText = response.text?.trim() ?? '';
+    if (!rawText) {
       throw new Error("No se recibió una respuesta válida del modelo de IA.");
     }
-    
-    return output as AnalyzeStudentRiskOutput;
+
+    let parsed: AnalyzeStudentRiskOutput;
+    try {
+      const clean = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+      parsed = JSON.parse(clean) as AnalyzeStudentRiskOutput;
+    } catch {
+      throw new Error("La IA no devolvió un JSON válido para el análisis de riesgo.");
+    }
+
+    return parsed;
   }
 );

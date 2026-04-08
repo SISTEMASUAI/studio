@@ -241,7 +241,7 @@ export default function CurriculumPage() {
                   <span className="text-xs font-bold text-primary uppercase">Asistente IA</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Al subir tu CV, Gemini extraerá automáticamente tu experiencia para ahorrarte tiempo.
+                  Al subir tu CV, Ollama extraerá automáticamente tu experiencia para ahorrarte tiempo.
                 </p>
               </div>
             </CardContent>

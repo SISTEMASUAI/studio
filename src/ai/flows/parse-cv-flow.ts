@@ -36,10 +36,12 @@ const parseCVFlow = ai.defineFlow(
   {
     name: 'parseCVFlow',
     inputSchema: ParseCVInputSchema,
-    outputSchema: ParseCVOutputSchema,
+    // Note: outputSchema is omitted to prevent automatic Genkit validation errors with Ollama.
+    // We handle validation and normalization manually in the function body.
   },
   async input => {
     const response = await ai.generate({
+      model: 'ollama/llama3',
       prompt: [
         { media: { url: input.pdfDataUri, contentType: 'application/pdf' } },
         { text: `You are an expert recruiter and career coach.
@@ -50,15 +52,25 @@ Guidelines:
 - Skills: List at least 5-10 keywords if available.
 - Experience & Education: Formatted clearly.
 
-If information is missing, use an empty string or empty array.` }
+If information is missing, use an empty string or empty array.
+Return ONLY a valid JSON object in this exact format (no markdown, no additional text):
+{"professionalTitle": "...", "summary": "...", "skills": ["..."], "experience": "...", "education": "..."}` }
       ],
-      output: { schema: ParseCVOutputSchema }
     });
 
-    if (!response.output) {
-      throw new Error('No se pudo extraer información del currículum.');
+    const rawText = response.text?.trim() ?? '';
+    if (!rawText) {
+      throw new Error('No se recibió una respuesta válida del modelo.');
     }
 
-    return response.output as ParseCVOutput;
+    let parsed: ParseCVOutput;
+    try {
+      const clean = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+      parsed = JSON.parse(clean) as ParseCVOutput;
+    } catch {
+      throw new Error('La IA no devolvió un JSON válido para la información del currículum.');
+    }
+
+    return parsed;
   }
 );

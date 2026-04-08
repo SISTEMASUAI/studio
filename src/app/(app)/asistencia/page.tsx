@@ -97,6 +97,7 @@ interface AttendanceRecord {
     studentId: string;
     courseId: string;
     sessionId: string;
+    sessionTitle: string;
     date: string;
     status: AttendanceStatus;
 }
@@ -311,7 +312,7 @@ function ProfessorAttendanceView() {
                                         <div className="text-sm text-muted-foreground">{session.timeRange}</div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Dialog onOpenChange={(open) => !open && setSelectedSession(null)}>
+                                        <Dialog onOpenChange={(open) => { if (!open) setSelectedSession(null); }}>
                                             <DialogTrigger asChild>
                                                 <Button 
                                                     variant={isToday ? 'default' : 'outline'}

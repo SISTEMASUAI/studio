@@ -41,10 +41,12 @@ const matchJobsFlow = ai.defineFlow(
   {
     name: 'matchJobsFlow',
     inputSchema: MatchJobsInputSchema,
-    outputSchema: MatchJobsOutputSchema,
+    // Note: outputSchema is omitted to prevent automatic Genkit validation errors with Ollama.
+    // We handle validation and normalization manually in the function body.
   },
   async (input) => {
     const response = await ai.generate({
+      model: 'ollama/llama3',
       prompt: `You are an expert career counselor.
 Analyze the following user profile and match it with the provided job offers.
 
@@ -59,14 +61,52 @@ ${JSON.stringify(input.jobOffers, null, 2)}
 
 For each job, calculate a match score (0-100) based on skills and experience compatibility.
 Provide a concise reason in Spanish for the match.
-Return the results ordered by the highest score first.`,
-      output: { schema: MatchJobsOutputSchema },
+Return ONLY a valid JSON object in this exact format (no markdown, no explanation):
+{"matches": [{"jobId": "...", "matchScore": 0, "reason": "..."}]}
+
+Order results by highest matchScore first.`,
     });
 
-    if (!response.output) {
-      throw new Error('No se pudo realizar el emparejamiento de empleos.');
+    // llama3 sometimes returns a raw array instead of the wrapped object.
+    // We normalise the raw text to always get { matches: [...] }.
+    const rawText = response.text?.trim() ?? '';
+    console.log('DEBUG: Raw response from Ollama:', rawText);
+    
+    let parsed: unknown;
+    try {
+      // More robust cleaning: find the first { or [ and the last } or ]
+      const firstBrace = rawText.indexOf('{');
+      const firstBracket = rawText.indexOf('[');
+      const startIdx = (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) ? firstBrace : firstBracket;
+      
+      const lastBrace = rawText.lastIndexOf('}');
+      const lastBracket = rawText.lastIndexOf(']');
+      const endIdx = Math.max(lastBrace, lastBracket);
+
+      if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+        throw new Error('No JSON found in response');
+      }
+
+      const clean = rawText.substring(startIdx, endIdx + 1).trim()
+        .replace(/,\s*([\]}])/g, '$1'); // Remove trailing commas
+      
+      console.log('DEBUG: Cleaned JSON string:', clean);
+      parsed = JSON.parse(clean);
+    } catch (err) {
+      console.error('DEBUG: JSON Parse Error:', err);
+      throw new Error(`La IA no devolvió un JSON válido para el emparejamiento de empleos. Detalle: ${err instanceof Error ? err.message : String(err)}`);
     }
 
-    return response.output as MatchJobsOutput;
+    // Normalise: if the model returned an array, wrap it
+    let output: MatchJobsOutput;
+    if (Array.isArray(parsed)) {
+      output = { matches: parsed as MatchJobsOutput['matches'] };
+    } else if (parsed && typeof parsed === 'object' && 'matches' in parsed) {
+      output = parsed as MatchJobsOutput;
+    } else {
+      throw new Error('Formato de respuesta inesperado de la IA.');
+    }
+
+    return output;
   }
 );

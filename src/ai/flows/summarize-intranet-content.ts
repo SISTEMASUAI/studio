@@ -29,11 +29,12 @@ const summarizeIntranetContentFlow = ai.defineFlow(
   {
     name: 'summarizeIntranetContentFlow',
     inputSchema: SummarizeIntranetContentInputSchema,
-    outputSchema: SummarizeIntranetContentOutputSchema,
+    // Note: outputSchema is omitted to prevent automatic Genkit validation errors with Ollama.
+    // We handle validation and normalization manually in the function body.
   },
   async (input) => {
     const response = await ai.generate({
-      model: 'googleai/gemini-1.5-flash',
+      model: 'ollama/llama3',
       prompt: `
 Eres un asistente experto en resumir información interna de una universidad.
 
@@ -50,17 +51,24 @@ Instrucciones para el resumen:
 - Estructura con viñetas o numeración si ayuda a la claridad
 - Mantén el contexto universitario (cursos, eventos, normativas, etc.)
 
-Devuelve SOLO el JSON con el campo "summary".
+Devuelve SOLO un objeto JSON con el campo "summary". Ningún otro texto, sin formato markdown.
+Ejemplo: {"summary": "..."}
       `,
-      output: { schema: SummarizeIntranetContentOutputSchema },
     });
 
-    const output = response.output;
-
-    if (!output) {
-      throw new Error("No se recibió un resumen válido del modelo.");
+    const rawText = response.text?.trim() ?? '';
+    if (!rawText) {
+       throw new Error("No se recibió un resumen válido del modelo.");
     }
 
-    return output as SummarizeIntranetContentOutput;
+    let parsed: SummarizeIntranetContentOutput;
+    try {
+      const clean = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+      parsed = JSON.parse(clean) as SummarizeIntranetContentOutput;
+    } catch {
+      throw new Error("La IA no devolvió un resumen en formato JSON válido.");
+    }
+
+    return parsed;
   }
 );

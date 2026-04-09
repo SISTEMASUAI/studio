@@ -1,170 +1,102 @@
 'use server';
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { calculateAcademicRisk, buildStudentNotification } from '@/lib/academic-risk-engine';
+import type { RiskAnalysisOutput } from '@/lib/academic-risk-engine';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { initializeApp, getApps } from 'firebase/app';
 
-// Schemas básicos----
-const UserProfileSchema = z.object({
-  uid: z.string(),
-  firstName: z.string(),
-  lastName: z.string(),
-});
-
-const AttendanceRecordSchema = z.object({
-  status: z.enum(['presente', 'ausente', 'tarde', 'justificado']),
-  date: z.string(),
-  courseId: z.string(),
-});
-
-const AssignmentSubmissionSchema = z.object({
-  grade: z.number().optional(),
-  assignmentId: z.string(),
-  submittedAt: z.string(),
-  courseId: z.string().optional(),
-});
-
-const QuizResultSchema = z.object({
-  score: z.number(),
-  quizId: z.string(),
-  completionDate: z.string(),
-  courseId: z.string(),
-});
-
-// Input schema extendido
-const AnalyzeStudentRiskInputSchema = z.object({
-  student: UserProfileSchema,
-  attendance: z.array(AttendanceRecordSchema),
-  submissions: z.array(AssignmentSubmissionSchema),
-  quizzes: z.array(QuizResultSchema),
-});
-
-export type AnalyzeStudentRiskInput = z.infer<typeof AnalyzeStudentRiskInputSchema>;
-
-// Schema de salida
-const AnalyzeStudentRiskOutputSchema = z.object({
-  riskLevel: z.enum(['Bajo', 'Medio', 'Alto']).describe('Nivel de riesgo académico general'),
-  riskOfDropout: z.enum(['Muy bajo', 'Bajo', 'Moderado', 'Alto', 'Muy alto']).describe('Probabilidad estimada de deserción'),
-  summary: z.string().describe('Resumen de 3 a 5 oraciones explicando patrones de asistencia y notas'),
-  supportRecommendations: z.array(z.string()).describe('Lista de 3-5 recomendaciones concretas y accionables para el tutor'),
-  alertLevel: z.enum(['Verde', 'Amarillo', 'Naranja', 'Rojo']).describe('Color de alerta visual'),
-});
-
-export type AnalyzeStudentRiskOutput = z.infer<typeof AnalyzeStudentRiskOutputSchema>;
-
-export async function analyzeStudentRisk(
-  input: AnalyzeStudentRiskInput
-): Promise<AnalyzeStudentRiskOutput> {
-  return analyzeStudentRiskFlow(input);
+// ──────────────────────────────────────────────
+// Tipos públicos (conservados para compatibilidad con la UI)
+// ──────────────────────────────────────────────
+export interface AnalyzeStudentRiskInput {
+  student: {
+    uid: string;
+    firstName: string;
+    lastName: string;
+  };
+  attendance: Array<{
+    status: 'presente' | 'ausente' | 'tarde' | 'justificado';
+    date: string;
+    courseId: string;
+  }>;
+  submissions: Array<{
+    grade?: number;
+    assignmentId: string;
+    submittedAt: string;
+    courseId?: string;
+  }>;
+  quizzes: Array<{
+    score: number;
+    quizId: string;
+    completionDate: string;
+    courseId: string;
+  }>;
 }
 
-const analyzeStudentRiskFlow = ai.defineFlow(
-  {
-    name: 'analyzeStudentRiskFlow',
-    inputSchema: AnalyzeStudentRiskInputSchema,
-    // Note: outputSchema is omitted to prevent automatic Genkit validation errors with Ollama.
-    // We handle validation and normalization manually in the function body.
-  },
-  async (input) => {
-    // Calcular métricas previas para enriquecer el prompt
-    const totalAttendance = input.attendance.length;
-    const absences = input.attendance.filter(a => a.status === 'ausente').length;
-    const attendanceRate = totalAttendance > 0 ? ((totalAttendance - absences) / totalAttendance * 100).toFixed(1) : 'N/A';
-    
-    const gradesAvailable = input.submissions.filter(s => s.grade !== undefined);
-    const averageGrade = gradesAvailable.length > 0 
-      ? (gradesAvailable.reduce((sum, s) => sum + (s.grade || 0), 0) / gradesAvailable.length).toFixed(2)
-      : 'N/A';
-    
-    const quizAverage = input.quizzes.length > 0
-      ? (input.quizzes.reduce((sum, q) => sum + q.score, 0) / input.quizzes.length).toFixed(2)
-      : 'N/A';
+// El tipo RiskAnalysisOutput se importa directamente desde '@/lib/academic-risk-engine' en la UI
 
-    const response = await ai.generate({
-      model: 'ollama/llama3',
-      config: {
-        temperature: 0.3,
-        maxOutputTokens: 1500,
-      },
-      prompt: `
-Eres un experto en retención estudiantil universitaria con 15 años de experiencia. Tu misión es analizar el rendimiento de un estudiante y predecir su riesgo de deserción basándote en datos académicos objetivos.
+// ──────────────────────────────────────────────
+// Función principal — ya NO usa Ollama/Genkit
+// ──────────────────────────────────────────────
+export async function analyzeStudentRisk(
+  input: AnalyzeStudentRiskInput
+): Promise<RiskAnalysisOutput & { notificationSent: boolean }> {
+  const studentName = `${input.student.firstName} ${input.student.lastName}`;
 
-PERFIL DEL ESTUDIANTE:
-Nombre: ${input.student.firstName} ${input.student.lastName}
-ID: ${input.student.uid}
+  console.log(
+    `[RiskEngine] Calculando riesgo de ${studentName} | ` +
+    `Asistencias: ${input.attendance.length}, ` +
+    `Tareas: ${input.submissions.length}, ` +
+    `Exámenes: ${input.quizzes.length}`
+  );
 
-MÉTRICAS CALCULADAS:
-- Tasa de asistencia: ${attendanceRate}%
-- Promedio de tareas: ${averageGrade}/20
-- Promedio de exámenes: ${quizAverage}/20
-- Total de asistencias registradas: ${totalAttendance}
-- Total de ausencias: ${absences}
-- Tareas entregadas: ${input.submissions.length}
-- Exámenes realizados: ${input.quizzes.length}
+  // 1. Calcular con el motor determinista (sincrónico, sin IA)
+  const result = calculateAcademicRisk(
+    input.attendance,
+    input.submissions,
+    input.quizzes,
+    studentName
+  );
 
-DATOS DETALLADOS:
-Asistencias: ${JSON.stringify(input.attendance, null, 2)}
-Tareas: ${JSON.stringify(input.submissions, null, 2)}
-Exámenes: ${JSON.stringify(input.quizzes, null, 2)}
+  console.log(
+    `[RiskEngine] Resultado: score=${result.metrics.finalScore} | ` +
+    `alerta=${result.alertLevel} | riesgo=${result.riskLevel}`
+  );
 
-CRITERIOS DE ANÁLISIS (Sistema de evaluación 0-20):
-1. **Rendimiento Académico** (40% del peso):
-   - Promedio ≥ 14: Excelente
-   - Promedio 11-13: Aceptable
-   - Promedio < 11: CRÍTICO (alto riesgo)
-   
-2. **Compromiso y Asistencia** (35% del peso):
-   - Asistencia ≥ 85%: Buen compromiso
-   - Asistencia 70-84%: Compromiso moderado
-   - Asistencia < 70%: CRÍTICO (posible desvinculación)
-   
-3. **Tendencia Temporal** (25% del peso):
-   - Analiza las últimas 3-4 semanas
-   - ¿Las notas están mejorando o empeorando?
-   - ¿Hay ausencias consecutivas recientes (últimos 7-14 días)?
-   - ¿Hay tareas sin entregar en las últimas 2 semanas?
+  // 2. Enviar notificación al alumno en Firestore
+  let notificationSent = false;
+  try {
+    const notification = buildStudentNotification(
+      input.student.firstName,
+      result.alertLevel,
+      result.riskLevel,
+      result.metrics.attendanceRate
+    );
 
-ANÁLISIS REQUERIDO:
-1. Evalúa la **correlación** entre asistencia y rendimiento: ¿Las faltas están impactando directamente las notas?
-2. Identifica el **tipo de riesgo**:
-   - Académico puro: Asiste pero tiene malas notas
-   - Compromiso: No asiste y/o no entrega tareas
-   - Mixto: Problemas en ambas áreas
-3. Detecta **señales de alerta temprana**:
-   - Caída repentina en asistencia
-   - Deterioro progresivo en notas
-   - Ausencias prolongadas sin justificar
-
-NIVELES DE ALERTA:
-- 🟢 **Verde**: Estudiante estable (asistencia >85%, notas >13)
-- 🟡 **Amarillo**: Atención preventiva (asistencia 70-85% O notas 11-13)
-- 🟠 **Naranja**: Riesgo alto (asistencia <70% O notas <11)
-- 🔴 **Rojo**: Abandono inminente (asistencia <60% Y notas <10, o ausencias >7 días consecutivos)
-
-RECOMENDACIONES:
-Genera 3-5 recomendaciones **específicas y accionables** para el tutor, priorizadas por urgencia. Incluye:
-- Intervenciones inmediatas (si aplica)
-- Estrategias de seguimiento personalizado
-- Recursos de apoyo específicos (tutorías, orientación psicológica, etc.)
-- Plan de recuperación académica (si es necesario)
-
-Responde ÚNICAMENTE con el JSON estructurado, sin texto adicional, sin markdown, en este formato exacto:
-{"riskLevel":"Bajo|Medio|Alto","riskOfDropout":"Muy bajo|Bajo|Moderado|Alto|Muy alto","summary":"...","supportRecommendations":["...","..."],"alertLevel":"Verde|Amarillo|Naranja|Rojo"}
-      `,
-    });
-
-    const rawText = response.text?.trim() ?? '';
-    if (!rawText) {
-      throw new Error("No se recibió una respuesta válida del modelo de IA.");
+    // Obtener instancia de Firestore desde el app ya inicializado
+    const apps = getApps();
+    if (apps.length > 0) {
+      const db = getFirestore(apps[0]);
+      await addDoc(collection(db, 'notifications'), {
+        userId: input.student.uid,
+        type: 'academic_risk',
+        title: notification.title,
+        message: notification.message,
+        alertLevel: result.alertLevel,
+        riskLevel: result.riskLevel,
+        metrics: result.metrics,
+        createdAt: new Date().toISOString(),
+        read: false,
+      });
+      notificationSent = true;
+      console.log(`[RiskEngine] ✅ Notificación enviada a ${studentName} (${result.alertLevel})`);
+    } else {
+      console.warn('[RiskEngine] No se encontró instancia de Firebase — notificación omitida.');
     }
-
-    let parsed: AnalyzeStudentRiskOutput;
-    try {
-      const clean = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-      parsed = JSON.parse(clean) as AnalyzeStudentRiskOutput;
-    } catch {
-      throw new Error("La IA no devolvió un JSON válido para el análisis de riesgo.");
-    }
-
-    return parsed;
+  } catch (err) {
+    // No queremos bloquear el resultado si la notificación falla
+    console.error('[RiskEngine] Error al enviar notificación:', err);
   }
-);
+
+  return { ...result, notificationSent };
+}
